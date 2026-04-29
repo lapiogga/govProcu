@@ -1,0 +1,6 @@
+feat(plan): 나라장터 MCP 서버 구축 계획서 v1.0 + 작업관리 체계 초기화
+
+- 계획서 docx (9개 챕터, 421문단) 추가
+- WORK-LOG.md / TERMINAL-LOG.md 시계열 로깅 체계 구축
+- build_plan.js 문서 생성 스크립트
+- README.md, .gitignore 추가

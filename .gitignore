@@ -1,0 +1,27 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Logs (런타임 로그는 제외, 워크/터미널 로그는 포함)
+*.log
+runtime/
+
+# Secrets
+*.key
+*.pem
+secrets/
