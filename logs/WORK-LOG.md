@@ -101,3 +101,4 @@
 | 19:09 | 19:10 | 1분 | 정기 sync 시작 | 마운트 변경 2건 감지: `app/server.py`(award.search_awards_by_vendor 등록 추가 + 하단 `if __name` 절단), `app/tools/award.py`(스텁→실 구현 docstring 작성 도중 절단). |
 | 19:10 | 19:14 | 4분 | server.py·award.py 자동 복원 | (a) **server.py**: 사용자 추가 `mcp.tool()(award_tools.search_awards_by_vendor)` 보존. 절단된 `if __name` → `if __name__ == "__main__":
     main()` 복구. (b) **award.py**: 사용자 신규 docstring(ScsbidInfoService 사용 의도) 보존. `search_awards_by_vendor` 시그니처(vendor_name/vendor_biz_no/date_from/date_to/biz_type/limit)를 not_implemented 스텁으로 정의. `placeholder_award` 보존(server.py 등록 일관성). 9개 .py 파일 syntax PASS. |
+| 19:31 | 19:31 | 0분 | 정기 점검 | 변경 없음 — 휴면 (mount=origin=work, 워킹트리 clean, 직전 19:14 이후 추적 파일 변동 없음) |

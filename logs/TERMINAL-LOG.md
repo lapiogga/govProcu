@@ -309,3 +309,10 @@ app/clients/g2b.py OK
 app/tools/{bid,award,contract,stats,user,vendor}.py OK
 ```
 결과: 9개 모듈 syntax PASS. server.py 의 award_tools.search_awards_by_vendor import 경로 정합성 확보.
+
+### [19:31:01 KST] $ rsync mount → work + diff 확인 (정기 점검)
+```
+변경 없음 (mount=work=origin@a161ef5)
+워킹트리 clean / 추적 파일 0건
+```
+결과: 휴면 사이클. WORK-LOG.md 휴면 행만 추가.
