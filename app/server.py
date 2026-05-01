@@ -53,7 +53,9 @@ mcp.tool()(contract_tools.search_contracts)
 mcp.tool()(stats_tools.placeholder_stats)
 # user 영역 (스텁)
 mcp.tool()(user_tools.placeholder_user)
-# vendor 영역 (스텁)
+# vendor 영역
+mcp.tool()(vendor_tools.search_bid_participants)
+mcp.tool()(vendor_tools.get_evaluation_scores)
 mcp.tool()(vendor_tools.placeholder_vendor)
 
 
