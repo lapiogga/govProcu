@@ -183,4 +183,29 @@ done.
 ```
 결과: origin/main = `94e59bd` 확인 (사용자 setup-git.ps1로 push된 첫 커밋이 정상 반영된 상태 유지).
 
-### [16:
+### [16:27:30 KST] $ git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-01 16:27 KST"
+```
+[main e379a8c] chore(worklog): 20분 주기 자동 동기화 2026-05-01 16:27 KST
+ 2 files changed, 63 insertions(+), 9 deletions(-)
+```
+결과: /tmp/GovProcu_work 측 로컬 커밋 성공 (`e379a8c`).
+
+### [16:27:45 KST] $ GIT_TERMINAL_PROMPT=0 git push origin main
+```
+fatal: could not read Username for 'https://github.com': terminal prompts disabled
+exit code: 1
+```
+결과: **실패** — 샌드박스에 GitHub 자격증명 미캐시. 사용자 측에서 별도 push 또는 PAT 환경변수 등록 필요. WORK-LOG.md에 사유 기록 후 정상 종료.
+
+---
+
+## 2026-05-01 (금) — P1 산출물 빌드
+
+### [16:48:00 KST] $ NODE_PATH=outputs/node_modules node scripts/build_api_guide.js
+```
+OK
+-rwx------ 1 ... 19262 May  1 07:28 공공데이터포털_나라장터_API_활용신청_가이드.docx
+```
+결과: 성공 — outputs의 docx 모듈을 NODE_PATH로 재사용. 19KB 문서 생성.
+
+### [16:48:30 KST] $ python

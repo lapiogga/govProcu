@@ -72,3 +72,7 @@
 |------|------|------|--------|------|
 | 16:38 | 16:42 | 4분 | PAT 발급 가이드 안내 | Fine-grained PAT 권한(govProcu repo의 Contents:Read+Write)·발급 URL·90일 만료 정책 안내. 사용자 발급 대기 |
 | 16:42 | 16:50 | 8분 | API 활용신청 가이드 docx 생성 (P1 산출물) | scripts/build_api_guide.js 작성 → /tmp 워크어라운드 빌드 → 19KB·224문단 docx 생성 → validate.py PASSED. docs/ 폴더 보관 |
+| 16:50 | 16:55 | 5분 | PAT 수신 및 보안 저장 | 사용자가 GitHub Fine-grained PAT 발급 → `.pat` 파일(권한 600)에 저장, `.gitignore`에 추가하여 커밋 차단. 마지막 4자리 `i2gZ` |
+| 16:55 | 17:00 | 5분 | PAT 권한 부족 발견 (Contents 미설정) | 1차 push 시 403 — PAT가 read만 있고 write 없음. 사용자에게 Contents=Read and write 설정 가이드 안내 |
+| 17:00 | 17:08 | 8분 | PAT 권한 수정 후 push 성공 | 사용자 권한 수정 완료 → `git push origin main` 성공: `94e59bd..3167536`. 원격 main = `3167536` |
+| 17:08 | 17:12 | 4분 | 20분 스케줄 task SKILL.md PAT 통합 | askpass 헬퍼 추가, .pat 자동 로드, push 자동화 활성화. 다음 사이클부터 자동 push 정상 동작 |
