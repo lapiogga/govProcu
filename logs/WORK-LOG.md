@@ -115,3 +115,4 @@
 | 22:30 | 22:30 | 0분 | 정기 점검 | 변경 없음 — 휴면 (직전 20:11 이후 추적 파일 변동 없음, mount=origin=work, 워킹트리 clean) |
 | 22:50 | 22:50 | 0분 | 정기 점검 | 변경 없음 — 휴면 (직전 20:11 이후 추적 파일 변동 없음, mount=origin=work, 워킹트리 clean) |
 | 23:09 | 23:10 | 1분 | 정기 점검 | 변경 없음 — 휴면 (직전 20:11 이후 추적 파일 변동 없음, mount=origin=work, 워킹트리 clean) |
+| 23:30 | 23:32 | 2분 | .env.example·config.py 자동 복원 (DART 신규 추가) | 사용자 편집이 두 파일을 절단함. (a) **.env.example**: 사용자가 신규 `DART_API_KEY=` 섹션 추가(opendart.fss.or.kr — 일일 한도 20,000건, 상장사+외감법인 등록) 도중 MCP_API_TOKENS/Redis/운영 섹션 절단 → 사용자 추가분 보존하고 절단 부분 복구. (b) **app/config.py**: 사용자가 `dart_api_key` Field 추가 도중 `g2b_base_url` + `settings = Settings()` 절단 → 보존+복구. config.py syntax PASS. |

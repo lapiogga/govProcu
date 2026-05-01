@@ -397,3 +397,15 @@ nothing to commit, working tree clean
 결과: mount=origin=work 일치. 직전 20:11 이후 추적 파일 변동 없음. 휴면 사이클로 처리.
 
 [23:09:54 KST] $ # worklog-sync (자동) — mount=origin=work, 변경 없음
+
+### [23:30:00 KST] $ git status (정기 sync — DART API 신규 추가 감지)
+```
+ M .env.example
+ M app/config.py
+```
+사용자 편집 의도(DART OPENDART API 신규 통합 — 7번째 데이터 소스) 보존 + 절단 자동 복원. 다음 단계 예상: app/clients/dart.py 또는 app/tools/disclosure.py 신규 추가 → 입찰 참가 업체의 재무·사업 검증 자동화 토대.
+
+### [23:32:00 KST] $ python3 -c "import ast; ast.parse(open('app/config.py').read())"
+```
+config.py syntax PASS
+```
