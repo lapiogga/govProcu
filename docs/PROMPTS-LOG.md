@@ -37,6 +37,7 @@
 |-----------|---|----------------------------|------|----------|
 | 00:13 | 8 | **"이제부터 다음 사항을 준수하여 작업을 진행한다. 너는 이번 작업을 통 지휘하는 오케스트레이터이며... GSD 프로세스 기반... 팀 Agent를 활용... 시계열로 모든 진행내용을 기록... context 80% 자동 compact... recommended 즉시 수행"** | 운영지시 | 오케스트레이터 모드 진입, TaskCreate 시계열 관리, 팀 sub-agent 가동 |
 | 00:13 | 9 | **"나라장터 및 국세청 API를 이용하여 국가에서 하는 각종 입찰정보를 조회하고 특정 건에 대한 사전규격, 입찰공고, 개찰내역, 낙찰정보, 낙찰 및 응찰업체에 대한 구체적인 정보 등을 조회하고, 확인하고자 한다. 이에 대해 지금까지 진행한 내역을 바탕으로 보다 나은 결과를 이룰 수 있게 계획을 재 수립한다."** | 핵심지시 | docs/REPLAN.md v2 작성. Tier 1 단위 18종 + Tier 2 통합 워크플로우 4종 (trace_bid_lifecycle 등) |
+| 00:19 | 9-A | **"1"** (origin 우선/로컬 우선/force push 3안 중 1번 선택) | 선택 | git reset --hard origin/main 진행. 회고 추가(5/2 01:14 강화 지시 반영). 9번 핵심지시에 대한 의사결정 분기점. |
 | 00:25 | 10 | **"특정업체의 기간 내 입찰, 응찰, 개찰, 낙찰 정보도 검색할 수 있게끔 구현"** | 추가지시 | vendor V1~V4 도구 (search_bids/participations/openings/awards_by_vendor) + W2 vendor_profile 시그니처 강화 |
 | 00:36 | 11 | **"동종업체 또는 비슷한 규모의 경쟁업체 동향, 유사 사업에 대한 업체 동향, 통계 등 보조적인 검색자료 추출도 서비스로 보강해서 추가"** | 추가지시 | app/tools/analytics.py 신규 (Tier 2.5): find_similar_vendors / find_similar_bids / industry_trend / peer_analysis / market_share |
 | ~00:43 | 12 | **"특정기간, 특정 발주기관의 발주 목록 및 낙찰업체 정보 조회기능 도 추가"** | 추가지시 | workflow.py W5 agency_procurement_history (발주 목록 + 각 공고별 낙찰자 매칭) |
@@ -47,4 +48,5 @@
 | 01:00 | 17 | **"사용자 프롬프트 시계열 관리는 본 프로젝트 와는 별개로 모든 프로젝트에 공히 적용되어야 할 기준임."** | 운영지시 | `~/.claude/rules/prompts-log.md` 글로벌 규칙 추가 + CLAUDE.md @import 등록 + 메모리 feedback 저장 |
 | 01:02 | 18 | **"최근 인공지능을 이용하여 이와 같은 입찰정보를 제공하는 서비스나 업체, 트렌드, 기술 등에 대해서도 조사가 필요함."** | 핵심지시 | AI Trend Research sub-agent 가동 (병렬) — docs/AI-TREND-RESEARCH.md 산출 예정. 채택 가능 AI 기능 우선순위 + 차별화 신규 도구 제안 포함 |
 | 01:04 | 19 | **"온톨로지나 그래프DB 형태로도 발전시켰을 때 기술적인 문제점은 없는지, 적용가능성은 있는지?"** | 통찰 | Graph DB Feasibility R&D sub-agent 가동 (병렬) — docs/GRAPH-FEASIBILITY.md 산출 예정. Neo4j 등 후보 비교, 데이터 모델, ETL 문제, 응용 시나리오(담합 탐지/입찰 추천), 단계별 추진안 |
-| 01:08 | 20 | **"최신 프론트 기술로 접목 가능한 것은 있는지?"** | 통찰 | Frontend Tech R&D sub-agent 가동 (병렬) — docs/FRONTEND-TECH.md 산출 예정. RSC/Streaming/AI SDK Generative UI/react-flow/Tremor/Cache Components/Local-first/Edge 등 매트릭스. 화면별 추천 스택 + 도입 wave + 차별화 신규 UX. UI-PLAN.md v2 강화 자료. |
+| 01:08 | 20 | **"최신 프론트 기술로 접목 가능한 것은 있는지?"** | 통찰 | Frontend Tech R&D sub-agent 가동 (병렬) — docs/FRONTEND-TECH.md 산출. RSC+Streaming + AI SDK 5 + Cache Components + Tremor + xyflow 5축. Wave 1/2/3 도입 + 신규 UX 5종 (AI 자연어 콘솔/Streaming Timeline/Relational Graph/Live cmd+k/OKLCH 다크) |
+| 01:14 | 21 | **"중간중간에 입력하는 프롬프트는 빠짐없이 기록 저장이 되어야 함. - 글로벌 영역"** | 운영지시 | 글로벌 규칙(`~/.claude/rules/prompts-log.md`) "모든 발화 빠짐없이 기록" 강화. 단순 확인·선택("응", "1번")도 의사결정 분기점이므로 기록 추가. 회고 발화 9-A(00:19 "1") 추가. 메모리 feedback 갱신. |
