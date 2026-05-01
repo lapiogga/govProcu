@@ -1,0 +1,39 @@
+{
+  "name": "govprocu-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GovProcu 데스크톱·태블릿 웹앱 (Next.js 15 + AI SDK + shadcn/ui)",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "15.1.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "ai": "^4.0.0",
+    "@ai-sdk/anthropic": "^1.0.0",
+    "@ai-sdk/react": "^1.0.0",
+    "zod": "^3.23.8",
+    "lucide-react": "^0.460.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.4",
+    "@tanstack/react-query": "^5.59.0",
+    "@tanstack/react-table": "^8.20.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.6.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "postcss": "^8.4.49",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "15.1.0"
+  }
+}

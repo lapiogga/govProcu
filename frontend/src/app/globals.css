@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* GovProcu 디자인 토큰 (OKLCH 기반)
+ * UI-PLAN v1.1: 데스크톱·태블릿 only, 표 가독성 우선
+ * FRONTEND-TECH Wave 1: Tailwind v4 + OKLCH + @theme
+ */
+@theme {
+  --color-bg: oklch(99% 0 0);
+  --color-bg-muted: oklch(97% 0.005 240);
+  --color-fg: oklch(20% 0.01 240);
+  --color-fg-muted: oklch(50% 0.01 240);
+  --color-primary: oklch(55% 0.18 250);
+  --color-primary-fg: oklch(98% 0 0);
+  --color-success: oklch(60% 0.18 150);
+  --color-warning: oklch(70% 0.18 80);
+  --color-danger: oklch(58% 0.22 25);
+  --color-border: oklch(90% 0.005 240);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Pretendard Variable",
+    "Pretendard", "Apple SD Gothic Neo", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "D2Coding", ui-monospace, SFMono-Regular,
+    Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-bg: oklch(15% 0.01 240);
+    --color-bg-muted: oklch(20% 0.01 240);
+    --color-fg: oklch(95% 0 0);
+    --color-fg-muted: oklch(70% 0.01 240);
+    --color-border: oklch(28% 0.005 240);
+  }
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}
+
+/* 정부 입찰 테이블 가독성 (큰 숫자 정렬) */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

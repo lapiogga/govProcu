@@ -1,0 +1,35 @@
+# Neo4j Phase R1 PoC — 단일 컨테이너
+# 사용자 5/2 22번 R&D 트랙. Graph DB Feasibility 분석 결과(docs/GRAPH-FEASIBILITY.md)에 따라
+# Neo4j Community Edition(GPLv3) 채택. 2주 내 검증.
+#
+# 실행:
+#   cd deploy/neo4j-poc && docker compose up -d
+#   브라우저: http://localhost:7474 (default neo4j/govprocu_poc)
+#   bolt: bolt://localhost:7687
+#
+# ETL:
+#   python scripts/etl_to_neo4j.py --days 7
+services:
+  neo4j:
+    image: neo4j:5.20-community
+    container_name: govprocu-neo4j-poc
+    restart: unless-stopped
+    ports:
+      - "7474:7474"  # HTTP/Browser
+      - "7687:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/govprocu_poc
+      - NEO4J_PLUGINS=["graph-data-science"]
+      - NEO4J_dbms_security_procedures_unrestricted=gds.*
+      - NEO4J_dbms_security_procedures_allowlist=gds.*
+      - NEO4J_dbms_memory_heap_initial__size=512m
+      - NEO4J_dbms_memory_heap_max__size=2G
+      - NEO4J_dbms_memory_pagecache_size=512m
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - ./cypher:/var/lib/neo4j/import:ro
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
