@@ -117,3 +117,32 @@
 | 23:09 | 23:10 | 1분 | 정기 점검 | 변경 없음 — 휴면 (직전 20:11 이후 추적 파일 변동 없음, mount=origin=work, 워킹트리 clean) |
 | 23:30 | 23:32 | 2분 | .env.example·config.py 자동 복원 (DART 신규 추가) | 사용자 편집이 두 파일을 절단함. (a) **.env.example**: 사용자가 신규 `DART_API_KEY=` 섹션 추가(opendart.fss.or.kr — 일일 한도 20,000건, 상장사+외감법인 등록) 도중 MCP_API_TOKENS/Redis/운영 섹션 절단 → 사용자 추가분 보존하고 절단 부분 복구. (b) **app/config.py**: 사용자가 `dart_api_key` Field 추가 도중 `g2b_base_url` + `settings = Settings()` 절단 → 보존+복구. config.py syntax PASS. |
 | 23:49 | 23:52 | 3분 | NTS API 통합 (DART → NTS 교체) 자동 복원 | 사용자가 데이터 소스 7번을 **DART(전자공시) → NTS(국세청 사업자등록 진위확인)**로 교체. 변경 4건 + 신규 1건 감지. (a) **.env.example**: DART_API_KEY 제거 + NTS_API_KEY 추가, MCP_API_TOKENS/Redis/운영(LOG_LEVEL/SERVER_*) 절단 → 복원. (b) **app/config.py**: dart_api_key → nts_api_key 교체 + g2b_base_url/settings 절단 → 복원, **nts_base_url="https://api.odcloud.kr/api/nts-businessman/v1"** 신규 추가. (c) **app/clients/nts.py**(신규): odcloud POST+JSON 비동기 클라이언트(serviceKey 자동 부여, 지수 백오프 3회). (d) **app/server.py**: vendor 영역 도구 2종(check_business_status·verify_business_info) 등록 + 하단 절단 → 복원. (e) **app/tools/vendor.py**: NTS docstring 보존 + 헬퍼(_NTS_STATUS_CD/_normalize_biz_no) 보존 + **2종 실 구현 추가**: check_business_status(/status, 1회 100건, 휴/폐업 한글 보강) + verify_business_info(/validate, 대표자명+개업일자 매칭). placeholder_vendor 복원. 14개 .py syntax PASS. |
+| 18:58 | 19:05 | 7분 | PoC 동작 검증 | 사용자 측 uvicorn 정상 기동 확인 (FastMCP 호환 fix 효과). MCP 서버 응답 정상(`Not Acceptable: Client must accept both application/json and text/event-stream` = MCP 스펙 정확 준수). PowerShell `curl`(Invoke-WebRequest) 문법 차이 안내 + curl.exe / Invoke-RestMethod 대체안 제시 |
+| 19:05 | 19:12 | 7분 | G2B 직접 호출 검증 (샌드박스에서 403 → PS 스크립트 제공) | 샌드박스에서 G2B 직접 호출 시 HTTP 403 (공공망 IP 정책 추정). 사용자 PC에서 동작 확인용 `scripts/test_g2b_call.ps1` 작성·push (.env 키 자동 로드 + 국방 재정관리단 필터 + 5건 출력) |
+| 19:12 | 19:15 | 3분 | 세션 마무리 체크포인트 | 사용자 마무리 요청. 최종 시점관리 정리 + GitHub 최종 push. 자동 sync는 계속 가동 중 (20분 주기) |
+
+---
+
+## ✅ 세션 마무리 체크포인트 — 2026-05-01 19:15 KST
+
+### 완료된 것
+- ✅ 계획서 docx (9챕터, 421문단)
+- ✅ API 활용신청 가이드 docx (8장, 224문단)
+- ✅ API 신청 진행 트래커 v3 (6/6 승인 완료)
+- ✅ FastMCP 골격 코드 (app/, deploy/, .github/, tests/)
+- ✅ 사용자 측 PoC 환경 셋업 (`pip install -e .` + `uvicorn` 동작 확인)
+- ✅ MCP 서버 응답 정상 (Streamable HTTP transport)
+- ✅ GitHub 저장소 https://github.com/lapiogga/govProcu 풀 가동
+- ✅ 20분 자동 sync + PAT 자동 push 운영 중
+- ✅ WORK-LOG / TERMINAL-LOG 시계열 운영 중
+
+### 사용자 보류 항목 (다음 세션 재개 시)
+- 🟡 6종 API 키 모두 .env에 입력 (현재 G2B_KEY_BID만 입력된 듯 — 65자)
+- 🟡 G2B 키 활성화 대기 시간 경과 후 PS 스크립트로 동작 확인 (`scripts/test_g2b_call.ps1`)
+- 🟡 Claude Desktop에 MCP 서버 등록 (`claude_desktop_config.json` http transport)
+- 🟡 자연어 질의 시연 (PoC 최종 검증)
+
+### 다음 진입점 (`continue` 입력 시)
+1. test_g2b_call.ps1 결과 확인
+2. Claude Desktop 등록 → 자연어 질의 검증
+3. 검증 통과 시 → MVP 도구 (contract / award / user / stats) 본격 구현

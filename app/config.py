@@ -39,10 +39,4 @@ class Settings(BaseSettings):
     server_port: int = 8080
 
     # G2B 공통 (운영 검증된 경로: https + /ad 프리픽스)
-    g2b_base_url: str = "https://apis.data.go.kr/1230000/ad"
-
-    # NTS 사업자등록 진위확인/상태조회 (data.go.kr odcloud)
-    nts_base_url: str = "https://api.odcloud.kr/api/nts-businessman/v1"
-
-
-settings = Settings()
+    g2b_base_url: str = "https://ap
