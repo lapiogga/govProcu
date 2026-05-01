@@ -90,3 +90,4 @@
 | 18:18 | 18:22 | 4분 | API 6종 최종 확정 (D 교체) | 사용자 보고: 입찰참가자격(D 후보) data.go.kr 검색 결과 미노출 → **D를 계약과정통합공개서비스로 교체**. `.env.example`/`app/config.py`(VENDOR→CONTRACT), `README.md`(연동 API 표·로드맵), `docs/API_신청_진행_트래커.md`(v3 최종 6종) 갱신, `app/tools/contract.py` 신규 추가 |
 | 17:49 | 17:51 | 2분 | 정기 sync (D 교체 반영) | 마운트 변경 5건 + 신규 1건 감지: 트래커 v3, `.env.example`·`config.py`(VENDOR→CONTRACT), `README.md`(API 표·로드맵 단계 0 ✅/단계 1 🟡), `app/tools/contract.py` 신규. 절단된 18:18 행 복구 후 commit·push |
 | 17:51 | 17:54 | 3분 | push 충돌 해결 | 로컬 488984c 와 user push 9ef6e79 가 같은 파일 수정 → rebase 충돌. 로컬 reset → mount의 fixed log만 다시 commit. mount의 vendor.py 삭제는 mount 권한상 실패(harmless — origin·work 모두 삭제 상태) |
+| 18:35 | 18:38 | 3분 | pip install -e . 실패 (패키지 자동탐색 충돌) | 사용자 보고: `Multiple top-level packages discovered in a flat-layout: ['app', 'logs', 'deploy']`. setuptools가 logs/deploy를 패키지로 오인. pyproject.toml에 `[tool.setuptools.packages.find] include=["app*"] exclude=[...]` 추가하여 해결 |

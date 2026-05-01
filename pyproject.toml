@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "govprocu-mcp"
 version = "0.1.0"
@@ -26,6 +30,12 @@ dev = [
 
 [project.scripts]
 govprocu-mcp = "app.server:main"
+
+# === setuptools: app 패키지만 포함, logs/deploy/docs/scripts/tests 등은 제외 ===
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["logs*", "deploy*", "docs*", "scripts*", "tests*", ".github*"]
 
 [tool.ruff]
 line-length = 100
