@@ -53,3 +53,172 @@ export async function getAgencyHistory(
     limit: 30,
   });
 }
+
+export async function getAgencyPricePattern(
+  instName: string,
+  bizType?: string,
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  return callMcpTool("analyze_agency_price_pattern", {
+    inst_name: instName,
+    biz_type: bizType,
+    date_from: dateFrom,
+    date_to: dateTo,
+    limit: 200,
+  });
+}
+
+export async function getIndustryTrend(
+  bizType: string,
+  instName?: string,
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  return callMcpTool("industry_trend", {
+    biz_type: bizType,
+    inst_name: instName,
+    date_from: dateFrom,
+    date_to: dateTo,
+  });
+}
+
+export async function getMarketShare(
+  bizType: string,
+  dateFrom?: string,
+  dateTo?: string,
+  topN = 20,
+) {
+  return callMcpTool("market_share", {
+    biz_type: bizType,
+    date_from: dateFrom,
+    date_to: dateTo,
+    top_n: topN,
+  });
+}
+
+// 즐겨찾기
+export async function listMyWatchlist(itemType?: string) {
+  return callMcpTool("list_my_watchlist", {
+    user_token: "default",
+    item_type: itemType,
+  });
+}
+
+export async function addToWatchlist(
+  itemType: "bid" | "vendor" | "agency" | "contract",
+  itemKey: string,
+  itemLabel?: string,
+  note?: string,
+) {
+  return callMcpTool("add_to_watchlist", {
+    item_type: itemType,
+    item_key: itemKey,
+    item_label: itemLabel,
+    note,
+    user_token: "default",
+  });
+}
+
+export async function removeFromWatchlist(
+  itemType: string,
+  itemKey: string,
+) {
+  return callMcpTool("remove_from_watchlist", {
+    item_type: itemType,
+    item_key: itemKey,
+    user_token: "default",
+  });
+}
+
+// 알림
+export async function listMySubscriptions() {
+  return callMcpTool("list_my_subscriptions", { user_token: "default" });
+}
+
+export async function subscribeKeyword(params: {
+  keyword: string;
+  biz_type?: string;
+  inst_name?: string;
+  region?: string;
+  notify_email?: string;
+}) {
+  return callMcpTool("subscribe_keyword_alerts", {
+    ...params,
+    user_token: "default",
+  });
+}
+
+export async function unsubscribeKeyword(subscriptionId: number) {
+  return callMcpTool("unsubscribe_keyword_alerts", {
+    subscription_id: subscriptionId,
+    user_token: "default",
+  });
+}
+
+// 적격심사
+export async function calcQualification(params: {
+  bid_amount: number;
+  base_amount: number;
+  biz_type: string;
+  estimated_price?: number;
+  experience_actual?: number;
+  experience_standard?: number;
+  tech_count?: number;
+  tech_required?: number;
+  credit_grade?: string;
+}) {
+  return callMcpTool("calc_qualification_score", params);
+}
+
+// 투찰가 예측
+export async function predictBidPrice(params: {
+  bid_notice_no?: string;
+  base_amount?: number;
+  biz_type?: string;
+  inst_name?: string;
+  target_win_probability?: number;
+}) {
+  return callMcpTool("predict_bid_price", params);
+}
+
+export async function compareBidStrategies(params: {
+  base_amount: number;
+  inst_name: string;
+  biz_type?: string;
+  strategies?: number[];
+}) {
+  return callMcpTool("compare_bid_strategies", params);
+}
+
+// Cross-Lookup
+export async function lookupByBidNo(bidNoticeNo: string, bidOrd = "00") {
+  return callMcpTool("lookup_by_bid_no", {
+    bid_notice_no: bidNoticeNo,
+    bid_ord: bidOrd,
+  });
+}
+
+export async function lookupByBizNo(
+  vendorBizNo: string,
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  return callMcpTool("lookup_by_biz_no", {
+    vendor_biz_no: vendorBizNo,
+    date_from: dateFrom,
+    date_to: dateTo,
+  });
+}
+
+export async function lookupByInstCode(
+  instName: string,
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  return callMcpTool("lookup_by_inst_code", {
+    inst_name: instName,
+    date_from: dateFrom,
+    date_to: dateTo,
+  });
+}

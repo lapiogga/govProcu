@@ -59,8 +59,43 @@ def _hash_categorical(s: str | None, modulo: int = 1000) -> int:
     return int(h[:8], 16) % modulo
 
 
+REGION_KEYWORDS = {
+    "서울": 1, "부산": 2, "대구": 3, "인천": 4, "광주": 5, "대전": 6, "울산": 7,
+    "세종": 8, "경기": 9, "강원": 10, "충북": 11, "충남": 12, "전북": 13,
+    "전남": 14, "경북": 15, "경남": 16, "제주": 17,
+}
+
+
+def _extract_region_code(inst_name: str | None) -> int:
+    """발주기관명에서 지역 코드 추출 (시도 17 + 0 unknown)."""
+    if not inst_name:
+        return 0
+    for kw, code in REGION_KEYWORDS.items():
+        if kw in inst_name:
+            return code
+    return 0
+
+
+def _amount_bucket(amount: int) -> int:
+    """추정가 분위수 버킷 (소액1, 중소2, 중견3, 대형4)."""
+    if amount < 100_000_000:
+        return 1
+    if amount < 1_000_000_000:
+        return 2
+    if amount < 10_000_000_000:
+        return 3
+    return 4
+
+
 def row_to_features(row: dict) -> dict | None:
-    """1개 낙찰 row → ML 피처 dict. 결측 시 None."""
+    """1개 낙찰 row → ML 피처 dict. 결측 시 None.
+
+    피처 강화 (NEXT2-2):
+    - region_code: 시도 17 + unknown
+    - amount_bucket: 소액/중소/중견/대형 4 버킷
+    - quarter: 1~4
+    - is_year_end: 12월=1, 그 외=0
+    """
     rate = _to_rate(row.get("award_rate"))
     if rate is None:
         return None
@@ -72,8 +107,10 @@ def row_to_features(row: dict) -> dict | None:
     try:
         dt = datetime.strptime(open_date, "%Y%m%d")
         year, month, dow = dt.year, dt.month, dt.weekday()
+        quarter = (month - 1) // 3 + 1
+        is_year_end = 1 if month == 12 else 0
     except ValueError:
-        year, month, dow = 0, 0, 0
+        year, month, dow, quarter, is_year_end = 0, 0, 0, 0, 0
 
     award_amount = _to_int(row.get("award_amount"))
     if award_amount <= 0:
@@ -81,21 +118,26 @@ def row_to_features(row: dict) -> dict | None:
 
     import math
     price_log = math.log10(max(award_amount, 1))
+    inst_name = row.get("inst_name")
 
     return {
         # features
         "biz_type_code": biz_type_code,
-        "inst_code_hash": _hash_categorical(row.get("inst_name")),
+        "inst_code_hash": _hash_categorical(inst_name),
         "winner_biz_no_hash": _hash_categorical(row.get("winner_biz_no")),
+        "region_code": _extract_region_code(inst_name),
+        "amount_bucket": _amount_bucket(award_amount),
         "price_log": round(price_log, 4),
         "year": year,
         "month": month,
         "dow": dow,
+        "quarter": quarter,
+        "is_year_end": is_year_end,
         # target
         "award_rate": round(rate, 6),
         # raw (학습 후 분석용)
         "_bid_notice_no": row.get("bid_notice_no"),
-        "_inst_name": row.get("inst_name"),
+        "_inst_name": inst_name,
         "_award_amount": award_amount,
     }
 

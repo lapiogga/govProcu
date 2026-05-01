@@ -22,10 +22,14 @@ FEATURES = [
     "biz_type_code",
     "inst_code_hash",
     "winner_biz_no_hash",
+    "region_code",
+    "amount_bucket",
     "price_log",
     "year",
     "month",
     "dow",
+    "quarter",
+    "is_year_end",
 ]
 TARGET = "award_rate"
 
