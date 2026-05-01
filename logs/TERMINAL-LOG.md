@@ -264,3 +264,18 @@ $ rm -f $MOUNT/app/tools/vendor.py
 rm: cannot remove '...': Operation not permitted
 ```
 결과: mount 권한상 vendor.py 삭제 불가. origin·mount 일관성 위해 vendor.py를 origin에 유지하기로 결정. 다음 사이클부터 stable 상태.
+
+### [18:32:28 KST] $ rsync mount → work (정기 sync)
+```
+M  app/server.py
+?? scripts/test_g2b_call.ps1
+```
+결과: 사용자가 G2B 직접 호출 ps1 + server.py 도구 확장 작업 진행. server.py는 절단 감지 → 직전 commit에서 하단 복원 후 mount 재기록.
+
+### [18:32:28 KST] $ git diff app/server.py (복원 후)
+```
++5 imports (award/contract/stats/user/vendor)
++9 lines tool registrations
+-1 line "(M3 PoC: 핵심 1개)" 주석
+```
+결과: 절단된 `main()`·`app=`·`__main__` 블록 보존. 추가분만 깔끔한 diff로 정리. uvicorn import 안전성 확보.

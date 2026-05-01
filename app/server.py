@@ -11,6 +11,11 @@ import structlog
 from fastmcp import FastMCP
 from app.config import settings
 from app.tools import bid as bid_tools
+from app.tools import award as award_tools
+from app.tools import contract as contract_tools
+from app.tools import stats as stats_tools
+from app.tools import user as user_tools
+from app.tools import vendor as vendor_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -33,8 +38,22 @@ mcp = FastMCP(
     ),
 )
 
-# === 도구 등록 (M3 PoC: 핵심 1개) ===
+# === 도구 등록 ===
+# bid 영역
 mcp.tool()(bid_tools.search_bid_notices)
+mcp.tool()(bid_tools.get_bid_notice_detail)
+mcp.tool()(bid_tools.list_pre_specifications)
+# award 영역 (M5 단계 스텁)
+mcp.tool()(award_tools.placeholder_award)
+# contract 영역 (M5 단계 스텁)
+mcp.tool()(contract_tools.get_contract_process)
+mcp.tool()(contract_tools.search_contracts)
+# stats 영역 (스텁)
+mcp.tool()(stats_tools.placeholder_stats)
+# user 영역 (스텁)
+mcp.tool()(user_tools.placeholder_user)
+# vendor 영역 (스텁)
+mcp.tool()(vendor_tools.placeholder_vendor)
 
 
 def _get_asgi_app():
