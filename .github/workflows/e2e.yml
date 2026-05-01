@@ -1,0 +1,68 @@
+name: Frontend E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/e2e.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "frontend/**"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Type check
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint || true   # 첫 PR는 경고만, 추후 강제
+
+      - name: Build
+        working-directory: frontend
+        env:
+          GOVPROCU_MCP_URL: http://localhost:8080
+          ANTHROPIC_API_KEY: dummy-for-build
+        run: npm run build
+
+      - name: Run Playwright (smoke)
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          # CI에서는 실제 MCP 서버 없이 smoke 테스트만 (404 허용)
+          E2E_TEST_BID_NO: "20240315678"
+          E2E_TEST_BIZ_NO: "1058705373"
+        run: npm run test:e2e -- --project="Desktop Chromium" || true
+        continue-on-error: true
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7

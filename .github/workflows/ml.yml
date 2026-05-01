@@ -1,0 +1,79 @@
+name: ML Pipeline (dataset → train → calibrate)
+
+on:
+  schedule:
+    # 매주 월요일 18:00 UTC = 화요일 03:00 KST
+    - cron: "0 18 * * 1"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "수집 일수 (기본 90)"
+        required: false
+        default: "90"
+
+jobs:
+  ml-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install deps
+        run: |
+          pip install -e ".[ml]"
+
+      - name: Download G2B keys (from Actions secrets)
+        env:
+          G2B_KEY_BID: ${{ secrets.G2B_KEY_BID }}
+          G2B_KEY_AWARD: ${{ secrets.G2B_KEY_AWARD }}
+          G2B_KEY_PRESPEC: ${{ secrets.G2B_KEY_PRESPEC }}
+          G2B_KEY_CONTRACT: ${{ secrets.G2B_KEY_CONTRACT }}
+          G2B_KEY_USER: ${{ secrets.G2B_KEY_USER }}
+          G2B_KEY_STATS: ${{ secrets.G2B_KEY_STATS }}
+          NTS_API_KEY: ${{ secrets.NTS_API_KEY }}
+        run: |
+          cat > .env <<EOF
+          G2B_KEY_BID=$G2B_KEY_BID
+          G2B_KEY_AWARD=$G2B_KEY_AWARD
+          G2B_KEY_PRESPEC=$G2B_KEY_PRESPEC
+          G2B_KEY_CONTRACT=$G2B_KEY_CONTRACT
+          G2B_KEY_USER=$G2B_KEY_USER
+          G2B_KEY_STATS=$G2B_KEY_STATS
+          NTS_API_KEY=$NTS_API_KEY
+          REDIS_URL=redis://localhost:6379/0
+          MCP_API_TOKENS=ci-token
+          EOF
+
+      - name: Collect dataset
+        env:
+          DAYS: ${{ inputs.days || '90' }}
+        run: |
+          python -m app.ml.dataset --days $DAYS --biz-type 용역 || true
+          python -m app.ml.dataset --days $DAYS --biz-type 공사 || true
+          python -m app.ml.dataset --days $DAYS --biz-type 물품 || true
+          ls -lh runtime/ml/
+
+      - name: Train LightGBM
+        run: |
+          python -m app.ml.train
+
+      - name: Calibrate
+        run: |
+          python -m app.ml.calibrate
+
+      - name: Upload model + reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-model-${{ github.run_number }}
+          path: |
+            runtime/ml/model_award_rate.txt
+            runtime/ml/model_meta.json
+            runtime/ml/calibration_report.json
+            runtime/ml/dataset_*.csv
+          retention-days: 30

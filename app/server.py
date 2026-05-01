@@ -153,7 +153,9 @@ def main():
 
 
 # uvicorn에서 ASGI app 노출
-app = _get_asgi_app()
+from app.core.auth import AuthMiddleware
+
+app = AuthMiddleware(_get_asgi_app())
 
 
 if __name__ == "__main__":

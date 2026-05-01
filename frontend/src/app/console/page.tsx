@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { BidLifecycleCard } from "@/components/console/BidLifecycleCard";
 
 /**
  * AI SDK 자연어 콘솔.
@@ -50,15 +51,13 @@ export default function ConsolePage() {
               {m.toolInvocations?.map((t, i) => (
                 <div
                   key={i}
-                  className="mt-2 rounded border-l-2 border-[var(--color-primary)] bg-[var(--color-bg-muted)] p-2 text-xs"
+                  className="mt-2 space-y-2"
                 >
-                  <div className="font-mono">
+                  <div className="rounded border-l-2 border-[var(--color-primary)] bg-[var(--color-bg-muted)] p-2 text-xs font-mono">
                     🔧 {t.toolName}({JSON.stringify(t.args)})
                   </div>
                   {t.state === "result" && (
-                    <pre className="mt-1 max-h-64 overflow-auto text-[10px]">
-                      {JSON.stringify(t.result, null, 2)}
-                    </pre>
+                    <GenerativeRender toolName={t.toolName} args={t.args} result={t.result} />
                   )}
                 </div>
               ))}
@@ -96,4 +95,53 @@ export default function ConsolePage() {
       </footer>
     </main>
   );
+}
+
+/**
+ * NEXT4-3 Generative UI — tool 이름별로 적절한 컴포넌트 자동 렌더.
+ */
+function GenerativeRender({
+  toolName,
+  args,
+  result,
+}: {
+  toolName: string;
+  args: any;
+  result: any;
+}) {
+  // MCP 응답 추출
+  const data = extractData(result);
+  if (!data) return null;
+
+  if (toolName === "trace_bid_lifecycle" && data.summary) {
+    return (
+      <BidLifecycleCard
+        bidNo={args.bid_notice_no}
+        bidOrd={args.bid_ord || "00"}
+        summary={data.summary}
+      />
+    );
+  }
+
+  // 기본 fallback: JSON dump
+  return (
+    <pre className="max-h-64 overflow-auto rounded bg-[var(--color-bg-muted)] p-2 text-[10px]">
+      {JSON.stringify(data, null, 2)}
+    </pre>
+  );
+}
+
+function extractData(raw: any): any {
+  if (!raw) return null;
+  if (raw.content && Array.isArray(raw.content)) {
+    const text = raw.content[0]?.text;
+    if (text) {
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return raw;
 }

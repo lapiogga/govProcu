@@ -18,11 +18,12 @@ from typing import Any
 
 from app.storage.db import get_db, init_db
 from app.tools import bid as bid_tools
+from app.core.auth import get_current_user_token
 
 
 async def subscribe_keyword_alerts(
     keyword: str,
-    user_token: str = "default",
+    user_token: str | None = None,
     biz_type: str | None = None,
     inst_name: str | None = None,
     region: str | None = None,
@@ -46,6 +47,8 @@ async def subscribe_keyword_alerts(
     Returns:
         등록된 구독 ID + 매칭 룰 요약.
     """
+    if user_token is None:
+        user_token = get_current_user_token()
     await init_db()
     db = await get_db()
     try:

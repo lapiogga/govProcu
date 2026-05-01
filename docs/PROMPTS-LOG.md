@@ -55,3 +55,4 @@
 | 01:50 | 24 | **"순서대로 진행"** | 선택 | 다음 액션 5종 우선순위 확정. ① P1-C 다중기관 어댑터 골격 → ② UI Phase B (입찰 상세 추적 Streaming + 업체 프로필) → ③ Neo4j PoC 검증 스크립트 → ④ Frontend 검증 가이드 → ⑤ ML 학습 인프라 (LightGBM). 21번 마무리 보고 후속 작업. |
 | 02:10 | 25 | **"순서대로 진행"** (2회차) | 선택 | NEXT 1-5 완료 후 추가 우선순위 5종 재확정. ① UI Phase C (발주기관 분석 + 분석/통계 + 즐겨찾기·알림) → ② ML 모델 정밀화 (feature engineering + 캘리브레이션) → ③ R2 ETL 파이프라인 (일일 증분 + 키 정규화) → ④ UI Phase D (Cross-Lookup xyflow + 적격심사·투찰가 페이지) → ⑤ 운영 문서 (DEPLOY/OPERATIONS). |
 | 02:32 | 26 | **"진행"** | 선택 | NEXT2 1-5 완료 후 5개 후보 순차 확정. ① xyflow 그래프 (Cross-Lookup 시각화) → ② Tremor 차트 (analytics/agencies) → ③ shadcn/ui CLI 컴포넌트 표준화 → ④ Playwright E2E 3시나리오 → ⑤ Neo4j R2 일일 증분 ETL 통합. |
+| 02:50 | 27 | **"진행"** (3회차) | 선택 | NEXT3 1-5 완료 후 5개 후보 순차 확정. ① shadcn 컴포넌트로 기존 페이지 점진 교체 → ② Cache Components ('use cache') 적용 → ③ AI SDK Generative UI 강화 → ④ CI 통합 (.github/workflows/e2e.yml + ml.yml) → ⑤ 사용자 인증 미들웨어 (MCP_API_TOKENS Bearer 검증). |
