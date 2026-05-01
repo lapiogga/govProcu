@@ -17,6 +17,7 @@ from app.tools import stats as stats_tools
 from app.tools import user as user_tools
 from app.tools import vendor as vendor_tools
 from app.tools import analytics as analytics_tools
+from app.tools import workflow as workflow_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -79,6 +80,12 @@ mcp.tool()(analytics_tools.find_similar_bids)
 mcp.tool()(analytics_tools.industry_trend)
 mcp.tool()(analytics_tools.peer_analysis)
 mcp.tool()(analytics_tools.market_share)
+# workflow 영역 (Tier 2 — 통합 워크플로우)
+mcp.tool()(workflow_tools.trace_bid_lifecycle)
+mcp.tool()(workflow_tools.vendor_profile)
+mcp.tool()(workflow_tools.agency_bid_summary)
+mcp.tool()(workflow_tools.competitor_analysis)
+mcp.tool()(workflow_tools.agency_procurement_history)
 
 
 def _get_asgi_app():
