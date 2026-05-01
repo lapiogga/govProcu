@@ -43,7 +43,8 @@ mcp = FastMCP(
 mcp.tool()(bid_tools.search_bid_notices)
 mcp.tool()(bid_tools.get_bid_notice_detail)
 mcp.tool()(bid_tools.list_pre_specifications)
-# award 영역 (M5 단계 스텁)
+# award 영역
+mcp.tool()(award_tools.search_awards_by_vendor)
 mcp.tool()(award_tools.placeholder_award)
 # contract 영역 (M5 단계 스텁)
 mcp.tool()(contract_tools.get_contract_process)

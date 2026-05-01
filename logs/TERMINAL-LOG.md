@@ -293,3 +293,19 @@ M  app/tools/bid.py
 OK syntax  (158 lines)
 ```
 결과: 복원된 bid.py·config.py 모두 syntax PASS. server.py가 import 하는 두 스텁 함수 보존 — uvicorn 기동 안전.
+
+### [19:09:53 KST] $ rsync mount → work (정기 sync)
+```
+M  app/server.py
+M  app/tools/award.py
+```
+결과: server.py 하단(`if __name`) + award.py(docstring 작성 중) 절단 감지. 동일 패턴(사용자 편집 도중 잘림). 자동 복원 진행.
+
+### [19:10:20 KST] $ python3 -c "import ast; ast.parse(...)" (모든 .py)
+```
+app/server.py OK
+app/config.py OK
+app/clients/g2b.py OK
+app/tools/{bid,award,contract,stats,user,vendor}.py OK
+```
+결과: 9개 모듈 syntax PASS. server.py 의 award_tools.search_awards_by_vendor import 경로 정합성 확보.

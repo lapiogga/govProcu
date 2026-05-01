@@ -98,3 +98,6 @@
 | 18:32 | 18:32 | 1분 | 정기 sync (이번 사이클) | 마운트 변경 2건 감지: `scripts/test_g2b_call.ps1`(신규) + `app/server.py`(도구 확장 + 절단 복원). 변경분 staging → commit → push 진행. |
 | 18:52 | 18:52 | 0분 | 정기 sync 시작 | 마운트 변경 3건 감지: `app/clients/g2b.py`(timeout 10s→30s), `app/config.py`(중대 절단), `app/tools/bid.py`(중대 절단). |
 | 18:52 | 18:52 | 5분 | bid.py·config.py 자동 복원 | 사용자 편집이 두 파일을 절단함. (a) **config.py**: `g2b_base_url` 값 + `settings=Settings()` 소실 → 의도 주석("https + /ad 프리픽스")대로 `https://apis.data.go.kr/1230000/ad`로 복원. (b) **bid.py**: 클라이언트측 필터 루프가 `con`에서 끊김 + 스텁 2종(`get_bid_notice_detail`·`list_pre_specifications`, server.py가 등록 중) 소실 → continue/페이지 진행 로직·has_more 계산·스텁 복구. (c) **g2b.py**: timeout 변경분 그대로 보존(절단 없음). 6개 도구 모듈 + 14개 .py syntax PASS. |
+| 19:09 | 19:10 | 1분 | 정기 sync 시작 | 마운트 변경 2건 감지: `app/server.py`(award.search_awards_by_vendor 등록 추가 + 하단 `if __name` 절단), `app/tools/award.py`(스텁→실 구현 docstring 작성 도중 절단). |
+| 19:10 | 19:14 | 4분 | server.py·award.py 자동 복원 | (a) **server.py**: 사용자 추가 `mcp.tool()(award_tools.search_awards_by_vendor)` 보존. 절단된 `if __name` → `if __name__ == "__main__":
+    main()` 복구. (b) **award.py**: 사용자 신규 docstring(ScsbidInfoService 사용 의도) 보존. `search_awards_by_vendor` 시그니처(vendor_name/vendor_biz_no/date_from/date_to/biz_type/limit)를 not_implemented 스텁으로 정의. `placeholder_award` 보존(server.py 등록 일관성). 9개 .py 파일 syntax PASS. |
