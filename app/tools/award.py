@@ -1,21 +1,326 @@
 """award 영역 MCP 도구 — 개찰/낙찰결과 조회.
 
-G2B `ScsbidInfoService` (낙찰정보서비스)를 기반으로 개찰·낙찰·응찰업체 정보를 조회한다.
-업종 분기는 BidPublicInfoService와 동일 패턴(공사/용역/물품).
+G2B `ScsbidInfoService` (낙찰정보서비스) — base `/1230000/ad/ScsbidInfoService`.
+업종 분기 패턴: Thng(물품)/Cnstwk(공사)/Servc(용역)/Frgcpt(외자).
+
+운영 컨벤션:
+- 개찰결과 목록: getOpengResultListInfo{업종}PPSSrch
+- 낙찰목록: getScsbidListSttus{업종}
+- 응찰업체 단독 endpoint 없음 → 개찰결과 응답 row에서 추출
+- 사업자번호 직접 필터 파라미터 없음 → 클라이언트측 필터링
 
 도구 매트릭스 (REPLAN.md v2):
-- list_bid_openings: 개찰목록 (특정 입찰의 응찰결과)
-- search_awards: 낙찰목록 (기간/기관/업종)
-- get_award_detail: 낙찰 단건 상세
-- search_awards_by_vendor: 업체 기준 낙찰 이력 (V4)
-- list_bid_participants: 응찰업체 목록 (특정 입찰의 응찰자 + 응찰가)
+- list_bid_openings: 개찰결과 목록 (특정 입찰 단건 또는 기간 일괄)
+- search_awards: 낙찰목록 (기간/기관/업종/키워드)
+- get_award_detail: 낙찰 단건 (공고번호+차수)
+- search_awards_by_vendor (V4): 업체 기준 낙찰 이력
+- list_bid_participants: 응찰업체 목록 (개찰결과 row에서 추출)
 """
 from __future__ import annotations
+from app.clients.g2b import G2BClient
 from app.config import settings
+from app.core.cache import cache_result
+from app.core.rate_limit import check_rate
 
 
-# === V4: 업체 기준 낙찰 이력 ===
+_BIZ_DIV_MAP = {"공사": "Cnstwk", "용역": "Servc", "물품": "Thng", "외자": "Frgcpt"}
 
+_OPENING_BASE = "/ScsbidInfoService/getOpengResultListInfo"
+_AWARD_BASE = "/ScsbidInfoService/getScsbidListSttus"
+
+_OPENING_ENDPOINTS = {
+    "Cnstwk": _OPENING_BASE + "CnstwkPPSSrch",
+    "Servc": _OPENING_BASE + "ServcPPSSrch",
+    "Thng": _OPENING_BASE + "ThngPPSSrch",
+    "Frgcpt": _OPENING_BASE + "FrgcptPPSSrch",
+}
+_AWARD_ENDPOINTS = {
+    "Cnstwk": _AWARD_BASE + "Cnstwk",
+    "Servc": _AWARD_BASE + "Servc",
+    "Thng": _AWARD_BASE + "Thng",
+    "Frgcpt": _AWARD_BASE + "Frgcpt",
+}
+
+
+def _to_int(v) -> int | None:
+    try:
+        return int(str(v).replace(",", "").strip())
+    except (ValueError, TypeError):
+        return None
+
+
+def _normalize_biz_no(s) -> str | None:
+    """사업자번호 정규화: 하이픈 제거."""
+    if not s:
+        return None
+    return str(s).replace("-", "").replace(" ", "").strip() or None
+
+
+def _extract_items(body: dict) -> list[dict]:
+    """G2B body에서 items 배열 안전 추출."""
+    items = body.get("items", [])
+    if isinstance(items, dict):
+        items = items.get("item", [])
+    if not isinstance(items, list):
+        items = [items] if items else []
+    return items
+
+
+def _normalize_award_row(raw: dict) -> dict:
+    """낙찰결과 row 정규화."""
+    return {
+        "bid_notice_no": raw.get("bidNtceNo"),
+        "bid_ord": raw.get("bidNtceOrd"),
+        "bid_title": raw.get("bidNtceNm"),
+        "inst_name": raw.get("ntceInsttNm") or raw.get("dminsttNm"),
+        "biz_type": raw.get("bsnsDivNm"),
+        "winner_name": raw.get("bidwinnrNm") or raw.get("opengCorpNm") or raw.get("prcbdrNm"),
+        "winner_biz_no": _normalize_biz_no(
+            raw.get("bidwinnrBizno") or raw.get("opengCorpBizrno") or raw.get("prcbdrBizno")
+        ),
+        "award_amount": _to_int(raw.get("sucsfbidAmt") or raw.get("plnprc") or raw.get("sucsfbidPrce")),
+        "award_rate": raw.get("sucsfbidRate") or raw.get("opengRslcfRate"),
+        "open_date": raw.get("opengDt") or raw.get("rlOpengDt"),
+        "raw": raw,
+    }
+
+
+def _normalize_opening_row(raw: dict) -> dict:
+    """개찰결과 row 정규화 — 응찰자 단위 포함."""
+    return {
+        "bid_notice_no": raw.get("bidNtceNo"),
+        "bid_ord": raw.get("bidNtceOrd"),
+        "bid_title": raw.get("bidNtceNm"),
+        "inst_name": raw.get("ntceInsttNm") or raw.get("dminsttNm"),
+        "open_date": raw.get("opengDt") or raw.get("rlOpengDt"),
+        "participant_count": _to_int(raw.get("prtcptCnum") or raw.get("opengCnt")),
+        "lower_limit_rate": raw.get("dcsnRsrvtnPrceRt") or raw.get("rsrvtnPrceRngBgnRate"),
+        "participant_name": raw.get("opengCorpNm") or raw.get("prtcptCorpNm") or raw.get("prcbdrNm"),
+        "participant_biz_no": _normalize_biz_no(
+            raw.get("opengCorpBizrno") or raw.get("prtcptCorpBizrno") or raw.get("prcbdrBizno")
+        ),
+        "participant_bid_amount": _to_int(raw.get("opengAmt") or raw.get("prtcptPrce") or raw.get("plnprc")),
+        "opening_rank": _to_int(raw.get("opengRank") or raw.get("rank")),
+        "is_winner": raw.get("sucsfbidYn") == "Y" or raw.get("bidwinnrYn") == "Y",
+        "raw": raw,
+    }
+
+
+def _resolve_biz_divs(biz_type: str | None) -> list[str]:
+    """biz_type에 해당하는 endpoint key 목록. None이면 전체 4종."""
+    if biz_type is None:
+        return ["Servc", "Cnstwk", "Thng", "Frgcpt"]  # 가장 흔한 순
+    key = _BIZ_DIV_MAP.get(biz_type)
+    if key:
+        return [key]
+    return ["Servc", "Cnstwk", "Thng", "Frgcpt"]
+
+
+# === 1. list_bid_openings ===
+
+@cache_result(ttl=settings.cache_ttl_short, prefix="award_open")
+async def list_bid_openings(
+    bid_notice_no: str | None = None,
+    bid_ord: str | None = None,
+    inst_name: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    biz_type: str | None = None,
+    limit: int = 20,
+) -> dict:
+    """개찰결과 목록 조회 — 특정 입찰 단건 또는 기간 일괄.
+
+    Args:
+        bid_notice_no: 입찰공고번호 (단건 추적 시)
+        bid_ord: 차수 (선택)
+        inst_name: 발주기관명 (클라이언트측 필터)
+        date_from / date_to: 개찰일 (YYYYMMDD)
+        biz_type: '공사' | '용역' | '물품' | '외자'
+        limit: 최대 반환 건수
+
+    Returns:
+        items: 개찰결과 row 목록 (응찰업체별).
+    """
+    allowed, remaining = await check_rate("g2b_open", capacity=10, refill_per_sec=1.0)
+    if not allowed:
+        raise RuntimeError(f"rate_limit: g2b_open 토큰 소진 (remaining={remaining})")
+
+    biz_divs = _resolve_biz_divs(biz_type)
+    needs_client_filter = bool(inst_name)
+
+    matches: list[dict] = []
+    total_count = 0
+    used_endpoints: list[str] = []
+
+    client = G2BClient()
+    try:
+        for biz_div in biz_divs:
+            if len(matches) >= limit:
+                break
+            endpoint = _OPENING_ENDPOINTS[biz_div]
+            params: dict = {
+                "pageNo": 1,
+                "numOfRows": 999 if needs_client_filter else max(limit, 50),
+                "inqryDiv": "1",  # 등록일 (일자 미지정 시 사용)
+            }
+            if bid_notice_no:
+                params["inqryDiv"] = "4"  # 공고번호 단건
+                params["bidNtceNo"] = bid_notice_no
+                if bid_ord:
+                    params["bidNtceOrd"] = bid_ord
+            else:
+                if date_from:
+                    params["inqryBgnDt"] = date_from + "0000"
+                if date_to:
+                    params["inqryEndDt"] = date_to + "2359"
+
+            try:
+                body = await client.call(endpoint, settings.g2b_key_award, params)
+            except Exception as exc:  # noqa: BLE001
+                continue
+
+            used_endpoints.append(endpoint)
+            total_count += int(body.get("totalCount", 0) or 0)
+
+            for raw in _extract_items(body):
+                if needs_client_filter and inst_name:
+                    inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
+                    if inst_name not in inst:
+                        continue
+                matches.append(_normalize_opening_row(raw))
+                if len(matches) >= limit:
+                    break
+    finally:
+        await client.aclose()
+
+    return {
+        "items": matches,
+        "total_count": total_count,
+        "returned_count": len(matches),
+        "has_more": len(matches) >= limit,
+        "endpoints_used": used_endpoints,
+    }
+
+
+# === 2. search_awards ===
+
+@cache_result(ttl=settings.cache_ttl_short, prefix="award_list")
+async def search_awards(
+    inst_name: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    biz_type: str | None = None,
+    keyword: str | None = None,
+    limit: int = 20,
+) -> dict:
+    """기간/기관/업종/키워드로 낙찰 목록 조회."""
+    allowed, remaining = await check_rate("g2b_award", capacity=10, refill_per_sec=1.0)
+    if not allowed:
+        raise RuntimeError(f"rate_limit: g2b_award 토큰 소진 (remaining={remaining})")
+
+    biz_divs = _resolve_biz_divs(biz_type)
+    needs_client_filter = bool(inst_name or keyword)
+
+    matches: list[dict] = []
+    total_count = 0
+    used_endpoints: list[str] = []
+
+    client = G2BClient()
+    try:
+        for biz_div in biz_divs:
+            if len(matches) >= limit:
+                break
+            endpoint = _AWARD_ENDPOINTS[biz_div]
+            params: dict = {
+                "pageNo": 1,
+                "numOfRows": 999 if needs_client_filter else max(limit, 50),
+                "inqryDiv": "1",
+            }
+            if date_from:
+                params["inqryBgnDt"] = date_from + "0000"
+            if date_to:
+                params["inqryEndDt"] = date_to + "2359"
+
+            try:
+                body = await client.call(endpoint, settings.g2b_key_award, params)
+            except Exception:
+                continue
+
+            used_endpoints.append(endpoint)
+            total_count += int(body.get("totalCount", 0) or 0)
+
+            for raw in _extract_items(body):
+                if needs_client_filter:
+                    if keyword:
+                        title = raw.get("bidNtceNm") or ""
+                        if keyword not in title:
+                            continue
+                    if inst_name:
+                        inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
+                        if inst_name not in inst:
+                            continue
+                matches.append(_normalize_award_row(raw))
+                if len(matches) >= limit:
+                    break
+    finally:
+        await client.aclose()
+
+    return {
+        "items": matches,
+        "total_count": total_count,
+        "returned_count": len(matches),
+        "has_more": len(matches) >= limit,
+        "endpoints_used": used_endpoints,
+    }
+
+
+# === 3. get_award_detail ===
+
+async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
+    """공고번호+차수로 낙찰 단건 상세 조회.
+
+    낙찰목록 4종 endpoint를 순차 시도하여 단건 추출.
+    """
+    allowed, remaining = await check_rate("g2b_award_detail", capacity=10, refill_per_sec=1.0)
+    if not allowed:
+        raise RuntimeError(f"rate_limit: g2b_award_detail 토큰 소진 (remaining={remaining})")
+
+    client = G2BClient()
+    try:
+        for biz_div, endpoint in _AWARD_ENDPOINTS.items():
+            params = {
+                "pageNo": 1,
+                "numOfRows": 1,
+                "inqryDiv": "4",
+                "bidNtceNo": bid_notice_no,
+                "bidNtceOrd": bid_ord,
+            }
+            try:
+                body = await client.call(endpoint, settings.g2b_key_award, params)
+            except Exception:
+                continue
+            items = _extract_items(body)
+            if items:
+                return {
+                    "found": True,
+                    "biz_div": biz_div,
+                    "endpoint": endpoint,
+                    "summary": _normalize_award_row(items[0]),
+                    "raw": items[0],
+                }
+        return {
+            "found": False,
+            "bid_notice_no": bid_notice_no,
+            "bid_ord": bid_ord,
+            "note": "낙찰목록 4종 endpoint 모두 미발견. 공고번호·차수 확인 또는 개찰결과(list_bid_openings) 시도.",
+        }
+    finally:
+        await client.aclose()
+
+
+# === 4. search_awards_by_vendor (V4) ===
+
+@cache_result(ttl=settings.cache_ttl_short, prefix="award_vendor")
 async def search_awards_by_vendor(
     vendor_name: str | None = None,
     vendor_biz_no: str | None = None,
@@ -24,115 +329,145 @@ async def search_awards_by_vendor(
     biz_type: str | None = None,
     limit: int = 20,
 ) -> dict:
-    """업체명/사업자번호로 기간 내 낙찰 내역을 조회합니다 (스텁).
+    """업체명/사업자번호로 기간 내 낙찰 내역 조회.
 
-    Args:
-        vendor_name: 낙찰자명(상호) 부분일치
-        vendor_biz_no: 사업자등록번호 (10자리, 하이픈 제외)
-        date_from / date_to: 개찰일 시작·종료 (YYYYMMDD)
-        biz_type: '공사' | '용역' | '물품'
-        limit: 최대 반환 건수 (1~100)
-
-    Returns:
-        items, total_count, returned_count, has_more를 포함한 dict.
+    ScsbidInfoService에 사업자번호 직접 필터 없음 → 풀 페이지 스캔 + 클라이언트 필터.
     """
+    if not (vendor_name or vendor_biz_no):
+        raise ValueError("vendor_name 또는 vendor_biz_no 중 하나는 필수")
+
+    allowed, remaining = await check_rate("g2b_award_vendor", capacity=5, refill_per_sec=0.5)
+    if not allowed:
+        raise RuntimeError(f"rate_limit: g2b_award_vendor 토큰 소진 (remaining={remaining})")
+
+    target_biz_no = _normalize_biz_no(vendor_biz_no)
+    biz_divs = _resolve_biz_divs(biz_type)
+
+    max_scan_per_biz = 10000  # 안전 상한
+    page_size = 999
+
+    matches: list[dict] = []
+    total_count = 0
+    scanned_total = 0
+    used_endpoints: list[str] = []
+
+    client = G2BClient()
+    try:
+        for biz_div in biz_divs:
+            if len(matches) >= limit:
+                break
+            endpoint = _AWARD_ENDPOINTS[biz_div]
+            scanned = 0
+            page = 1
+            while scanned < max_scan_per_biz and len(matches) < limit:
+                params: dict = {
+                    "pageNo": page,
+                    "numOfRows": page_size,
+                    "inqryDiv": "1",
+                }
+                if date_from:
+                    params["inqryBgnDt"] = date_from + "0000"
+                if date_to:
+                    params["inqryEndDt"] = date_to + "2359"
+
+                try:
+                    body = await client.call(endpoint, settings.g2b_key_award, params)
+                except Exception:
+                    break
+
+                used_endpoints.append(endpoint)
+                total_count = max(total_count, int(body.get("totalCount", 0) or 0))
+                items_raw = _extract_items(body)
+                if not items_raw:
+                    break
+
+                for raw in items_raw:
+                    scanned += 1
+                    norm = _normalize_award_row(raw)
+                    matched = False
+                    if target_biz_no and norm.get("winner_biz_no") == target_biz_no:
+                        matched = True
+                    elif vendor_name and vendor_name in (norm.get("winner_name") or ""):
+                        matched = True
+                    if matched:
+                        matches.append(norm)
+                        if len(matches) >= limit:
+                            break
+
+                if len(items_raw) < page_size:
+                    break
+                page += 1
+            scanned_total += scanned
+    finally:
+        await client.aclose()
+
     return {
-        "status": "not_implemented",
-        "domain": "award",
-        "tool": "search_awards_by_vendor",
-        "note": "ScsbidInfoService 매핑 진행 중 — Phase 3에서 구현",
-        "items": [],
-        "total_count": 0,
-        "returned_count": 0,
-        "has_more": False,
+        "items": matches,
+        "total_count": total_count,
+        "scanned": scanned_total,
+        "returned_count": len(matches),
+        "has_more": len(matches) >= limit,
+        "endpoints_used": list(set(used_endpoints)),
+        "filter": {
+            "vendor_biz_no": target_biz_no,
+            "vendor_name": vendor_name,
+            "date_range": [date_from, date_to],
+            "biz_type": biz_type,
+        },
     }
 
 
-# === 단위 도구 ===
-
-async def list_bid_openings(
-    bid_notice_no: str | None = None,
-    inst_code: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
-    biz_type: str | None = None,
-    limit: int = 20,
-) -> dict:
-    """개찰목록을 조회합니다 — 특정 입찰의 개찰 결과 또는 기간 내 개찰 일괄 (스텁).
-
-    Args:
-        bid_notice_no: 입찰공고번호 (단건 추적 시)
-        inst_code: 발주기관 코드
-        date_from / date_to: 개찰일 시작·종료 (YYYYMMDD)
-        biz_type: '공사' | '용역' | '물품'
-        limit: 최대 반환 건수
-
-    Returns:
-        items: 응찰자수·낙찰하한가·개찰일시 등 포함.
-    """
-    return {
-        "status": "not_implemented",
-        "domain": "award",
-        "tool": "list_bid_openings",
-        "note": "ScsbidInfoService 매핑 진행 중",
-        "items": [],
-        "total_count": 0,
-        "returned_count": 0,
-        "has_more": False,
-    }
-
-
-async def search_awards(
-    inst_code: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
-    biz_type: str | None = None,
-    keyword: str | None = None,
-    limit: int = 20,
-) -> dict:
-    """기간/기관/업종/키워드로 낙찰 목록을 조회합니다 (스텁)."""
-    return {
-        "status": "not_implemented",
-        "domain": "award",
-        "tool": "search_awards",
-        "note": "ScsbidInfoService 매핑 진행 중",
-        "items": [],
-        "total_count": 0,
-        "returned_count": 0,
-        "has_more": False,
-    }
-
-
-async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
-    """공고번호+차수로 낙찰 단건 상세를 조회합니다 (스텁)."""
-    return {
-        "status": "not_implemented",
-        "domain": "award",
-        "tool": "get_award_detail",
-        "bid_notice_no": bid_notice_no,
-        "bid_ord": bid_ord,
-        "note": "ScsbidInfoService 매핑 진행 중",
-    }
-
+# === 5. list_bid_participants ===
 
 async def list_bid_participants(
     bid_notice_no: str,
     bid_ord: str = "00",
 ) -> dict:
-    """입찰공고번호로 응찰업체 목록을 조회합니다 (사용자 핵심 요구 — 스텁).
+    """입찰공고번호로 응찰업체 목록 조회.
 
-    각 응찰업체의 사업자번호·상호·응찰가·낙찰여부 포함.
+    ScsbidInfoService에 응찰업체 단독 endpoint 없음 → 개찰결과(getOpengResultListInfo*) 응답 row를 사용.
+    각 row가 응찰업체 1건이라는 가정 (Bravo Research 결과 confidence: medium-low).
+    실 응답 검증 후 필드명 조정 가능.
     """
-    return {
-        "status": "not_implemented",
-        "domain": "award",
-        "tool": "list_bid_participants",
-        "bid_notice_no": bid_notice_no,
-        "bid_ord": bid_ord,
-        "note": "ScsbidInfoService 또는 조달데이터허브 EVAL 매핑 진행 중",
-        "items": [],
-        "total_count": 0,
-    }
+    allowed, remaining = await check_rate("g2b_participants", capacity=10, refill_per_sec=1.0)
+    if not allowed:
+        raise RuntimeError(f"rate_limit: g2b_participants 토큰 소진 (remaining={remaining})")
+
+    client = G2BClient()
+    try:
+        for biz_div, endpoint in _OPENING_ENDPOINTS.items():
+            params = {
+                "pageNo": 1,
+                "numOfRows": 100,
+                "inqryDiv": "4",
+                "bidNtceNo": bid_notice_no,
+                "bidNtceOrd": bid_ord,
+            }
+            try:
+                body = await client.call(endpoint, settings.g2b_key_award, params)
+            except Exception:
+                continue
+            items_raw = _extract_items(body)
+            if items_raw:
+                rows = [_normalize_opening_row(r) for r in items_raw]
+                return {
+                    "found": True,
+                    "biz_div": biz_div,
+                    "endpoint": endpoint,
+                    "bid_notice_no": bid_notice_no,
+                    "bid_ord": bid_ord,
+                    "items": rows,
+                    "participant_count": len(rows),
+                }
+        return {
+            "found": False,
+            "bid_notice_no": bid_notice_no,
+            "bid_ord": bid_ord,
+            "items": [],
+            "note": "개찰결과 4종 endpoint 모두 미발견. 공고번호·차수 확인 또는 입찰이 아직 개찰되지 않음.",
+        }
+    finally:
+        await client.aclose()
 
 
 # === 호환성 ===

@@ -82,6 +82,18 @@
 | W3 | **`agency_bid_summary`** | inst_code, period | 발주기관별 사전규격→공고→낙찰 요약 | 1,3,6,17 |
 | W4 | **`competitor_analysis`** | biz_no, period | 동일 업종 경쟁사 비교 (낙찰률·평균 응찰가) | 8,9,18 |
 
+### Tier 2.5 — 분석/탐색 도구 (보조)
+
+> **사용자 추가 지시 (2026-05-02 00:36)**: "동종업체·경쟁업체 동향·유사사업 통계 보조 검색 자료 추출 서비스 보강"
+
+| # | 도구 | 입력 | 결과 | 의존 |
+|---|------|------|------|------|
+| A1 | **`find_similar_vendors`** | biz_no, biz_type?, region?, period | 동일 업종·규모 동종업체 목록 (낙찰합계 기반 유사도) | V4, 17 |
+| A2 | **`find_similar_bids`** | bid_notice_no, similarity_factors | 유사 사업(같은 발주기관·키워드·금액대) 입찰 목록 | 1, 2, 6 |
+| A3 | **`industry_trend`** | biz_type, region?, period | 업종별 월별 입찰수·낙찰가·낙찰률 추이 | 6, 17 |
+| A4 | **`peer_analysis`** | biz_no, peer_count, period | 같은 규모 경쟁사 N개 비교 (낙찰률·평균가·시장점유) | V4, 17, A1 |
+| A5 | **`market_share`** | biz_type, period | 업종 내 시장점유 상위 업체 + 점유율 | 17, 18 |
+
 ---
 
 ## 3. 단계별 추진 계획

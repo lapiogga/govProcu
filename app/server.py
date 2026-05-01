@@ -16,6 +16,7 @@ from app.tools import contract as contract_tools
 from app.tools import stats as stats_tools
 from app.tools import user as user_tools
 from app.tools import vendor as vendor_tools
+from app.tools import analytics as analytics_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -72,6 +73,12 @@ mcp.tool()(vendor_tools.search_bids_by_vendor)
 mcp.tool()(vendor_tools.search_participations_by_vendor)
 mcp.tool()(vendor_tools.search_openings_by_vendor)
 mcp.tool()(vendor_tools.placeholder_vendor)
+# analytics 영역 (Tier 2.5 — 동종업체·경쟁사·유사사업·업종 동향)
+mcp.tool()(analytics_tools.find_similar_vendors)
+mcp.tool()(analytics_tools.find_similar_bids)
+mcp.tool()(analytics_tools.industry_trend)
+mcp.tool()(analytics_tools.peer_analysis)
+mcp.tool()(analytics_tools.market_share)
 
 
 def _get_asgi_app():
