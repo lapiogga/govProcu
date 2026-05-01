@@ -409,3 +409,18 @@ nothing to commit, working tree clean
 ```
 config.py syntax PASS
 ```
+
+### [23:52:15 KST] $ git status (정기 sync — DART → NTS 교체 감지)
+```
+ M .env.example
+ M app/config.py
+ M app/server.py
+ M app/tools/vendor.py
+?? app/clients/nts.py
+```
+사용자가 7번째 데이터 소스를 DART(전자공시)에서 NTS(국세청 사업자등록 진위확인/상태조회)로 교체. 입찰 참가 업체의 사업자등록 상태(휴/폐업 여부) 및 진위(대표자명·개업일자 매칭) 자동 검증 — 입찰 검토 단계의 핵심 리스크 게이트. odcloud POST+JSON 패턴(G2B GET+쿼리와 상이)이라 별도 NTSClient 작성. 사용자 편집 도중 4파일 절단 → 자동 복원. vendor 영역 신규 2종 실 구현 + 헬퍼(상태코드 매핑·b_no 정규화) 추가.
+
+### [23:52:15 KST] $ python3 -m py_compile (전 파일)
+```
+14개 .py 파일 모두 syntax PASS
+```

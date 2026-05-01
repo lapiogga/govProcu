@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     g2b_key_stats: str = Field(default="", description="공공조달통계정보서비스")
     g2b_key_eval: str = Field(default="", description="평가정보/응찰업체 상세 (조달데이터허브 신규 신청)")
 
-    # DART (전자공시) OPENDART
-    dart_api_key: str = Field(default="", description="DART OPENDART 인증키 (40자리, opendart.fss.or.kr 발급)")
+    # 국세청 사업자등록 진위확인 및 상태조회
+    nts_api_key: str = Field(default="", description="국세청 사업자등록 상태조회 인증키 (data.go.kr 발급, Decoding 권장)")
 
     # MCP 인증
     mcp_api_tokens: str = Field(default="", description="콤마 구분 토큰 목록")
@@ -40,6 +40,9 @@ class Settings(BaseSettings):
 
     # G2B 공통 (운영 검증된 경로: https + /ad 프리픽스)
     g2b_base_url: str = "https://apis.data.go.kr/1230000/ad"
+
+    # NTS 사업자등록 진위확인/상태조회 (data.go.kr odcloud)
+    nts_base_url: str = "https://api.odcloud.kr/api/nts-businessman/v1"
 
 
 settings = Settings()
