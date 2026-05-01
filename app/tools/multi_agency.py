@@ -3,92 +3,49 @@
 사용자 5/2 22번 우선순위 P1 (중요, 시장 표준).
 경쟁사(입찰나라·웰로비즈·아이건설넷) 표준 기능 — 다중 OpenAPI 통합.
 
-대상 발주기관 (확장 가능):
-- LH (한국토지주택공사) — lh.or.kr 자체 OpenAPI
-- 한국도로공사 — ex.co.kr
-- 한국수자원공사 — kwater.or.kr
-- 한국철도공사(코레일) — korail.com
-- 한국마사회 — kra.co.kr
-- 국방조달본부 — dapa.go.kr
-
-본 모듈은 통합 인터페이스 + G2B fallback 골격이다.
-각 기관 키 발급 후 기관별 어댑터(adapters/) 추가하여 활성화.
+본 모듈은 **adapter dispatch 패턴**을 사용한다:
+- app/clients/external/ 의 BaseAgencyAdapter 상속 클래스들이 기관별 어댑터
+- ADAPTER_REGISTRY로 dispatch (lh / ex / kwater / korail)
+- 환경변수에 키 설정 + 어댑터 ACTIVE 상태이면 자동 활성화
 
 도구:
 - search_multi_agency_bids: 여러 기관 동시 검색 → 통합 결과
-- list_supported_agencies: 지원 기관 목록 + 키 발급 상태
-- search_agency_specific: 특정 기관 단독 검색 (어댑터 호출)
+- list_supported_agencies: 지원 기관 + 키 발급 상태
+- search_agency_specific: 특정 기관 단독 검색
 """
 from __future__ import annotations
 
 from app.tools import bid as bid_tools
+from app.clients.external import ADAPTER_REGISTRY, AdapterStatus
 
 
-# === 지원 기관 카탈로그 ===
-_SUPPORTED_AGENCIES = {
-    "g2b": {
-        "name": "나라장터(G2B)",
-        "url": "apis.data.go.kr/1230000",
-        "scope": "조달청 통합 (대부분 발주기관)",
-        "api_key_env": "G2B_KEY_BID",
-        "status": "active",  # G2B는 이미 통합됨
-    },
-    "lh": {
-        "name": "한국토지주택공사(LH)",
-        "url": "apis.data.go.kr (LH 별도 OpenAPI 필요)",
-        "scope": "주거·도시개발 입찰",
-        "api_key_env": "LH_API_KEY (미발급)",
-        "status": "pending_key",
-    },
-    "ex": {
-        "name": "한국도로공사",
-        "url": "apis.data.go.kr (도로공사 OpenAPI)",
-        "scope": "도로 건설·유지보수",
-        "api_key_env": "EX_API_KEY (미발급)",
-        "status": "pending_key",
-    },
-    "kwater": {
-        "name": "한국수자원공사",
-        "url": "data.kwater.or.kr OpenAPI",
-        "scope": "수자원·댐 관련",
-        "api_key_env": "KWATER_API_KEY (미발급)",
-        "status": "pending_key",
-    },
-    "korail": {
-        "name": "한국철도공사(코레일)",
-        "url": "info.korail.com (별도)",
-        "scope": "철도 건설·차량",
-        "api_key_env": "KORAIL_API_KEY (미발급)",
-        "status": "pending_key",
-    },
-    "kra": {
-        "name": "한국마사회",
-        "url": "별도",
-        "scope": "마사회 자체 발주",
-        "api_key_env": "KRA_API_KEY (미발급)",
-        "status": "pending_key",
-    },
-    "dapa": {
-        "name": "방위사업청",
-        "url": "별도",
-        "scope": "국방 조달",
-        "api_key_env": "DAPA_API_KEY (미발급)",
-        "status": "pending_key",
-    },
+# G2B는 이미 통합되어 있어 별도 어댑터 없이 bid_tools로 호출
+_G2B_META = {
+    "agency": "g2b",
+    "name": "나라장터(G2B)",
+    "base_url": "apis.data.go.kr/1230000",
+    "service_key_env": "G2B_KEY_BID",
+    "status": "active",
 }
 
 
 async def list_supported_agencies() -> dict:
-    """통합 검색 지원 기관 목록 + 키 발급 상태."""
-    active = sum(1 for a in _SUPPORTED_AGENCIES.values() if a["status"] == "active")
-    pending = sum(1 for a in _SUPPORTED_AGENCIES.values() if a["status"] == "pending_key")
+    """통합 검색 지원 기관 + 키 발급 상태."""
+    agencies = [_G2B_META]
+    for adapter_cls in ADAPTER_REGISTRY.values():
+        agencies.append(adapter_cls.metadata())
+
+    active = sum(1 for a in agencies if a["status"] == "active")
+    pending_key = sum(1 for a in agencies if a["status"] == "pending_key")
+    pending_impl = sum(1 for a in agencies if a["status"] == "pending_implementation")
 
     return {
-        "total_agencies": len(_SUPPORTED_AGENCIES),
+        "total_agencies": len(agencies),
         "active": active,
-        "pending_key": pending,
-        "agencies": _SUPPORTED_AGENCIES,
-        "note": "현재 G2B 통합만 활성화. 다른 기관은 별도 키 발급 필요. data.go.kr에서 'LH 입찰', '도로공사 발주' 등 검색.",
+        "pending_key": pending_key,
+        "pending_implementation": pending_impl,
+        "agencies": agencies,
+        "note": "환경변수 키 설정 + 어댑터 STATUS=ACTIVE 시 즉시 활성화. data.go.kr에서 'LH 입찰', '도로공사 발주' 등 검색.",
     }
 
 
@@ -107,31 +64,14 @@ async def search_multi_agency_bids(
         keyword, biz_type, region, date_from, date_to: 공통 검색 조건
         agencies: 검색 대상 기관 키 목록 (None=모든 active)
         limit_per_agency: 기관별 최대 반환 건수
-
-    Returns:
-        agency별 결과 + 통합 합계.
     """
-    target = agencies or [k for k, a in _SUPPORTED_AGENCIES.items() if a["status"] == "active"]
+    target = agencies or ["g2b"] + list(ADAPTER_REGISTRY.keys())
 
     results: dict = {}
     total_count = 0
     skipped: list[dict] = []
 
     for agency_key in target:
-        agency_info = _SUPPORTED_AGENCIES.get(agency_key)
-        if not agency_info:
-            skipped.append({"agency": agency_key, "reason": "unknown"})
-            continue
-
-        if agency_info["status"] == "pending_key":
-            skipped.append({
-                "agency": agency_key,
-                "name": agency_info["name"],
-                "reason": "API 키 미발급",
-                "api_key_env": agency_info["api_key_env"],
-            })
-            continue
-
         if agency_key == "g2b":
             try:
                 r = await bid_tools.search_bid_notices(
@@ -142,23 +82,50 @@ async def search_multi_agency_bids(
                     date_to=date_to,
                     limit=limit_per_agency,
                 )
-                results[agency_key] = {
-                    "name": agency_info["name"],
+                results["g2b"] = {
+                    "name": _G2B_META["name"],
                     "match_count": len(r.get("items", [])),
                     "items": r.get("items", []),
                 }
                 total_count += len(r.get("items", []))
             except Exception as exc:
-                results[agency_key] = {
-                    "name": agency_info["name"],
-                    "error": str(exc)[:200],
-                }
-        else:
-            # 다른 기관은 어댑터 미구현 — 키 발급 + adapter 작성 후 활성화
+                results["g2b"] = {"name": _G2B_META["name"], "error": str(exc)[:200]}
+            continue
+
+        adapter_cls = ADAPTER_REGISTRY.get(agency_key)
+        if not adapter_cls:
+            skipped.append({"agency": agency_key, "reason": "unknown"})
+            continue
+
+        status = adapter_cls.current_status()
+        if status != AdapterStatus.ACTIVE:
+            skipped.append({
+                "agency": agency_key,
+                "name": adapter_cls.AGENCY_NAME,
+                "status": status.value,
+                "service_key_env": adapter_cls.SERVICE_KEY_ENV,
+            })
+            continue
+
+        try:
+            adapter = adapter_cls()
+            r = await adapter.search_bids(
+                keyword=keyword,
+                biz_type=biz_type,
+                date_from=date_from,
+                date_to=date_to,
+                limit=limit_per_agency,
+            )
             results[agency_key] = {
-                "name": agency_info["name"],
-                "status": "adapter_not_implemented",
-                "items": [],
+                "name": adapter_cls.AGENCY_NAME,
+                "match_count": len(r.get("items", [])),
+                "items": r.get("items", []),
+            }
+            total_count += len(r.get("items", []))
+        except Exception as exc:
+            results[agency_key] = {
+                "name": adapter_cls.AGENCY_NAME,
+                "error": str(exc)[:200],
             }
 
     return {
@@ -172,7 +139,7 @@ async def search_multi_agency_bids(
         "agencies_skipped": skipped,
         "total_match_count": total_count,
         "results_by_agency": results,
-        "note": "G2B 외 기관은 별도 OpenAPI 키 발급 + 어댑터 구현 후 활성화 가능.",
+        "note": "비활성 기관은 키 발급(SERVICE_KEY_ENV) 또는 어댑터 구현 후 활성화.",
     }
 
 
@@ -184,26 +151,7 @@ async def search_agency_specific(
     date_to: str | None = None,
     limit: int = 20,
 ) -> dict:
-    """특정 기관 단독 검색.
-
-    Args:
-        agency: 'g2b', 'lh', 'ex', 'kwater', 'korail', 'kra', 'dapa'
-    """
-    info = _SUPPORTED_AGENCIES.get(agency)
-    if not info:
-        return {
-            "status": "unknown_agency",
-            "agency": agency,
-            "supported": list(_SUPPORTED_AGENCIES.keys()),
-        }
-    if info["status"] != "active":
-        return {
-            "status": "pending_key",
-            "agency": agency,
-            "name": info["name"],
-            "api_key_env": info["api_key_env"],
-            "note": "키 발급 후 어댑터 구현 필요.",
-        }
+    """특정 기관 단독 검색."""
     if agency == "g2b":
         return await bid_tools.search_bid_notices(
             keyword=keyword,
@@ -212,8 +160,30 @@ async def search_agency_specific(
             date_to=date_to,
             limit=limit,
         )
-    return {
-        "status": "adapter_not_implemented",
-        "agency": agency,
-        "items": [],
-    }
+
+    adapter_cls = ADAPTER_REGISTRY.get(agency)
+    if not adapter_cls:
+        return {
+            "status": "unknown_agency",
+            "agency": agency,
+            "supported": ["g2b"] + list(ADAPTER_REGISTRY.keys()),
+        }
+
+    status = adapter_cls.current_status()
+    if status != AdapterStatus.ACTIVE:
+        return {
+            "status": status.value,
+            "agency": agency,
+            "name": adapter_cls.AGENCY_NAME,
+            "service_key_env": adapter_cls.SERVICE_KEY_ENV,
+            "note": "키 발급 + 어댑터 ACTIVE 처리 후 사용 가능.",
+        }
+
+    adapter = adapter_cls()
+    return await adapter.search_bids(
+        keyword=keyword,
+        biz_type=biz_type,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+    )

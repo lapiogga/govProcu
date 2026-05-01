@@ -23,6 +23,15 @@ from app.tools import analytics as analytics_tools
 from app.tools import award as award_tools
 from app.tools import bid as bid_tools
 
+try:
+    from app.ml.train import predict as ml_predict
+    from app.ml.dataset import row_to_features as _row_to_features
+    _ML_AVAILABLE = True
+except ImportError:
+    _ML_AVAILABLE = False
+    ml_predict = None
+    _row_to_features = None
+
 
 def _safe_amt(v) -> int:
     if v is None:
