@@ -19,6 +19,9 @@ from app.tools import vendor as vendor_tools
 from app.tools import analytics as analytics_tools
 from app.tools import workflow as workflow_tools
 from app.tools import lookup as lookup_tools
+from app.tools import alerts as alerts_tools
+from app.tools import watchlist as watchlist_tools
+from app.tools import qualification as qualification_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -93,6 +96,20 @@ mcp.tool()(lookup_tools.lookup_by_bid_no)
 mcp.tool()(lookup_tools.lookup_by_inst_code)
 mcp.tool()(lookup_tools.lookup_by_biz_no)
 mcp.tool()(lookup_tools.lookup_by_contract_no)
+# alerts 영역 (P0 — 키워드 알림 + 다이제스트)
+mcp.tool()(alerts_tools.subscribe_keyword_alerts)
+mcp.tool()(alerts_tools.unsubscribe_keyword_alerts)
+mcp.tool()(alerts_tools.list_my_subscriptions)
+mcp.tool()(alerts_tools.daily_bid_digest)
+mcp.tool()(alerts_tools.weekly_bid_digest)
+# watchlist 영역 (P0 — 즐겨찾기)
+mcp.tool()(watchlist_tools.add_to_watchlist)
+mcp.tool()(watchlist_tools.remove_from_watchlist)
+mcp.tool()(watchlist_tools.list_my_watchlist)
+# qualification 영역 (P0 — 적격심사 점수계산)
+mcp.tool()(qualification_tools.calc_qualification_score)
+mcp.tool()(qualification_tools.calc_bid_price_score)
+mcp.tool()(qualification_tools.get_qualification_rule)
 
 
 def _get_asgi_app():

@@ -50,3 +50,4 @@
 | 01:04 | 19 | **"온톨로지나 그래프DB 형태로도 발전시켰을 때 기술적인 문제점은 없는지, 적용가능성은 있는지?"** | 통찰 | Graph DB Feasibility R&D sub-agent 가동 (병렬) — docs/GRAPH-FEASIBILITY.md 산출 예정. Neo4j 등 후보 비교, 데이터 모델, ETL 문제, 응용 시나리오(담합 탐지/입찰 추천), 단계별 추진안 |
 | 01:08 | 20 | **"최신 프론트 기술로 접목 가능한 것은 있는지?"** | 통찰 | Frontend Tech R&D sub-agent 가동 (병렬) — docs/FRONTEND-TECH.md 산출. RSC+Streaming + AI SDK 5 + Cache Components + Tremor + xyflow 5축. Wave 1/2/3 도입 + 신규 UX 5종 (AI 자연어 콘솔/Streaming Timeline/Relational Graph/Live cmd+k/OKLCH 다크) |
 | 01:14 | 21 | **"중간중간에 입력하는 프롬프트는 빠짐없이 기록 저장이 되어야 함. - 글로벌 영역"** | 운영지시 | 글로벌 규칙(`~/.claude/rules/prompts-log.md`) "모든 발화 빠짐없이 기록" 강화. 단순 확인·선택("응", "1번")도 의사결정 분기점이므로 기록 추가. 회고 발화 9-A(00:19 "1") 추가. 메모리 feedback 갱신. |
+| 01:21 | 22 | **"P0 필수 > P1 중요 > R&D 트랙 > UI Phase A"** | 선택 | 우선순위 확정. P0(알림/즐겨찾기/적격심사) → P1(투찰가 예측/사정률/다중기관) → R&D(그래프DB PoC/AI SDK 콘솔) → UI Phase A(Next.js 부트스트랩). 본 세션 21번 마무리 보고에 대한 응답. |
