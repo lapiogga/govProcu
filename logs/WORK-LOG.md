@@ -102,3 +102,5 @@
 | 19:10 | 19:14 | 4분 | server.py·award.py 자동 복원 | (a) **server.py**: 사용자 추가 `mcp.tool()(award_tools.search_awards_by_vendor)` 보존. 절단된 `if __name` → `if __name__ == "__main__":
     main()` 복구. (b) **award.py**: 사용자 신규 docstring(ScsbidInfoService 사용 의도) 보존. `search_awards_by_vendor` 시그니처(vendor_name/vendor_biz_no/date_from/date_to/biz_type/limit)를 not_implemented 스텁으로 정의. `placeholder_award` 보존(server.py 등록 일관성). 9개 .py 파일 syntax PASS. |
 | 19:31 | 19:31 | 0분 | 정기 점검 | 변경 없음 — 휴면 (mount=origin=work, 워킹트리 clean, 직전 19:14 이후 추적 파일 변동 없음) |
+| 19:49 | 19:50 | 1분 | 정기 sync 시작 | 마운트 변경 2건 감지: `.env.example`(G2B_KEY_EVAL 신규 추가 + 하단 절단), `app/config.py`(g2b_key_eval Field 추가 + 하단 절단). |
+| 19:50 | 19:52 | 2분 | .env.example·config.py 자동 복원 | 사용자 편집 의도(평가정보/응찰업체 상세 API용 G2B_KEY_EVAL 추가 — 조달데이터허브 신규 신청 예정) 보존하고 절단된 부분 복구. (a) **.env.example**: 사용자 추가 `G2B_KEY_EVAL=` 보존 + 절단된 Redis(REDIS_URL/CACHE_TTL_*)·운영(LOG_LEVEL/SERVER_*) 섹션 복구. (b) **app/config.py**: 사용자 추가 `g2b_key_eval` Field 보존 + 절단된 `g2b_base_url` + `settings = Settings()` 복원. config.py syntax PASS. |

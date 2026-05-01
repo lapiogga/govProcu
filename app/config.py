@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     g2b_key_contract: str = Field(default="", description="계약과정통합공개정보")
     g2b_key_user: str = Field(default="", description="사용자정보서비스")
     g2b_key_stats: str = Field(default="", description="공공조달통계정보서비스")
+    g2b_key_eval: str = Field(default="", description="평가정보/응찰업체 상세 (조달데이터허브 신규 신청)")
 
     # MCP 인증
     mcp_api_tokens: str = Field(default="", description="콤마 구분 토큰 목록")

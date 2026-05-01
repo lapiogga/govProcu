@@ -316,3 +316,16 @@ app/tools/{bid,award,contract,stats,user,vendor}.py OK
 워킹트리 clean / 추적 파일 0건
 ```
 결과: 휴면 사이클. WORK-LOG.md 휴면 행만 추가.
+
+### [19:51:16 KST] $ rsync mount → work + git diff
+```
+M  .env.example      (G2B_KEY_EVAL 추가 + 하단 절단: REDIS_URL=re까지)
+M  app/config.py     (g2b_key_eval Field 추가 + 하단 절단: g2b_base_url 미완)
+```
+결과: 사용자 편집 도중 두 파일 동시 절단 감지. 동일 패턴(편집 중 잘림). 의도(EVAL API 키 신규 추가) 보존하며 자동 복원.
+
+### [19:51:16 KST] $ python3 -c "import ast; ast.parse(open('app/config.py').read())"
+```
+config.py OK
+```
+결과: 복원 후 syntax PASS. g2b_key_eval Field + g2b_base_url + settings 인스턴스 일관성 확보.
