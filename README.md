@@ -58,14 +58,14 @@ GovProcu/
 
 ## 연동 API (6종)
 
-| 영역 | API | 도구 |
-|------|-----|------|
-| 입찰공고 | 입찰공고정보서비스 | search_bid_notices, get_bid_notice_detail |
-| 사전규격 | 사전규격정보서비스 | list_pre_specifications |
-| 낙찰 | 낙찰정보서비스 | get_award_result, search_award_history |
-| 사업자 등록 | 입찰참가자격등록정보 | get_vendor_profile |
-| 사용자 | 사용자정보서비스 | lookup_user_info |
-| 통계 | 공공조달통계정보 | get_procurement_stats |
+| 영역 | API 정식명 | 환경변수 | 도구 |
+|------|-----------|---------|------|
+| 입찰공고 | 입찰공고정보서비스 | G2B_KEY_BID | search_bid_notices, get_bid_notice_detail |
+| 사전규격 | 사전규격정보서비스 | G2B_KEY_PRESPEC | list_pre_specifications |
+| 낙찰 | 낙찰정보서비스 | G2B_KEY_AWARD | get_award_result, search_award_history |
+| 계약과정 | 계약과정통합공개서비스 | G2B_KEY_CONTRACT | get_contract_process, search_contracts |
+| 사용자 | 사용자정보서비스 | G2B_KEY_USER | lookup_user_info |
+| 통계 | 공공조달통계정보서비스 | G2B_KEY_STATS | get_procurement_stats, analyze_bid_competition |
 
 ## 작업 관리 규칙
 
@@ -78,8 +78,8 @@ GovProcu/
 
 | 단계 | 기간 | 산출물 | 상태 |
 |------|------|--------|------|
-| 0. 준비 | Week 1 | API 키 6종 발급 | 5/6 승인 |
-| 1. PoC | Week 2-3 | search_bid_notices 도구 동작 | 골격 완료, 키 대기 |
+| 0. 준비 | Week 1 | API 키 6종 발급 | ✅ 6/6 승인 (입력 대기) |
+| 1. PoC | Week 2-3 | search_bid_notices 도구 동작 | 🟡 진행 중 (.env 입력 시 즉시 가능) |
 | 2. MVP | Week 4-6 | 11개 도구 + 캐시·인증 | - |
 | 3. 운영 | Week 7-8 | Docker 배포본·파일럿 | - |
 

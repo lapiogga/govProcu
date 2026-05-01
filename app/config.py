@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     g2b_key_bid: str = Field(default="", description="입찰공고정보서비스")
     g2b_key_prespec: str = Field(default="", description="사전규격정보서비스")
     g2b_key_award: str = Field(default="", description="낙찰정보서비스")
-    g2b_key_vendor: str = Field(default="", description="입찰참가자격등록정보")
+    g2b_key_contract: str = Field(default="", description="계약과정통합공개정보")
     g2b_key_user: str = Field(default="", description="사용자정보서비스")
     g2b_key_stats: str = Field(default="", description="공공조달통계정보서비스")
 
