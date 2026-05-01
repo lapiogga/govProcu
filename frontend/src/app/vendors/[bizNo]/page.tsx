@@ -5,6 +5,7 @@
 import { Suspense } from "react";
 import { getVendorProfile } from "@/lib/actions";
 import { fmtWon, fmtRate, fmtBizNo, fmtDate } from "@/lib/format";
+import { VendorAwardChart } from "@/components/charts/VendorAwardChart";
 
 export default async function VendorPage(props: {
   params: Promise<{ bizNo: string }>;
@@ -96,6 +97,14 @@ async function Profile({
             {" · "}
             평균 낙찰가: {fmtWon(summary.awards_avg_won)}
           </p>
+        </section>
+      )}
+
+      {/* 월별 낙찰 추이 */}
+      {sections.awards?.items?.length > 0 && (
+        <section className="rounded-lg border p-4">
+          <h3 className="mb-3 text-sm font-medium">월별 낙찰 추이</h3>
+          <VendorAwardChart items={sections.awards.items} />
         </section>
       )}
 

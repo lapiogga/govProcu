@@ -84,12 +84,14 @@ async def subscribe_keyword_alerts(
 async def unsubscribe_keyword_alerts(
     subscription_id: int | None = None,
     keyword: str | None = None,
-    user_token: str = "default",
+    user_token: str | None = None,
 ) -> dict:
     """구독 해제. subscription_id 또는 keyword 중 하나 필수."""
     if not (subscription_id or keyword):
         raise ValueError("subscription_id 또는 keyword 필수")
 
+    if user_token is None:
+        user_token = get_current_user_token()
     await init_db()
     db = await get_db()
     try:
@@ -114,8 +116,10 @@ async def unsubscribe_keyword_alerts(
         await db.close()
 
 
-async def list_my_subscriptions(user_token: str = "default") -> dict:
+async def list_my_subscriptions(user_token: str | None = None) -> dict:
     """내 활성 구독 목록 + 매칭 룰."""
+    if user_token is None:
+        user_token = get_current_user_token()
     await init_db()
     db = await get_db()
     try:
@@ -141,7 +145,7 @@ async def list_my_subscriptions(user_token: str = "default") -> dict:
 
 
 async def daily_bid_digest(
-    user_token: str = "default",
+    user_token: str | None = None,
     date_target: str | None = None,
 ) -> dict:
     """사용자 구독 룰에 매칭되는 오늘 신규 공고 다이제스트.
@@ -156,6 +160,8 @@ async def daily_bid_digest(
     from datetime import datetime
     target = date_target or datetime.now().strftime("%Y%m%d")
 
+    if user_token is None:
+        user_token = get_current_user_token()
     await init_db()
     db = await get_db()
     try:
@@ -241,10 +247,12 @@ async def daily_bid_digest(
 
 
 async def weekly_bid_digest(
-    user_token: str = "default",
+    user_token: str | None = None,
     date_to: str | None = None,
 ) -> dict:
     """지난 7일 신규 공고 다이제스트."""
+    if user_token is None:
+        user_token = get_current_user_token()
     from datetime import datetime, timedelta
     end_date = datetime.strptime(date_to, "%Y%m%d") if date_to else datetime.now()
     start_date = end_date - timedelta(days=7)

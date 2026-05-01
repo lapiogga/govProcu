@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { getAgencyHistory, getAgencyPricePattern } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon, fmtRate, fmtDate } from "@/lib/format";
+import { AgencyPricePatternChart } from "@/components/charts/AgencyPricePatternChart";
 
 export default async function AgenciesPage(props: {
   searchParams: Promise<{
@@ -126,6 +127,10 @@ async function PriceCard({
         <Stat label="p10" v={`${s.p10?.toFixed(2)}%`} />
         <Stat label="p25" v={`${s.p25?.toFixed(2)}%`} />
         <Stat label="p90" v={`${s.p90?.toFixed(2)}%`} />
+      </div>
+
+      <div className="mt-4 rounded border bg-[var(--color-bg)] p-3">
+        <AgencyPricePatternChart pattern={s} />
       </div>
     </section>
   );

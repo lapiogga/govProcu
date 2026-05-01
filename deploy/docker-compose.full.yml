@@ -1,0 +1,84 @@
+# GovProcu Full Stack — MCP + Redis + Neo4j + Frontend
+# NEXT5-5: 통합 배포. 1 명령으로 전체 가동.
+#
+# 사용:
+#   cp .env.example .env  # MCP 키 입력
+#   cp frontend/.env.example frontend/.env.local  # ANTHROPIC_API_KEY
+#   cd deploy && docker compose -f docker-compose.full.yml up -d
+#
+# 접속:
+#   - frontend: http://localhost:3000
+#   - MCP:      http://localhost:8080
+#   - Neo4j:    http://localhost:7474 (neo4j/govprocu_poc)
+#   - Redis:    localhost:6379
+
+services:
+  mcp:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: govprocu-mcp:latest
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: govprocu_poc
+    ports:
+      - "8080:8080"
+    volumes:
+      - mcp_runtime:/app/runtime
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/Dockerfile.frontend
+    image: govprocu-frontend:latest
+    restart: unless-stopped
+    environment:
+      GOVPROCU_MCP_URL: http://mcp:8080
+      NODE_ENV: production
+    env_file: ../frontend/.env.local
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mcp
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5.20-community
+    restart: unless-stopped
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/govprocu_poc
+      NEO4J_PLUGINS: '["graph-data-science"]'
+      NEO4J_dbms_security_procedures_unrestricted: gds.*
+      NEO4J_dbms_memory_heap_max__size: 2G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
+volumes:
+  redis_data:
+  neo4j_data:
+  neo4j_logs:
+  mcp_runtime:

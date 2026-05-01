@@ -4,6 +4,9 @@
 import { Suspense } from "react";
 import { searchBidNotices } from "@/lib/actions";
 import { fmtWon, fmtDate } from "@/lib/format";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default async function BidsPage(props: {
   searchParams: Promise<{
@@ -23,48 +26,32 @@ export default async function BidsPage(props: {
         <h1 className="text-2xl font-semibold">입찰 검색</h1>
       </header>
 
-      <form action="/bids" className="grid grid-cols-1 gap-2 rounded border bg-[var(--color-bg-muted)] p-4 md:grid-cols-5">
-        <input
-          name="q"
-          defaultValue={sp.q}
-          placeholder="키워드 (예: 정보화)"
-          className="rounded border bg-[var(--color-bg)] px-3 py-2 text-sm md:col-span-2"
-        />
-        <select
-          name="type"
-          defaultValue={sp.type}
-          className="rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-        >
-          <option value="">업종 전체</option>
-          <option value="공사">공사</option>
-          <option value="용역">용역</option>
-          <option value="물품">물품</option>
-        </select>
-        <input
-          name="inst"
-          defaultValue={sp.inst}
-          placeholder="발주기관"
-          className="rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-        />
-        <button
-          type="submit"
-          className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--color-primary-fg)]"
-        >
-          검색
-        </button>
-        <input
-          name="from"
-          defaultValue={sp.from}
-          placeholder="YYYYMMDD"
-          className="rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-        />
-        <input
-          name="to"
-          defaultValue={sp.to}
-          placeholder="YYYYMMDD"
-          className="rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-        />
-      </form>
+      <Card>
+        <CardContent className="p-4">
+          <form action="/bids" className="grid grid-cols-1 gap-2 md:grid-cols-5">
+            <Input
+              name="q"
+              defaultValue={sp.q}
+              placeholder="키워드 (예: 정보화)"
+              className="md:col-span-2"
+            />
+            <select
+              name="type"
+              defaultValue={sp.type}
+              className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm"
+            >
+              <option value="">업종 전체</option>
+              <option value="공사">공사</option>
+              <option value="용역">용역</option>
+              <option value="물품">물품</option>
+            </select>
+            <Input name="inst" defaultValue={sp.inst} placeholder="발주기관" />
+            <Button type="submit">검색</Button>
+            <Input name="from" defaultValue={sp.from} placeholder="YYYYMMDD" />
+            <Input name="to" defaultValue={sp.to} placeholder="YYYYMMDD" />
+          </form>
+        </CardContent>
+      </Card>
 
       {hasQuery ? (
         <Suspense fallback={<TableSkeleton />}>

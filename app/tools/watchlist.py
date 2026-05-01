@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Literal
 
 from app.storage.db import get_db, init_db
+from app.core.auth import get_current_user_token
 
 
 ItemType = Literal["bid", "vendor", "agency", "contract"]
@@ -22,7 +23,7 @@ ItemType = Literal["bid", "vendor", "agency", "contract"]
 async def add_to_watchlist(
     item_type: ItemType,
     item_key: str,
-    user_token: str = "default",
+    user_token: str | None = None,
     item_label: str | None = None,
     note: str | None = None,
 ) -> dict:
@@ -38,6 +39,8 @@ async def add_to_watchlist(
     Returns:
         등록된 watchlist ID + 항목 정보.
     """
+    if user_token is None:
+        user_token = get_current_user_token()
     await init_db()
     db = await get_db()
     try:
@@ -76,12 +79,14 @@ async def remove_from_watchlist(
     item_type: ItemType | None = None,
     item_key: str | None = None,
     watchlist_id: int | None = None,
-    user_token: str = "default",
+    user_token: str | None = None,
 ) -> dict:
     """즐겨찾기 제거. watchlist_id 또는 (item_type + item_key) 필요."""
     if not watchlist_id and not (item_type and item_key):
         raise ValueError("watchlist_id 또는 (item_type + item_key) 필수")
 
+    if user_token is None:
+        user_token = get_current_user_token()
     await init_db()
     db = await get_db()
     try:
@@ -108,7 +113,7 @@ async def remove_from_watchlist(
 
 
 async def list_my_watchlist(
-    user_token: str = "default",
+    user_token: str | None = None,
     item_type: ItemType | None = None,
 ) -> dict:
     """내 즐겨찾기 목록.
@@ -117,6 +122,8 @@ async def list_my_watchlist(
         user_token: 사용자 토큰
         item_type: 'bid'/'vendor'/'agency'/'contract' 필터 (선택)
     """
+    if user_token is None:
+        user_token = get_current_user_token()
     await init_db()
     db = await get_db()
     try:
