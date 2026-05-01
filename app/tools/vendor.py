@@ -63,3 +63,154 @@ def _normalize_biz_no(b: str) -> str:
     digits = "".join(c for c in (b or "") if c.isdigit())
     return digits
 
+
+async def check_business_status(biz_nos: list[str] | str) -> dict:
+    """국세청 사업자등록 상태조회 (계속/휴업/폐업).
+
+    Args:
+        biz_nos: 사업자번호 단건(문자열) 또는 다건(리스트). 하이픈은 자동 제거.
+                  한 호출당 최대 100건.
+
+    Returns:
+        items: [
+            {
+                "biz_no": "1058705373",
+                "status_code": "01",         # 01=계속, 02=휴업, 03=폐업
+                "status": "계속사업자",
+                "tax_type": "...",
+                "end_date": None,            # 폐업일자 (폐업자만)
+                "raw": {...}
+            }, ...
+        ],
+        requested_count, returned_count
+    """
+    if isinstance(biz_nos, str):
+        biz_nos = [biz_nos]
+    if not biz_nos:
+        raise ValueError("biz_nos는 1건 이상 필요합니다.")
+    if len(biz_nos) > 100:
+        raise ValueError("한 호출당 최대 100건. 분할 호출 필요.")
+
+    normalized = [_normalize_biz_no(b) for b in biz_nos]
+    bad = [b for b, n in zip(biz_nos, normalized) if len(n) != 10]
+    if bad:
+        raise ValueError(f"유효하지 않은 사업자번호(10자리 아님): {bad}")
+
+    client = NTSClient()
+    try:
+        body = await client.post("/status", {"b_no": normalized})
+    finally:
+        await client.aclose()
+
+    raw_items = body.get("data") or []
+    items = []
+    for raw in raw_items:
+        cd = raw.get("b_stt_cd") or ""
+        items.append({
+            "biz_no": raw.get("b_no"),
+            "status_code": cd,
+            "status": _NTS_STATUS_CD.get(cd) or raw.get("b_stt") or "알수없음",
+            "tax_type": raw.get("tax_type"),
+            "end_date": raw.get("end_dt") or None,
+            "raw": raw,
+        })
+
+    return {
+        "items": items,
+        "requested_count": len(normalized),
+        "returned_count": len(items),
+    }
+
+
+def _normalize_yyyymmdd(s: str) -> str:
+    """YYYY-MM-DD / YYYY.MM.DD / YYYYMMDD 등을 YYYYMMDD 8자리로 정규화."""
+    digits = "".join(c for c in (s or "") if c.isdigit())
+    return digits
+
+
+async def verify_business_info(
+    biz_no: str,
+    start_dt: str,
+    p_nm: str,
+    b_nm: str | None = None,
+    corp_no: str | None = None,
+    p_nm2: str | None = None,
+    b_sector: str | None = None,
+    b_type: str | None = None,
+    b_adr: str | None = None,
+) -> dict:
+    """국세청 사업자등록 진위확인.
+
+    필수 3개(사업자번호 + 개업일자 + 대표자명)가 모두 일치해야 valid='01' 반환.
+    선택 필드를 추가하면 그 항목까지 일치 여부 확인 가능.
+
+    Args:
+        biz_no: 사업자번호 10자리 (하이픈 허용, 자동 제거)
+        start_dt: 개업일자 (YYYYMMDD / YYYY-MM-DD 모두 허용)
+        p_nm: 대표자 성명
+        b_nm: 상호 (선택)
+        corp_no: 법인등록번호 13자리 (선택, 하이픈 자동 제거)
+        p_nm2: 외국인 대표자 영문성명 (선택)
+        b_sector: 주업태명 (선택)
+        b_type: 주종목명 (선택)
+        b_adr: 사업장 주소 (선택)
+
+    Returns:
+        valid: '01' (일치) | '02' (불일치)
+        valid_message: 진위확인 사유 텍스트
+        request_param: 서버에 전달된 정규화된 파라미터
+        raw: 원본 응답 1건
+    """
+    biz_n = _normalize_biz_no(biz_no)
+    if len(biz_n) != 10:
+        raise ValueError(f"biz_no가 10자리가 아닙니다: {biz_no}")
+    sd = _normalize_yyyymmdd(start_dt)
+    if len(sd) != 8:
+        raise ValueError(f"start_dt가 YYYYMMDD 8자리가 아닙니다: {start_dt}")
+    if not p_nm:
+        raise ValueError("p_nm(대표자 성명)은 필수입니다.")
+
+    payload = {
+        "b_no": biz_n,
+        "start_dt": sd,
+        "p_nm": p_nm,
+    }
+    if p_nm2:
+        payload["p_nm2"] = p_nm2
+    if b_nm:
+        payload["b_nm"] = b_nm
+    if corp_no:
+        payload["corp_no"] = _normalize_biz_no(corp_no)  # 13자리 숫자만
+    if b_sector:
+        payload["b_sector"] = b_sector
+    if b_type:
+        payload["b_type"] = b_type
+    if b_adr:
+        payload["b_adr"] = b_adr
+
+    client = NTSClient()
+    try:
+        body = await client.post("/validate", {"businesses": [payload]})
+    finally:
+        await client.aclose()
+
+    raw_items = body.get("data") or []
+    if not raw_items:
+        return {
+            "valid": None,
+            "valid_message": body.get("status_code") or "응답 없음",
+            "request_param": payload,
+            "raw": body,
+        }
+    raw = raw_items[0]
+    return {
+        "valid": raw.get("valid"),  # '01' 일치 / '02' 불일치
+        "valid_message": raw.get("valid_msg"),
+        "request_param": raw.get("request_param") or payload,
+        "raw": raw,
+    }
+
+
+async def placeholder_vendor() -> dict:
+    """vendor 영역 도구 자리표시자. M5 단계에서 실제 도구로 교체."""
+    return {"status": "not_implemented", "domain": "vendor"}

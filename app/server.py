@@ -89,4 +89,9 @@ def main():
         mcp.run(transport="streamable-http", host=settings.server_host, port=settings.server_port)
 
 
-# uvicorn�
+# uvicorn에서 ASGI app 노출
+app = _get_asgi_app()
+
+
+if __name__ == "__main__":
+    main()
