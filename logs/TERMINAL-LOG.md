@@ -437,3 +437,14 @@ Untracked files:
 	app/tools/vendor.py
 ```
 mount의 `app/tools/vendor.py`(65줄 스텁)가 직전 체크포인트 commit `325caf0`에서 삭제됨 → 일관성 복구 차원에서 origin 재포함. 직전 5/1 18:11 사이클과 동일 패턴(기능 영향 없음).
+
+### [00:31:53 KST] $ ls -la $MOUNT/docs/
+```
+-rwx------ 1 ... 7664 May  1 15:26 REPLAN.md   ← 신규 (사용자 00:24~00:26 KST 작성)
+-rwx------ 1 ... 19262 ...        공공데이터포털_나라장터_API_활용신청_가이드.docx
+-rwx------ 1 ... 24611 ...        나라장터_MCP_서버_구축_계획서.docx
+```
+계획 재수립 v2 — Tier 1(14개 단위) + Tier 2(`trace_bid_lifecycle`, `vendor_profile`) 2계층 설계 origin 반영.
+
+### [00:31:53 KST] $ diff <(sed 's/\r$//' mount/logs/WORK-LOG.md) origin/logs/WORK-LOG.md
+mount이 사용자 신규 섹션("세션 재개 + 계획 재수립", 00:13 KST 지시 인용) 작성 중 EOF 절단. origin 일관성 우선 → 본 사이클은 REPLAN.md만 통합, 사용자 섹션은 차기 사이클 대기.
