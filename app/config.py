@@ -38,8 +38,13 @@ class Settings(BaseSettings):
     server_host: str = "0.0.0.0"
     server_port: int = 8080
 
-    # G2B 공통 (운영 검증된 경로: https + /ad 프리픽스)
+    # G2B 공통 — 영역별 base URL 분기 (Research Team 결과 반영)
+    # 입찰공고/낙찰: /ad (운영 검증)
     g2b_base_url: str = "https://apis.data.go.kr/1230000/ad"
+    # 계약과정통합공개: /ao (Charlie Research 5/2)
+    g2b_contract_base_url: str = "https://apis.data.go.kr/1230000/ao"
+    # 공공조달통계: 직접 (ad/ao 없음, Delta Research 5/2)
+    g2b_stats_base_url: str = "https://apis.data.go.kr/1230000"
 
     # NTS 공통 (odcloud)
     nts_base_url: str = "https://api.odcloud.kr/api/nts-businessman/v1"

@@ -18,9 +18,16 @@ class G2BClient:
     - 에러 코드 정규화
     """
 
-    def __init__(self, timeout: float = 30.0):
+    def __init__(self, timeout: float = 30.0, base_url: str | None = None):
+        """
+        Args:
+            timeout: HTTP 타임아웃 (초)
+            base_url: 기본 base URL 오버라이드.
+                     None이면 settings.g2b_base_url(/1230000/ad) 사용.
+                     계약(`/1230000/ao`)·통계(`/1230000`)는 영역별로 다름.
+        """
         self._client = httpx.AsyncClient(
-            base_url=settings.g2b_base_url,
+            base_url=base_url or settings.g2b_base_url,
             timeout=timeout,
             headers={"Accept": "application/json"},
         )
