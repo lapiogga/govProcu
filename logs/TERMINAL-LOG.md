@@ -257,3 +257,10 @@ Untracked files:
 nothing added to commit but untracked files present
 ```
 결과: 트래킹된 변경 없음. vendor.py는 D API 교체 시 origin에서 삭제됐으나 mount 권한상 잔류한 untracked 파일 — 무해. WORK-LOG.md에 휴면 행만 추가.
+
+### [18:12:54 KST] $ git rm 시도 → 실패 (mount 권한)
+```
+$ rm -f $MOUNT/app/tools/vendor.py
+rm: cannot remove '...': Operation not permitted
+```
+결과: mount 권한상 vendor.py 삭제 불가. origin·mount 일관성 위해 vendor.py를 origin에 유지하기로 결정. 다음 사이클부터 stable 상태.
