@@ -1,0 +1,2 @@
+[console_scripts]
+govprocu-mcp = app.server:main

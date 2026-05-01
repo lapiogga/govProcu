@@ -12,7 +12,7 @@ from fastmcp import FastMCP
 from app.config import settings
 from app.tools import bid as bid_tools
 
-# 구조화 로깅 셋업
+# 구조화 로깅
 logging.basicConfig(level=settings.log_level)
 structlog.configure(
     processors=[
@@ -29,29 +29,44 @@ mcp = FastMCP(
     instructions=(
         "나라장터(G2B) OpenAPI를 LLM Tool로 노출하는 MCP 서버입니다. "
         "한국어 자연어 질의를 권장합니다. "
-        "예: '최근 한 달 정보화 용역 공고 알려줘', '2026년 1월 ~ 4월 인공지능 키워드 공고 추세'"
+        "예: '최근 한 달 정보화 용역 공고 알려줘'"
     ),
 )
 
-# === 도구 등록 ===
-# M3 (PoC) 단계: 핵심 1개 도구만 등록
+# === 도구 등록 (M3 PoC: 핵심 1개) ===
 mcp.tool()(bid_tools.search_bid_notices)
 
-# M5 (MVP) 단계에서 추가 등록 예정:
-# mcp.tool()(bid_tools.get_bid_notice_detail)
-# mcp.tool()(bid_tools.list_pre_specifications)
-# mcp.tool()(award_tools.get_award_result)
-# ...
+
+def _get_asgi_app():
+    """FastMCP 버전별 ASGI app 추출 (호환성 처리)."""
+    # FastMCP 2.x 신규 API
+    if hasattr(mcp, "http_app"):
+        return mcp.http_app()
+    # FastMCP 1.x 구 API
+    if hasattr(mcp, "streamable_http_app"):
+        return mcp.streamable_http_app()
+    # 더 오래된 fallback
+    if hasattr(mcp, "sse_app"):
+        return mcp.sse_app()
+    raise RuntimeError(
+        "FastMCP 버전 호환 안 됨. http_app/streamable_http_app/sse_app 메서드 모두 없음. "
+        "fastmcp 패키지를 업데이트하세요: pip install -U fastmcp"
+    )
 
 
 def main():
-    """CLI 엔트리포인트."""
+    """CLI 엔트리포인트 — uvicorn 없이 직접 실행."""
     log.info("starting", host=settings.server_host, port=settings.server_port)
-    mcp.run(transport="http", host=settings.server_host, port=settings.server_port)
+    # 최신 FastMCP는 transport="streamable-http" 또는 "http" 지원
+    try:
+        mcp.run(transport="http", host=settings.server_host, port=settings.server_port)
+    except (TypeError, ValueError):
+        # 구 버전: transport="streamable-http"
+        mcp.run(transport="streamable-http", host=settings.server_host, port=settings.server_port)
 
 
 # uvicorn에서 직접 import할 ASGI 앱
-app = mcp.streamable_http_app()
+app = _get_asgi_app()
 
 
 if __name__ == "__main__":
