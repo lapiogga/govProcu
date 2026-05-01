@@ -279,3 +279,17 @@ M  app/server.py
 -1 line "(M3 PoC: 핵심 1개)" 주석
 ```
 결과: 절단된 `main()`·`app=`·`__main__` 블록 보존. 추가분만 깔끔한 diff로 정리. uvicorn import 안전성 확보.
+
+### [18:52:27 KST] $ rsync mount → work (정기 sync)
+```
+M  app/clients/g2b.py
+M  app/config.py
+M  app/tools/bid.py
+```
+결과: config.py·bid.py 절단 감지(이전 server.py와 동일 패턴 — 마운트 편집 도중 잘림). 사용자 의도 보존하며 자동 복원.
+
+### [18:52:27 KST] $ python3 -c "import ast; ast.parse(open('app/tools/bid.py').read())"
+```
+OK syntax  (158 lines)
+```
+결과: 복원된 bid.py·config.py 모두 syntax PASS. server.py가 import 하는 두 스텁 함수 보존 — uvicorn 기동 안전.

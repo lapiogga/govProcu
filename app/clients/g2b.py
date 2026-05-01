@@ -18,7 +18,7 @@ class G2BClient:
     - 에러 코드 정규화
     """
 
-    def __init__(self, timeout: float = 10.0):
+    def __init__(self, timeout: float = 30.0):
         self._client = httpx.AsyncClient(
             base_url=settings.g2b_base_url,
             timeout=timeout,

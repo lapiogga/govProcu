@@ -34,8 +34,8 @@ class Settings(BaseSettings):
     server_host: str = "0.0.0.0"
     server_port: int = 8080
 
-    # G2B 공통
-    g2b_base_url: str = "http://apis.data.go.kr/1230000"
+    # G2B 공통 (운영 검증된 경로: https + /ad 프리픽스)
+    g2b_base_url: str = "https://apis.data.go.kr/1230000/ad"
 
 
 settings = Settings()
