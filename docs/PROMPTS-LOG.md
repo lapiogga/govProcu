@@ -47,3 +47,4 @@
 | 01:00 | 17 | **"사용자 프롬프트 시계열 관리는 본 프로젝트 와는 별개로 모든 프로젝트에 공히 적용되어야 할 기준임."** | 운영지시 | `~/.claude/rules/prompts-log.md` 글로벌 규칙 추가 + CLAUDE.md @import 등록 + 메모리 feedback 저장 |
 | 01:02 | 18 | **"최근 인공지능을 이용하여 이와 같은 입찰정보를 제공하는 서비스나 업체, 트렌드, 기술 등에 대해서도 조사가 필요함."** | 핵심지시 | AI Trend Research sub-agent 가동 (병렬) — docs/AI-TREND-RESEARCH.md 산출 예정. 채택 가능 AI 기능 우선순위 + 차별화 신규 도구 제안 포함 |
 | 01:04 | 19 | **"온톨로지나 그래프DB 형태로도 발전시켰을 때 기술적인 문제점은 없는지, 적용가능성은 있는지?"** | 통찰 | Graph DB Feasibility R&D sub-agent 가동 (병렬) — docs/GRAPH-FEASIBILITY.md 산출 예정. Neo4j 등 후보 비교, 데이터 모델, ETL 문제, 응용 시나리오(담합 탐지/입찰 추천), 단계별 추진안 |
+| 01:08 | 20 | **"최신 프론트 기술로 접목 가능한 것은 있는지?"** | 통찰 | Frontend Tech R&D sub-agent 가동 (병렬) — docs/FRONTEND-TECH.md 산출 예정. RSC/Streaming/AI SDK Generative UI/react-flow/Tremor/Cache Components/Local-first/Edge 등 매트릭스. 화면별 추천 스택 + 도입 wave + 차별화 신규 UX. UI-PLAN.md v2 강화 자료. |
