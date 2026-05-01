@@ -25,3 +25,7 @@ runtime/
 *.key
 *.pem
 secrets/
+
+# GitHub Personal Access Token (절대 커밋 금지)
+.pat
+.pat.* 

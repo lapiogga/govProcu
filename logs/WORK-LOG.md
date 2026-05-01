@@ -37,16 +37,38 @@
 | 11:30 | 11:35 | 5분 | setup-git.ps1 1차 실행 실패 (인코딩) | 사용자 PS 실행 시 한글 메시지가 CP949로 잘못 디코딩되어 파서 오류 ("종결자가 없습니다") 발생 |
 | 11:35 | 11:38 | 3분 | 인코딩 문제 수정 | 스크립트 메시지를 영문으로 변경 + UTF-8 BOM 부여 + chcp 65001 + i18n 설정 추가 + 커밋메시지를 외부 .commit-msg.txt(UTF-8)로 분리 |
 
+
+## 2026-05-01 (금)
+
+| 시작 | 종료 | 소요 | 작업명 | 내용 |
+|------|------|------|--------|------|
+| 16:22 | 16:25 | 3분 | 정기 점검 (재가동) | 2일 휴면 후 첫 자동 sync 재가동 — /tmp/GovProcu 권한 충돌(nobody:nogroup) 해결 위해 `/tmp/govprocu_work`로 신규 클론. 마운트 로그가 원격보다 짧아 원격본을 정본으로 채택. 변경 없음 — 휴면 |
+| 16:25 | 16:26 | 1분 | 자동 push 실패 | 사유: GitHub HTTPS 자격증명 미설정(`could not read Username for https://github.com`). 다음 사이클 재시도. 사용자 setup-git.ps1 실행 또는 PAT 설정 대기. |
+| 16:30 | 16:35 | 5분 | 사용자 재개 (continue) — 상태 점검 | 사용자 측 push 결과 검증: `git ls-remote` 실행 결과 origin/main = `94e59bd`로 정상 반영 확인. **사용자가 휴면 중 setup-git.ps1을 성공적으로 실행했음** (커밋 시각 04-29 11:33 KST, 작성자 lapiogga). P0 완료 처리. |
+| 16:35 | 16:38 | 3분 | 자동 push 한계 인식 및 정책 정리 | 사용자 측 push는 Windows 자격증명 관리자에 캐시되어 정상 동작. 그러나 Linux 샌드박스(20분 task)에서는 별도 자격증명 필요 → 후속 결정 필요(PAT 환경변수 vs 수동 push). 시점관리 표 업데이트. |
+| 16:26 | 16:28 | 2분 | 정기 sync (이번 사이클) | 마운트 → /tmp/GovProcu_work 동기화 후 신규 commit `e379a8c` 생성 (logs 갱신만). `git push origin main` 실행 → **실패** (`could not read Username for 'https://github.com': terminal prompts disabled`). 자격증명 미설정 — P0 결정대기 항목 그대로. 다음 사이클 재시도. |
+
 ---
 
 ## 다음 작업 시점관리 (Next Milestones)
 
-| 우선순위 | 시점 | 작업명 | 산출물 |
-|----------|------|--------|--------|
-| P0 | 즉시 | GitHub 인증 방식 확정 (PAT 또는 사용자 수동 push) | 첫 커밋 origin/main 반영 |
-| P0 | 즉시 | 20분 스케줄 task의 git 워크플로우 보정 | /tmp 워크어라운드 반영하도록 SKILL.md 업데이트 |
-| P1 | Week 1 | 공공데이터포털 6개 API 활용신청 | 신청 완료 캡처 / 발급 키 |
-| P1 | Week 1 | 개발 서버·저장소·CI 셋업 | GitHub repo, Docker 환경, GH Actions |
-| P2 | Week 2 | PoC: search_bid_notices 1개 도구 동작 | Claude Desktop 연결 시연 |
-| P2 | Week 4-6 | MVP: 11개 도구 구현 + 캐시·인증 | docker-compose 배포본 |
-| P2 | Week 7-8 | 운영 전환 및 파일럿 운영 | 운영 매뉴얼 + 만족도 4.0/5.0 |
+| 상태 | 우선순위 | 시점 | 작업명 | 산출물 |
+|------|----------|------|--------|--------|
+| ✅ 완료 | P0 | 04-29 11:33 | GitHub 첫 push (사용자 setup-git.ps1) | origin/main = `94e59bd` |
+| ✅ 완료 | P0 | 04-29 11:25 | 20분 스케줄 task의 git 워크플로우 보정 | SKILL.md 업데이트 + 04-29~05-01 정상 가동 검증 |
+| 🟡 진행 중 | P0 | 즉시 | 샌드박스 측 자동 push 활성화 (PAT 발급 대기) | 사용자가 PAT 발급 후 채팅에 붙여넣기 |
+| ✅ 완료 | P1 | 05-01 16:45 | 공공데이터포털 6개 API 활용신청 가이드 docx | docs/공공데이터포털_나라장터_API_활용신청_가이드.docx (8장, 224문단) |
+| ⏳ 대기 | P1 | Week 1 | 사용자 6개 API 실제 활용신청 진행 | 마이페이지 승인 + 키 6종 발급 |
+| ⏳ 대기 | P1 | Week 1 | 개발 환경(Docker/Python) + GH Actions 셋업 | Dockerfile, docker-compose, .github/workflows |
+| ⏳ 대기 | P2 | Week 2-3 | PoC: search_bid_notices 1개 도구 동작 | FastMCP + Claude Desktop 원격 MCP 연결 시연 |
+| ⏳ 대기 | P2 | Week 4-6 | MVP: 11개 도구 구현 + 캐시·인증 | docker-compose 배포본 |
+| ⏳ 대기 | P2 | Week 7-8 | 운영 전환 및 파일럿 운영 | 운영 매뉴얼 + 만족도 4.0/5.0 |
+
+---
+
+## 2026-05-01 (금) — 추가 작업
+
+| 시작 | 종료 | 소요 | 작업명 | 내용 |
+|------|------|------|--------|------|
+| 16:38 | 16:42 | 4분 | PAT 발급 가이드 안내 | Fine-grained PAT 권한(govProcu repo의 Contents:Read+Write)·발급 URL·90일 만료 정책 안내. 사용자 발급 대기 |
+| 16:42 | 16:50 | 8분 | API 활용신청 가이드 docx 생성 (P1 산출물) | scripts/build_api_guide.js 작성 → /tmp 워크어라운드 빌드 → 19KB·224문단 docx 생성 → validate.py PASSED. docs/ 폴더 보관 |

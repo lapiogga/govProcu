@@ -105,3 +105,82 @@ fatal: could not read Username for 'https://github.com': No such device or addre
 - 매 20분 주기로 누적 기록을 회수·요약하여 본 파일 말미에 추가한다.
 - 모든 명령은 `[HH:MM:SS KST] $ <command>` 형식으로 시작한다.
 - stdout/stderr 전체가 너무 길 경우 마지막 20줄로 요약 + `...` 표기.
+
+## 2026-05-01 (금) — 정기 자동 sync
+
+### [16:22:00 KST] $ git clone https://github.com/lapiogga/govProcu.git /tmp/govprocu_work
+```
+Cloning into '/tmp/govprocu_work'...
+Clone OK  (HEAD=94e59bd)
+```
+결과: 정상 클론. 기존 `/tmp/GovProcu`는 nobody:nogroup 권한으로 chmod 불가하여 `/tmp/govprocu_work`를 신규 워킹 디렉터리로 채택.
+
+### [16:23:00 KST] $ rsync -a --exclude='.git' /sessions/.../mnt/GovProcu/ /tmp/govprocu_work/
+```
+M .gitignore
+M README.md
+M docs/...계획서.docx
+M logs/TERMINAL-LOG.md   ← 마운트 본이 원격보다 짧음(48 vs 107 lines)
+M logs/WORK-LOG.md       ← 마운트 본이 원격보다 짧음(31 vs 52 lines)
+M scripts/*
+```
+결과: 마운트의 로그는 stale로 판단 → `git checkout -- logs/` 로 원격 본으로 복원. 원격을 정본으로 채택.
+
+### [16:24:00 KST] $ TZ=Asia/Seoul date
+```
+2026-05-01 16:22:39 Friday KST
+```
+
+### [16:25:00 KST] $ awk insert + cat >> (WORK-LOG / TERMINAL-LOG 갱신)
+결과: 2026-05-01 (금) 첫 휴면 sync 엔트리 추가.
+
+### [16:26:00 KST] $ git push origin main
+```
+fatal: could not read Username for 'https://github.com': No such device or address
+```
+결과: **실패** — HTTPS 자격증명 미설정. 사용자가 setup-git.ps1을 실행하여 자격증명을 캐시하거나 PAT을 환경변수에 등록해야 함. 다음 sync 사이클에서 자동 재시도.
+
+---
+
+## 2026-05-01 (금) — 사용자 재개 후 상태 점검
+
+### [16:33:00 KST] $ git ls-remote https://github.com/lapiogga/govProcu.git
+```
+94e59bdaa3a87302ebb674445e01b6248c9fb1d3	HEAD
+94e59bdaa3a87302ebb674445e01b6248c9fb1d3	refs/heads/main
+```
+결과: **성공 확인** — 사용자가 휴면 중 setup-git.ps1을 정상 실행하여 origin/main에 첫 커밋(`94e59bd`)을 push 완료한 상태.
+
+### [16:33:30 KST] $ cat .git/logs/HEAD (마운트 측)
+```
+0000000000000000000000000000000000000000 94e59bdaa3a87302ebb674445e01b6248c9fb1d3 lapiogga <lapiogga@gmail.com> 1777430011 +0900	commit (initial): feat(plan): 나라장터 MCP 서버 구축 계획서 v1.0 + 작업관리 체계 초기화
+```
+결과: 사용자 측 첫 커밋 SHA `94e59bd`, 작성 시각 `2026-04-29 11:33:31 KST`, 작성자 `lapiogga`. 한글 커밋 메시지 정상 보존.
+
+### [16:35:00 KST] 마운트 vs 원격 SHA 비교
+- 마운트 측 commit: `94e59bd` (사용자가 만든 정본)
+- 원격 측 commit: `94e59bd` (push 완료)
+- 우리 /tmp 측 임시 commit: `115b57f` (불필요 — 폐기 대상)
+
+결과: 정본 일치. /tmp의 임시 클론은 다음 sync 시 사용자 정본 기준으로 재클론하도록 설계됨.
+
+### [16:26:16 KST] $ TZ=Asia/Seoul date
+```
+2026-05-01 16:26:16 KST
+```
+
+### [16:26:30 KST] $ git clone https://github.com/lapiogga/govProcu.git /tmp/GovProcu_work
+```
+Cloning into '/tmp/GovProcu_work'...
+done.
+```
+결과: 기존 `/tmp/GovProcu`가 nobody:nogroup 소유로 권한 거부 → `_work` 접미사 신규 디렉터리에 클론 성공.
+
+### [16:26:45 KST] $ git ls-remote origin
+```
+94e59bdaa3a87302ebb674445e01b6248c9fb1d3	HEAD
+94e59bdaa3a87302ebb674445e01b6248c9fb1d3	refs/heads/main
+```
+결과: origin/main = `94e59bd` 확인 (사용자 setup-git.ps1로 push된 첫 커밋이 정상 반영된 상태 유지).
+
+### [16:
