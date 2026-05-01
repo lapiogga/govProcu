@@ -81,3 +81,6 @@
 | 17:11 | 17:11 | 0분 | 정기 점검 | 변경 없음 — 휴면 (mount=origin=work, 워킹트리 clean) |
 | 17:29 | 17:30 | 1분 | 정기 점검 | `.env` 신규 생성 감지 (gitignored — 커밋 제외). 추적 파일 변경 없음. 환경변수 설정 시작 추정 (API 키 발급 진행 중일 가능성) |
 | 17:30 | 17:32 | 2분 | API 4종 승인 확인 | 사용자 보고: ②입찰공고/③낙찰/④계약/⑦공공조달통계 4개 API 승인 완료. 트래커 진행요약표 ✅ 갱신. 잔여 2개(⑤입찰참가자격등록·⑥시공능력평가공시) |
+| 17:35 | 17:38 | 3분 | API 신규 2종 추가 + 2종 제외 | 사용자 보고: 사전규격정보·사용자정보 추가 신청·승인. 계약정보(④)·시공능력평가(⑥)는 프로젝트 범위에서 제외. 최종 6종 = 입찰공고/사전규격/낙찰/입찰참가자격/사용자정보/통계 |
+| 17:38 | 17:40 | 2분 | 트래커 v2 작성 | docs/API_신청_진행_트래커.md를 신규 6종 구성으로 재작성. 5/6 승인(83%) |
+| 17:40 | 18:10 | 30분 | P1 후속: FastMCP 골격 코드 셋업 | app/{config,server,clients/g2b,core/{cache,rate_limit,auth,errors},schemas/bid,tools/{bid,award,vendor,stats,user}}, deploy/{Dockerfile,docker-compose.yml}, .github/workflows/ci.yml, tests/{conftest,test_bid}, pyproject.toml, .env.example, README v2. search_bid_notices 1개는 즉시 동작 가능 형태로 완성 |
