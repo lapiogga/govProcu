@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { getIndustryTrend, getMarketShare } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon } from "@/lib/format";
+import { IndustryTrendChart } from "@/components/charts/IndustryTrendChart";
+import { MarketShareChart } from "@/components/charts/MarketShareChart";
 
 export default async function AnalyticsPage(props: {
   searchParams: Promise<{ type?: string; from?: string; to?: string }>;
@@ -83,6 +85,12 @@ async function TrendSection({
           누적 {data?.total_count} 건 · {fmtWon(data?.total_amt)}
         </span>
       </header>
+
+      {/* Tremor 차트 */}
+      <div className="border-b p-4">
+        <IndustryTrendChart monthly={monthly} />
+      </div>
+
       <table className="w-full text-sm">
         <thead className="bg-[var(--color-bg-muted)]">
           <tr>
@@ -151,6 +159,14 @@ async function MarketShareSection({
           전체 {fmtWon(grandTotal)} · 활동 업체 {data?.vendor_count_total ?? "—"}
         </span>
       </header>
+
+      {/* Tremor Donut */}
+      {top.length > 0 && (
+        <div className="border-b p-4">
+          <MarketShareChart top={top} />
+        </div>
+      )}
+
       <table className="w-full text-sm">
         <thead className="bg-[var(--color-bg-muted)]">
           <tr>

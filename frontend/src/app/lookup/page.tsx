@@ -10,6 +10,7 @@ import {
 } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtBizNo } from "@/lib/format";
+import { LookupGraph } from "@/components/graph/LookupGraph";
 
 type Mode = "bid" | "biz" | "inst" | "contract";
 
@@ -125,9 +126,18 @@ async function Result({ mode, q, ord }: { mode: Mode; q: string; ord: string }) 
 
   return (
     <div className="space-y-4">
-      {/* 4 키 노드 시각화 (텍스트 기반 — Wave 2에서 xyflow 통합) */}
+      {/* 4 키 그래프 시각화 (xyflow) */}
+      <section>
+        <h2 className="mb-2 text-sm font-medium">관계 그래프</h2>
+        <LookupGraph
+          keys={keys}
+          startingKey={mode === "contract" ? "contract" : (mode as any)}
+        />
+      </section>
+
+      {/* 4 키 카드 (보조) */}
       <section className="rounded-lg border bg-[var(--color-bg-muted)] p-4">
-        <h2 className="mb-3 text-sm font-medium">관계 키 추적</h2>
+        <h2 className="mb-3 text-sm font-medium">키 상세 + 빠른 이동</h2>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
           <KeyNode
             label="📋 공고번호"
