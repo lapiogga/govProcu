@@ -22,6 +22,8 @@ from app.tools import lookup as lookup_tools
 from app.tools import alerts as alerts_tools
 from app.tools import watchlist as watchlist_tools
 from app.tools import qualification as qualification_tools
+from app.tools import prediction as prediction_tools
+from app.tools import multi_agency as multi_agency_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -110,6 +112,16 @@ mcp.tool()(watchlist_tools.list_my_watchlist)
 mcp.tool()(qualification_tools.calc_qualification_score)
 mcp.tool()(qualification_tools.calc_bid_price_score)
 mcp.tool()(qualification_tools.get_qualification_rule)
+# analytics 추가 (P1 — 사정률 패턴)
+mcp.tool()(analytics_tools.analyze_agency_price_pattern)
+# prediction 영역 (P1 — 투찰가 예측)
+mcp.tool()(prediction_tools.predict_bid_price)
+mcp.tool()(prediction_tools.estimate_winning_threshold)
+mcp.tool()(prediction_tools.compare_bid_strategies)
+# multi_agency 영역 (P1 — 다중 발주기관 통합 검색)
+mcp.tool()(multi_agency_tools.list_supported_agencies)
+mcp.tool()(multi_agency_tools.search_multi_agency_bids)
+mcp.tool()(multi_agency_tools.search_agency_specific)
 
 
 def _get_asgi_app():

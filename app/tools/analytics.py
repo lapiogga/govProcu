@@ -367,3 +367,137 @@ async def market_share(
         "vendor_count_total": len(vendor_total),
         "note": "낙찰목록 풀스캔 기반 단순 집계. 정확한 시장 규모는 PubPrcrmntStatInfoService 통합 필요.",
     }
+
+
+# === A6: 발주기관 사정률 패턴 (P1, 사용자 5/2 22번) ===
+
+async def analyze_agency_price_pattern(
+    inst_name: str,
+    biz_type: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    limit: int = 200,
+) -> dict:
+    """발주기관별 낙찰가/예정가 비율 패턴 분석.
+
+    경쟁사(인포21C·비드큐) 인기 1위 기능. 입찰가격 산정의 핵심 인사이트.
+
+    절차:
+    1. 발주기관의 낙찰 이력 풀스캔 (search_awards)
+    2. 각 낙찰 row의 award_rate (낙찰률) 추출 — 보통 응답에 직접 포함
+    3. 낙찰률 분포 통계 (평균/표준편차/분위수)
+    4. 업종별·금액대별 분포 분리
+
+    Args:
+        inst_name: 발주기관명
+        biz_type: 업종 필터
+        date_from / date_to: 기간 (YYYYMMDD)
+        limit: 분석 대상 최대 건수
+    """
+    awards = await award_tools.search_awards(
+        inst_name=inst_name,
+        date_from=date_from,
+        date_to=date_to,
+        biz_type=biz_type,
+        limit=limit,
+    )
+    items = awards.get("items", [])
+
+    rates: list[float] = []
+    rate_buckets: dict[str, list[float]] = defaultdict(list)
+    amount_buckets: dict[str, list[float]] = defaultdict(list)
+
+    for row in items:
+        rate_str = row.get("award_rate")
+        if not rate_str:
+            continue
+        try:
+            r = float(str(rate_str).replace("%", "").strip())
+            # 0~100 범위 정규화
+            if r > 1 and r < 200:
+                r = r / 100.0
+            elif r >= 200:
+                continue  # 이상치 제외
+        except (ValueError, TypeError):
+            continue
+
+        rates.append(r)
+        rate_buckets[row.get("biz_type") or "unknown"].append(r)
+        amt = _safe_amt(row.get("award_amount"))
+        amount_buckets[_bucket_amt(amt)].append(r)
+
+    if not rates:
+        return {
+            "inst_name": inst_name,
+            "biz_type": biz_type,
+            "date_range": [date_from, date_to],
+            "sample_count": 0,
+            "note": "낙찰률 데이터 없음. 발주기관명 확인 또는 기간 확장.",
+        }
+
+    rates_sorted = sorted(rates)
+    n = len(rates)
+    mean = sum(rates) / n
+    median = rates_sorted[n // 2]
+    p25 = rates_sorted[n // 4]
+    p75 = rates_sorted[3 * n // 4]
+    p10 = rates_sorted[n // 10] if n >= 10 else rates_sorted[0]
+    p90 = rates_sorted[9 * n // 10] if n >= 10 else rates_sorted[-1]
+
+    # 표준편차
+    var = sum((r - mean) ** 2 for r in rates) / n
+    std = var ** 0.5
+
+    return {
+        "inst_name": inst_name,
+        "biz_type": biz_type,
+        "date_range": [date_from, date_to],
+        "sample_count": n,
+        "summary_pct": {
+            "mean": round(mean * 100, 3),
+            "median": round(median * 100, 3),
+            "std": round(std * 100, 3),
+            "min": round(rates_sorted[0] * 100, 3),
+            "max": round(rates_sorted[-1] * 100, 3),
+            "p10": round(p10 * 100, 3),
+            "p25": round(p25 * 100, 3),
+            "p75": round(p75 * 100, 3),
+            "p90": round(p90 * 100, 3),
+        },
+        "by_biz_type": {
+            bt: {
+                "count": len(rs),
+                "mean_pct": round(sum(rs) / len(rs) * 100, 3) if rs else 0,
+            }
+            for bt, rs in rate_buckets.items()
+        },
+        "by_amount_bucket": {
+            bk: {
+                "count": len(rs),
+                "mean_pct": round(sum(rs) / len(rs) * 100, 3) if rs else 0,
+            }
+            for bk, rs in amount_buckets.items()
+        },
+        "interpretation": _interpret_pattern(mean, std),
+    }
+
+
+def _interpret_pattern(mean_rate: float, std: float) -> str:
+    """낙찰률 패턴 해석 텍스트."""
+    if std < 0.02:
+        consistency = "매우 일관됨 (낙찰률 변동 적음)"
+    elif std < 0.05:
+        consistency = "일관됨"
+    else:
+        consistency = "변동 큼 (입찰별 사정률 편차 큼)"
+
+    if mean_rate > 0.95:
+        level = "고낙찰률 (응찰가 90%+ 권장)"
+    elif mean_rate > 0.88:
+        level = "중낙찰률 (응찰가 88~92% 범위 권장)"
+    elif mean_rate > 0.82:
+        level = "중저낙찰률 (응찰가 84~88% 범위 권장)"
+    else:
+        level = "저낙찰률 (응찰가 80~85% 범위 권장)"
+
+    return f"{level} | {consistency}"
