@@ -108,3 +108,4 @@
 | 20:10 | 20:11 | 1분 | server.py·vendor.py 자동 복원 | 동일 절단 패턴(사용자 편집 도중 잘림). (a) **server.py**: 사용자 추가 `mcp.tool()(vendor_tools.search_bid_participants)` + `mcp.tool()(vendor_tools.get_evaluation_scores)` 등록 보존. 절단된 `# uvicorn에서 �` → `app = _get_asgi_app()` + `if __name__ == "__main__": main()` 블록 복구. (b) **vendor.py**: 사용자 신규 docstring(응찰업체별 정보/입찰참가 이력/평가점수, 조달데이터허브 EVAL 키 사용 예정) 보존. server.py가 등록하는 `search_bid_participants`(bid_notice_no/vendor_biz_no/date_from/date_to/limit) + `get_evaluation_scores`(bid_notice_no/vendor_biz_no) 두 도구를 not_implemented 스텁으로 정의. `placeholder_vendor` 보존(server.py 등록 일관성). 9개 .py 파일 syntax PASS. |
 | 20:30 | 20:30 | 0분 | 정기 점검 | 변경 없음 — 휴면 (직전 20:11 이후 추적 파일 변동 없음, mount=origin=work, 워킹트리 clean) |
 | 20:50 | 20:50 | 0분 | 정기 점검 | 변경 없음 — 휴면 (직전 20:11 이후 추적 파일 변동 없음, mount=origin=work, 워킹트리 clean) |
+| 21:11 | 21:11 | 0분 | 정기 점검 | 변경 없음 — 휴면 (직전 20:11 이후 추적 파일 변동 없음, mount=origin=work, 워킹트리 clean) |
