@@ -29,3 +29,12 @@ secrets/
 # GitHub Personal Access Token (절대 커밋 금지)
 .pat
 .pat.* 
+
+# Python build artifacts
+*.egg-info/
+build/
+dist/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
