@@ -94,6 +94,23 @@
 | A4 | **`peer_analysis`** | biz_no, peer_count, period | 같은 규모 경쟁사 N개 비교 (낙찰률·평균가·시장점유) | V4, 17, A1 |
 | A5 | **`market_share`** | biz_type, period | 업종 내 시장점유 상위 업체 + 점유율 | 17, 18 |
 
+### Tier 3 — Relational Key Cross-Lookup
+
+> **사용자 통찰 (2026-05-02 00:48)**: "공고번호(+차수), 계약번호, 발주기관코드, 사업자등록번호 4개가 모든 정보를 엮어주는 핵심 relational key"
+
+**4개 핵심 키**:
+- `bid_notice_no (+ bid_ord)`: 입찰 한 건의 1차 키
+- `contract_no`: 체결된 계약의 1차 키
+- `inst_code (+ inst_name)`: 발주 주체
+- `vendor_biz_no`: 응찰자/낙찰자 주체
+
+| # | 도구 | 시작 키 | 추적 키 |
+|---|------|---------|---------|
+| L1 | **`lookup_by_bid_no`** | bid_notice_no | inst_code, vendor_biz_no, contract_no |
+| L2 | **`lookup_by_inst_code`** | inst_code or inst_name | bid_notice_no 목록, vendor_biz_no 분포 |
+| L3 | **`lookup_by_biz_no`** | vendor_biz_no | NTS 진위, bid_notice_no 목록, inst_name 분포 |
+| L4 | **`lookup_by_contract_no`** | contract_no | (별개 키 필요로 스텁) |
+
 ---
 
 ## 3. 단계별 추진 계획

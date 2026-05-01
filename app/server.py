@@ -18,6 +18,7 @@ from app.tools import user as user_tools
 from app.tools import vendor as vendor_tools
 from app.tools import analytics as analytics_tools
 from app.tools import workflow as workflow_tools
+from app.tools import lookup as lookup_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -87,6 +88,11 @@ mcp.tool()(workflow_tools.vendor_profile)
 mcp.tool()(workflow_tools.agency_bid_summary)
 mcp.tool()(workflow_tools.competitor_analysis)
 mcp.tool()(workflow_tools.agency_procurement_history)
+# lookup 영역 (Relational Key 기반 cross-lookup — 사용자 5/2 통찰)
+mcp.tool()(lookup_tools.lookup_by_bid_no)
+mcp.tool()(lookup_tools.lookup_by_inst_code)
+mcp.tool()(lookup_tools.lookup_by_biz_no)
+mcp.tool()(lookup_tools.lookup_by_contract_no)
 
 
 def _get_asgi_app():
