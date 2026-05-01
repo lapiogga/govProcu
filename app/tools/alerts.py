@@ -236,13 +236,34 @@ async def daily_bid_digest(
     finally:
         await db.close()
 
+    # NEXT6-2: 디스패처 자동 발송 (구독 첫 채널 기준)
+    dispatch_results: dict = {}
+    if total_matches > 0 and subs:
+        from app.dispatcher import dispatch_digest
+        digest_payload = {
+            "date": target,
+            "subscription_count": len(subs),
+            "total_match_count": total_matches,
+            "results": results,
+        }
+        first = subs[0]
+        try:
+            dispatch_results = await dispatch_digest(
+                user_token=user_token,
+                digest=digest_payload,
+                notify_email=first.get("notify_email"),
+                notify_kakao=first.get("notify_kakao"),
+            )
+        except Exception as exc:
+            dispatch_results = {"error": str(exc)[:200]}
+
     return {
         "user_token": user_token,
         "date": target,
         "subscription_count": len(subs),
         "total_match_count": total_matches,
         "results": results,
-        "dispatch_status": "logged_only — 실 발송(이메일/카톡)은 디스패처 인프라 필요",
+        "dispatch_status": dispatch_results,
     }
 
 

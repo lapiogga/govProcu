@@ -24,6 +24,7 @@ from app.tools import watchlist as watchlist_tools
 from app.tools import qualification as qualification_tools
 from app.tools import prediction as prediction_tools
 from app.tools import multi_agency as multi_agency_tools
+from app.tools import graph as graph_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -122,6 +123,11 @@ mcp.tool()(prediction_tools.compare_bid_strategies)
 mcp.tool()(multi_agency_tools.list_supported_agencies)
 mcp.tool()(multi_agency_tools.search_multi_agency_bids)
 mcp.tool()(multi_agency_tools.search_agency_specific)
+# graph 영역 (R3 Neo4j MCP — NEO4J_URI 있을 때만)
+mcp.tool()(graph_tools.graph_query_path)
+mcp.tool()(graph_tools.find_collusion_clusters)
+mcp.tool()(graph_tools.agency_vendor_network)
+mcp.tool()(graph_tools.vendor_supply_concentration)
 
 
 def _get_asgi_app():

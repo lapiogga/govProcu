@@ -11,6 +11,9 @@ import {
 import { extractMcpData } from "@/lib/extract";
 import { fmtBizNo } from "@/lib/format";
 import { LookupGraph } from "@/components/graph/LookupGraph";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type Mode = "bid" | "biz" | "inst" | "contract";
 
@@ -51,30 +54,29 @@ export default async function LookupPage(props: {
         ))}
       </nav>
 
-      <form action="/lookup" className="flex gap-2 rounded border bg-[var(--color-bg-muted)] p-4">
-        <input type="hidden" name="mode" value={mode} />
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder={placeholderFor(mode)}
-          className="flex-1 rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-          required
-        />
-        {mode === "bid" && (
-          <input
-            name="ord"
-            defaultValue={sp.ord || "00"}
-            placeholder="차수"
-            className="w-20 rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-          />
-        )}
-        <button
-          type="submit"
-          className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--color-primary-fg)]"
-        >
-          추적
-        </button>
-      </form>
+      <Card>
+        <CardContent className="p-4">
+          <form action="/lookup" className="flex gap-2">
+            <input type="hidden" name="mode" value={mode} />
+            <Input
+              name="q"
+              defaultValue={q}
+              placeholder={placeholderFor(mode)}
+              className="flex-1"
+              required
+            />
+            {mode === "bid" && (
+              <Input
+                name="ord"
+                defaultValue={sp.ord || "00"}
+                placeholder="차수"
+                className="w-20"
+              />
+            )}
+            <Button type="submit">추적</Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {q ? (
         <Suspense fallback={<Skel h={32} />}>

@@ -6,6 +6,9 @@ import { getAgencyHistory, getAgencyPricePattern } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon, fmtRate, fmtDate } from "@/lib/format";
 import { AgencyPricePatternChart } from "@/components/charts/AgencyPricePatternChart";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default async function AgenciesPage(props: {
   searchParams: Promise<{
@@ -25,43 +28,32 @@ export default async function AgenciesPage(props: {
         </p>
       </header>
 
-      <form action="/agencies" className="flex flex-wrap gap-2 rounded border bg-[var(--color-bg-muted)] p-4">
-        <input
-          name="name"
-          defaultValue={sp.name}
-          placeholder="발주기관명 (예: 국방재정관리단)"
-          className="flex-1 rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-          required
-        />
-        <select
-          name="type"
-          defaultValue={sp.type}
-          className="rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-        >
-          <option value="">업종 전체</option>
-          <option value="공사">공사</option>
-          <option value="용역">용역</option>
-          <option value="물품">물품</option>
-        </select>
-        <input
-          name="from"
-          defaultValue={sp.from}
-          placeholder="YYYYMMDD"
-          className="rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-        />
-        <input
-          name="to"
-          defaultValue={sp.to}
-          placeholder="YYYYMMDD"
-          className="rounded border bg-[var(--color-bg)] px-3 py-2 text-sm"
-        />
-        <button
-          type="submit"
-          className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--color-primary-fg)]"
-        >
-          분석
-        </button>
-      </form>
+      <Card>
+        <CardContent className="p-4">
+          <form action="/agencies" className="flex flex-wrap gap-2">
+            <Input
+              name="name"
+              defaultValue={sp.name}
+              placeholder="발주기관명 (예: 국방재정관리단)"
+              className="flex-1"
+              required
+            />
+            <select
+              name="type"
+              defaultValue={sp.type}
+              className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm"
+            >
+              <option value="">업종 전체</option>
+              <option value="공사">공사</option>
+              <option value="용역">용역</option>
+              <option value="물품">물품</option>
+            </select>
+            <Input name="from" defaultValue={sp.from} placeholder="YYYYMMDD" className="w-32" />
+            <Input name="to" defaultValue={sp.to} placeholder="YYYYMMDD" className="w-32" />
+            <Button type="submit">분석</Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {sp.name ? (
         <>
