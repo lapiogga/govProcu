@@ -424,3 +424,16 @@ config.py syntax PASS
 ```
 14개 .py 파일 모두 syntax PASS
 ```
+
+---
+
+## 2026-05-02
+
+### [00:14:37 KST] $ git status (정기 sync — 날짜 전환 후 첫 사이클)
+```
+On branch main
+Your branch is up to date with 'origin/main'.
+Untracked files:
+	app/tools/vendor.py
+```
+mount의 `app/tools/vendor.py`(65줄 스텁)가 직전 체크포인트 commit `325caf0`에서 삭제됨 → 일관성 복구 차원에서 origin 재포함. 직전 5/1 18:11 사이클과 동일 패턴(기능 영향 없음).
