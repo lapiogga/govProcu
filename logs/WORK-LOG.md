@@ -58,9 +58,9 @@
 | ✅ 완료 | P0 | 04-29 11:25 | 20분 스케줄 task의 git 워크플로우 보정 | SKILL.md 업데이트 + 04-29~05-01 정상 가동 검증 |
 | ✅ 완료 | P0 | 05-01 17:00 | 샌드박스 측 자동 push 활성화 (PAT) | `.pat` 저장 + askpass 헬퍼 + 스케줄 task SKILL.md 통합. push 성공 (`b6e7077`) |
 | ✅ 완료 | P1 | 05-01 16:45 | 공공데이터포털 6개 API 활용신청 가이드 docx | docs/공공데이터포털_나라장터_API_활용신청_가이드.docx (8장, 224문단) |
-| ⏳ 대기 | P1 | Week 1 | 사용자 6개 API 실제 활용신청 진행 | 마이페이지 승인 + 키 6종 발급 |
-| ⏳ 대기 | P1 | Week 1 | 개발 환경(Docker/Python) + GH Actions 셋업 | Dockerfile, docker-compose, .github/workflows |
-| ⏳ 대기 | P2 | Week 2-3 | PoC: search_bid_notices 1개 도구 동작 | FastMCP + Claude Desktop 원격 MCP 연결 시연 |
+| 🟡 5/6 | P1 | Week 1 | 사용자 6종 API 활용신청 진행 | A·B·C·E·F 승인 / D(입찰참가자격) 1개 남음. ④⑥ 제외 결정 |
+| ✅ 완료 | P1 | 05-01 17:40 | 개발 환경(Docker/Python) + GH Actions 셋업 | pyproject.toml + Dockerfile + docker-compose + ci.yml + tests. 28파일 push 성공 (`9981757`) |
+| 🟡 진행 가능 | P2 | Week 2-3 | PoC: search_bid_notices 1개 도구 동작 | 골격 코드 완료. .env에 G2B_KEY_BID 입력만 하면 즉시 동작 |
 | ⏳ 대기 | P2 | Week 4-6 | MVP: 11개 도구 구현 + 캐시·인증 | docker-compose 배포본 |
 | ⏳ 대기 | P2 | Week 7-8 | 운영 전환 및 파일럿 운영 | 운영 매뉴얼 + 만족도 4.0/5.0 |
 
@@ -84,3 +84,5 @@
 | 17:35 | 17:38 | 3분 | API 신규 2종 추가 + 2종 제외 | 사용자 보고: 사전규격정보·사용자정보 추가 신청·승인. 계약정보(④)·시공능력평가(⑥)는 프로젝트 범위에서 제외. 최종 6종 = 입찰공고/사전규격/낙찰/입찰참가자격/사용자정보/통계 |
 | 17:38 | 17:40 | 2분 | 트래커 v2 작성 | docs/API_신청_진행_트래커.md를 신규 6종 구성으로 재작성. 5/6 승인(83%) |
 | 17:40 | 18:10 | 30분 | P1 후속: FastMCP 골격 코드 셋업 | app/{config,server,clients/g2b,core/{cache,rate_limit,auth,errors},schemas/bid,tools/{bid,award,vendor,stats,user}}, deploy/{Dockerfile,docker-compose.yml}, .github/workflows/ci.yml, tests/{conftest,test_bid}, pyproject.toml, .env.example, README v2. search_bid_notices 1개는 즉시 동작 가능 형태로 완성 |
+| 18:10 | 18:12 | 2분 | PAT Workflows 권한 추가 후 push 성공 | 최초 push 시 `refusing to allow PAT to update workflow without workflow scope` 거절 → 사용자 권한 추가 → 28파일·1762줄 origin/main에 반영 (`96c3088..9981757`) |
+| 18:12 | 18:14 | 2분 | 시점관리 갱신 (P1 후속 트랙 종결) 
