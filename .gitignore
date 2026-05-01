@@ -38,3 +38,7 @@ dist/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# 사용자 다운로드 임시 파일 (PDF 가이드, 임시 백업 등)
+.tmp_*
+UsersUser*.tmp_*

@@ -214,3 +214,71 @@ async def verify_business_info(
 async def placeholder_vendor() -> dict:
     """vendor 영역 도구 자리표시자. M5 단계에서 실제 도구로 교체."""
     return {"status": "not_implemented", "domain": "vendor"}
+
+
+# === V1~V3: vendor-by-vendor 검색 (사용자 5/2 추가 지시) ===
+# V4 search_awards_by_vendor는 award.py에 위치.
+
+async def search_bids_by_vendor(
+    vendor_biz_no: str | None = None,
+    vendor_name: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    biz_type: str | None = None,
+    limit: int = 20,
+) -> dict:
+    """업체 기준 기간 내 응찰한 입찰공고 목록 조회 (V1, 스텁).
+
+    BidPublicInfoService 풀 페이지 스캔 + 응찰업체 필드(prtcptCnum 등) 클라이언트 필터.
+    또는 list_bid_participants를 역인덱싱하는 우회 경로.
+    """
+    return {
+        "status": "not_implemented",
+        "domain": "vendor",
+        "tool": "search_bids_by_vendor",
+        "items": [],
+        "total_count": 0,
+        "note": "V1 — 응찰업체 매핑 endpoint 확정 후 구현",
+    }
+
+
+async def search_participations_by_vendor(
+    vendor_biz_no: str | None = None,
+    vendor_name: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    limit: int = 20,
+) -> dict:
+    """업체 기준 기간 내 응찰 이력(응찰가 포함) 조회 (V2, 스텁).
+
+    조달데이터허브 EVAL API(G2B_KEY_EVAL) 발급 후 본문 교체 예정.
+    """
+    return {
+        "status": "not_implemented",
+        "domain": "vendor",
+        "tool": "search_participations_by_vendor",
+        "items": [],
+        "total_count": 0,
+        "note": "V2 — G2B_KEY_EVAL 키 발급 + EVAL endpoint 매핑 후 구현",
+    }
+
+
+async def search_openings_by_vendor(
+    vendor_biz_no: str | None = None,
+    vendor_name: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    limit: int = 20,
+) -> dict:
+    """업체가 참여한 입찰의 개찰 결과 이력 조회 (V3, 스텁).
+
+    ScsbidInfoService 개찰목록 + 응찰업체 필터.
+    """
+    return {
+        "status": "not_implemented",
+        "domain": "vendor",
+        "tool": "search_openings_by_vendor",
+        "items": [],
+        "total_count": 0,
+        "note": "V3 — ScsbidInfoService 개찰 endpoint 확정 후 구현",
+    }

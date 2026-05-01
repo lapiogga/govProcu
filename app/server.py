@@ -39,25 +39,38 @@ mcp = FastMCP(
 )
 
 # === 도구 등록 ===
-# bid 영역
+# bid 영역 (입찰공고 + 사전규격)
 mcp.tool()(bid_tools.search_bid_notices)
 mcp.tool()(bid_tools.get_bid_notice_detail)
 mcp.tool()(bid_tools.list_pre_specifications)
-# award 영역
+mcp.tool()(bid_tools.get_pre_specification_detail)
+# award 영역 (개찰/낙찰/응찰업체)
+mcp.tool()(award_tools.list_bid_openings)
+mcp.tool()(award_tools.search_awards)
+mcp.tool()(award_tools.get_award_detail)
 mcp.tool()(award_tools.search_awards_by_vendor)
+mcp.tool()(award_tools.list_bid_participants)
 mcp.tool()(award_tools.placeholder_award)
-# contract 영역 (M5 단계 스텁)
+# contract 영역 (계약과정통합공개)
 mcp.tool()(contract_tools.get_contract_process)
 mcp.tool()(contract_tools.search_contracts)
-# stats 영역 (스텁)
+mcp.tool()(contract_tools.list_contract_changes)
+mcp.tool()(contract_tools.get_contract_detail)
+# stats 영역 (공공조달통계)
+mcp.tool()(stats_tools.get_procurement_stats)
+mcp.tool()(stats_tools.list_top_vendors_by_period)
+mcp.tool()(stats_tools.agency_procurement_volume)
 mcp.tool()(stats_tools.placeholder_stats)
 # user 영역 (스텁)
 mcp.tool()(user_tools.placeholder_user)
-# vendor 영역
+# vendor 영역 (응찰업체 + NTS + V1~V3 vendor-by-vendor)
 mcp.tool()(vendor_tools.search_bid_participants)
 mcp.tool()(vendor_tools.get_evaluation_scores)
 mcp.tool()(vendor_tools.check_business_status)
 mcp.tool()(vendor_tools.verify_business_info)
+mcp.tool()(vendor_tools.search_bids_by_vendor)
+mcp.tool()(vendor_tools.search_participations_by_vendor)
+mcp.tool()(vendor_tools.search_openings_by_vendor)
 mcp.tool()(vendor_tools.placeholder_vendor)
 
 
