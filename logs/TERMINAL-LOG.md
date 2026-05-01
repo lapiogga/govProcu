@@ -245,3 +245,15 @@ On branch main
 ?? app/tools/contract.py
 ```
 결과: 사용자가 D API를 입찰참가자격등록 → **계약과정통합공개**로 교체. 환경변수·트래커·README·신규 contract.py 도구 stub 반영. WORK-LOG.md 절단 행(18:18) 복구 + 정기 sync 행 추가. commit·push 진행.
+
+### [18:11:52 KST] $ git status (정기 sync, 휴면 사이클)
+```
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+	app/tools/vendor.py
+
+nothing added to commit but untracked files present
+```
+결과: 트래킹된 변경 없음. vendor.py는 D API 교체 시 origin에서 삭제됐으나 mount 권한상 잔류한 untracked 파일 — 무해. WORK-LOG.md에 휴면 행만 추가.

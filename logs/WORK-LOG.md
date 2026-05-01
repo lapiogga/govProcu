@@ -92,3 +92,4 @@
 | 17:51 | 17:54 | 3분 | push 충돌 해결 | 로컬 488984c 와 user push 9ef6e79 가 같은 파일 수정 → rebase 충돌. 로컬 reset → mount의 fixed log만 다시 commit. mount의 vendor.py 삭제는 mount 권한상 실패(harmless — origin·work 모두 삭제 상태) |
 | 18:35 | 18:38 | 3분 | pip install -e . 실패 (패키지 자동탐색 충돌) | 사용자 보고: `Multiple top-level packages discovered in a flat-layout: ['app', 'logs', 'deploy']`. setuptools가 logs/deploy를 패키지로 오인. pyproject.toml에 `[tool.setuptools.packages.find] include=["app*"] exclude=[...]` 추가하여 해결 |
 | 18:55 | 18:58 | 3분 | uvicorn 기동 실패 (FastMCP API 변경) | `AttributeError: 'FastMCP' object has no attribute 'streamable_http_app'` (Python 3.14 + FastMCP 2.x 환경). server.py를 버전 호환 형태로 수정: `http_app() → streamable_http_app() → sse_app()` 순으로 fallback. mcp.run() 도 transport 파라미터 호환 처리 |
+| 18:11 | 18:11 | 0분 | 정기 점검 | 변경 없음 — 휴면 (mount=origin=work, 워킹트리 clean. vendor.py 잔류 untracked — 의도된 상태) |
