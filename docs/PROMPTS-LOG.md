@@ -81,3 +81,5 @@
 | 22:?? | 47 | **"https://apis.data.go.kr/B500001/ebid/cntrct3/cntrwkList?serviceKey=...&_type=xml&searchDt=202205"** | 통찰 | KWater 정확한 endpoint 제공. 즉시 검증 → HTTP 200 totalCount 61, json/xml 둘 다 지원. KWater 어댑터 BASE_URL=B500001, ENDPOINT=cntrwkList로 갱신 |
 | 22:?? | 48 | **(스크린샷 + URL) lh-02.png + LH 사전규격 호출 URL** | 통찰 | LH 자체 포털 endpoint 패턴 확인 (OpenAdvcinfoReqList.dev). 단, "SERVICE KEY IS NOT REGISTERED ERROR (resultCode 30)" — G2B 통합 키와 별개로 LH 자체 포털 키 활성화 필요. data.go.kr 단일 인증키 정책이 LH 자체 포털엔 적용 안 됨 |
 | 22:?? | 49 | **"LH는 연결하지 않아도 됨. 정보화 업무영역에서는 포함이 안되어도 됨"** | 정정 | LH 5종 트랙 보류 결정. 정보화 영역(주로 IT 용역)과 LH 업무(건축/토목/주택)는 거리 있음. KWater만 ACTIVE 유지 — 단일 외부 어댑터 검증 케이스로 운영. EX/Korail/LH 모두 비-사용 |
+| 22:?? | 50 | **"Gmail SMTP App Password (Recommended)"** (4지선다) | 선택 | 알림 채널 트랙 — Gmail SMTP App Password 우선 |
+| 22:?? | 50-A | **"<redacted 16자리 App Password>"** | 운영지시 | Gmail App Password 16자리 paste. .env에 SMTP_HOST=smtp.gmail.com / PORT=587 / USER=lapiogga@gmail.com / PASSWORD=<masked> / FROM 추가. send_email() 자체 발송 테스트 → "OK 발송 완료" → SMTP dispatcher 검증 OK |
