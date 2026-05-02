@@ -1,7 +1,47 @@
 "use client";
 
+import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { BidLifecycleCard } from "@/components/console/BidLifecycleCard";
+
+const MOCK_DEMO_RESPONSE = {
+  id: "mock-demo-1",
+  role: "assistant" as const,
+  content:
+    "[데모 응답] 공고번호 20240315678 의 입찰 생애주기를 추적했습니다. " +
+    "사전규격 등록 → 공고 (추정가 3.20억) → 응찰 12개사 → 낙찰자 디지털혁신㈜ (91.02%) → " +
+    "NTS 계속사업자 확인 → 계약 체결 대기. 핵심 가치 도구 trace_bid_lifecycle 의 결과 6단계 정상.",
+  toolInvocations: [
+    {
+      toolCallId: "mock-tc-1",
+      toolName: "trace_bid_lifecycle",
+      args: { bid_notice_no: "20240315678", bid_ord: "00" },
+      state: "result" as const,
+      result: {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              summary: {
+                title: "AI 기반 입찰정보 통합관리 시스템 구축",
+                inst_name: "국방재정관리단",
+                biz_type: "용역",
+                estimated_price: 320_000_000,
+                participant_count: 12,
+                publish_date: "20260420",
+                open_date: "20260505",
+                winner_name: "디지털혁신㈜",
+                winner_biz_no: "1234567890",
+                award_amount: 268_500_000,
+                award_rate: 91.02,
+              },
+            }),
+          },
+        ],
+      },
+    },
+  ],
+};
 
 /**
  * AI SDK 자연어 콘솔.
@@ -16,6 +56,10 @@ import { BidLifecycleCard } from "@/components/console/BidLifecycleCard";
 export default function ConsolePage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({ api: "/api/chat" });
+  const [demoMode, setDemoMode] = useState(false);
+
+  // 데모 모드 — ANTHROPIC_API_KEY 없는 환경에서 한 개 sample 메시지 표시
+  const displayMessages = demoMode ? [MOCK_DEMO_RESPONSE] : messages;
 
   return (
     <main className="space-y-4">
@@ -34,7 +78,19 @@ export default function ConsolePage() {
       </ol>
 
       <div className="space-y-3 rounded-lg border bg-[var(--color-bg-muted)] p-4">
-        {messages.map((m) => (
+        {displayMessages.length === 0 && !demoMode && (
+          <div className="text-center text-sm text-[var(--color-fg-muted)]">
+            <p>아직 대화가 없습니다. 위 예시를 참고해 자연어로 질문하세요.</p>
+            <button
+              type="button"
+              onClick={() => setDemoMode(true)}
+              className="mt-2 text-xs text-[var(--color-primary)] underline"
+            >
+              ANTHROPIC_API_KEY 없이 데모 응답 보기 →
+            </button>
+          </div>
+        )}
+        {displayMessages.map((m: any) => (
           <div
             key={m.id}
             className={`rounded p-3 text-sm ${

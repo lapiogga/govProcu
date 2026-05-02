@@ -3,6 +3,7 @@
  * UI Phase D 핵심. 입력 패턴 자동 감지 + 결과 노드 시각화.
  */
 import { Suspense } from "react";
+import Link from "next/link";
 import {
   lookupByBidNo,
   lookupByBizNo,
@@ -277,17 +278,30 @@ function KeyNode({
 }) {
   const inner = (
     <div
-      className={`rounded-lg border p-3 ${
-        highlight ? "border-[var(--color-primary)] bg-[var(--color-bg-muted)]" : ""
+      className={`rounded-lg border p-3 transition-colors ${
+        highlight
+          ? "border-[var(--color-primary)] bg-[var(--color-bg-muted)]"
+          : "hover:border-[var(--color-primary)] hover:bg-[var(--color-bg-muted)]"
       }`}
     >
       <div className="text-xs text-[var(--color-fg-muted)]">{label}</div>
       <div className="mt-1 font-medium tabular-nums">{value}</div>
       {ord && <div className="text-xs">차수 {ord}</div>}
       {sub && <div className="text-xs text-[var(--color-fg-muted)]">{sub}</div>}
+      {href && (
+        <div className="mt-2 text-[10px] text-[var(--color-primary)]">
+          → 상세로 이동
+        </div>
+      )}
     </div>
   );
-  return href ? <a href={href}>{inner}</a> : inner;
+  return href ? (
+    <Link href={href} className="block">
+      {inner}
+    </Link>
+  ) : (
+    inner
+  );
 }
 
 function Skel({ h }: { h: number }) {
