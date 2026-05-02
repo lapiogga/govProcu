@@ -30,13 +30,15 @@ const PAGES: { name: string; path: string }[] = [
 test.describe("@screenshot Mock-mode full page captures", () => {
   for (const p of PAGES) {
     test(`${p.name}`, async ({ page }, testInfo) => {
+      // 다른 spec 과 동시 실행 시 dev 서버 부하 buffer
+      test.setTimeout(60_000);
       const url = p.path;
-      const resp = await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 });
+      const resp = await page.goto(url, { waitUntil: "networkidle", timeout: 45_000 });
       expect(resp?.ok(), `Page ${url} responded ${resp?.status()}`).toBeTruthy();
 
       // Suspense streaming + Tremor hydration 안정화
       await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(1500);
+      await page.waitForTimeout(2000);
 
       const dir = `screenshots/${testInfo.project.name.replace(/\s+/g, "-")}`;
       await page.screenshot({

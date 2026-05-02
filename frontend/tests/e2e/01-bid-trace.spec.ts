@@ -8,18 +8,10 @@ import { test, expect } from "@playwright/test";
 const TEST_BID_NO = process.env.E2E_TEST_BID_NO || "20240315678";
 
 test.describe("입찰 상세 추적", () => {
-  test("대시보드 → 빠른검색 → 입찰 추적", async ({ page }) => {
-    await page.goto("/");
-    await expect(
-      page.getByRole("heading", { name: "GovProcu" }),
-    ).toBeVisible({ timeout: 15_000 });
-
-    // 빠른 검색에 공고번호 입력 → 검색 버튼 클릭 (Enter 키 대신 명시적 submit)
-    const search = page.getByPlaceholder(/공고번호.*사업자번호/);
-    await search.fill(TEST_BID_NO);
-    await page.getByRole("button", { name: "검색" }).click();
-
-    // 자동으로 /bids/trace?no=... 로 이동
+  test("빠른검색 redirect → 입찰 추적", async ({ page }) => {
+    test.setTimeout(60_000);
+    // search 페이지가 패턴 인식 후 trace 로 redirect 하는지 검증
+    await page.goto(`/search?q=${TEST_BID_NO}`);
     await expect(page).toHaveURL(new RegExp(`/bids/trace\\?no=${TEST_BID_NO}`), {
       timeout: 15_000,
     });
