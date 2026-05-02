@@ -222,3 +222,18 @@ export async function lookupByInstCode(
     date_to: dateTo,
   });
 }
+
+// 외부 발주기관 OpenAPI (5/2 N26)
+export async function searchKwaterContracts(
+  searchDt?: string,
+  limit = 30,
+) {
+  return callMcpTool("search_kwater_contracts", {
+    search_dt: searchDt,
+    limit,
+  });
+}
+
+export async function listExternalAdapters() {
+  return callMcpTool("list_external_adapters", {});
+}

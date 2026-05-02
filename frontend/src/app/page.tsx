@@ -109,6 +109,13 @@ const MENUS: MenuItem[] = [
     tag: "P0",
     variant: "success",
   },
+  {
+    title: "K-water 계약공개",
+    description: "한국수자원공사 전자조달 계약 정보 (월 단위, 외부 어댑터)",
+    href: "/external/kwater",
+    tag: "외부",
+    variant: "outline",
+  },
 ];
 
 interface MenuItem {

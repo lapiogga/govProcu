@@ -119,6 +119,12 @@ const PAGES: PageEntry[] = [
     icon: TrendingUp,
     keywords: ["prediction", "투찰가"],
   },
+  {
+    title: "K-water 계약공개",
+    href: "/external/kwater",
+    icon: Database,
+    keywords: ["kwater", "수자원", "계약", "external"],
+  },
 ];
 
 export interface GlobalCommandPaletteProps {

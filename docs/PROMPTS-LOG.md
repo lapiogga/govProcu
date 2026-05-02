@@ -83,3 +83,5 @@
 | 22:?? | 49 | **"LH는 연결하지 않아도 됨. 정보화 업무영역에서는 포함이 안되어도 됨"** | 정정 | LH 5종 트랙 보류 결정. 정보화 영역(주로 IT 용역)과 LH 업무(건축/토목/주택)는 거리 있음. KWater만 ACTIVE 유지 — 단일 외부 어댑터 검증 케이스로 운영. EX/Korail/LH 모두 비-사용 |
 | 22:?? | 50 | **"Gmail SMTP App Password (Recommended)"** (4지선다) | 선택 | 알림 채널 트랙 — Gmail SMTP App Password 우선 |
 | 22:?? | 50-A | **"<redacted 16자리 App Password>"** | 운영지시 | Gmail App Password 16자리 paste. .env에 SMTP_HOST=smtp.gmail.com / PORT=587 / USER=lapiogga@gmail.com / PASSWORD=<masked> / FROM 추가. send_email() 자체 발송 테스트 → "OK 발송 완료" → SMTP dispatcher 검증 OK |
+| 22:?? | 51 | **"continue"** | 선택 | 자율 v4 라운드 진입. v5 종결 후 SESSION-SUMMARY v5 §6 권장 우선순위 ① KWater frontend 통합 — search_contracts MCP 도구 등록 + frontend 통합 + mock + e2e |
+| 22:?? | 52 | **"SLACK과 kakao 연결은 꼭 필요한가? 꼭 필수가 아니면 연결하지말고 Skip"** | 정정 | Slack Webhook + Kakao 알림톡 트랙 영구 Skip. 알림 채널은 Gmail SMTP 단일로 종결 (#50 N24 검증 완료). USER-ACTIONS.md §2.2~2.3 보류 표시. SESSION-SUMMARY 시점관리에서 미진행 → Skip 갱신 |

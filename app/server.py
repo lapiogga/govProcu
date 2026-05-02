@@ -26,6 +26,7 @@ from app.tools import prediction as prediction_tools
 from app.tools import multi_agency as multi_agency_tools
 from app.tools import graph as graph_tools
 from app.tools import graphrag as graphrag_tools
+from app.tools import external as external_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -131,6 +132,9 @@ mcp.tool()(graph_tools.agency_vendor_network)
 mcp.tool()(graph_tools.vendor_supply_concentration)
 # graphrag 영역 (R4 GraphRAG — 자연어 → Cypher)
 mcp.tool()(graphrag_tools.graph_natural_query)
+# external 영역 (5/2 N25 — 외부 발주기관 OpenAPI)
+mcp.tool()(external_tools.search_kwater_contracts)
+mcp.tool()(external_tools.list_external_adapters)
 
 
 def _get_asgi_app():
