@@ -682,3 +682,19 @@ worklog 행 1건 + terminal 블록 1건 추가 후 commit & push
 cacheComponents 보류 = Next.js 15.5.15 stable 채널 유지를 위한 의도적 후퇴
 본 사이클은 awareness 기록만, 신규 도구·페이지·문서 변경 없음
 ```
+
+[10:53:02 KST] $ ls /sessions/determined-pensive-meitner/mnt/GovProcu/frontend/src/components/ThemeToggle.tsx EntityLink.tsx
+# UI Phase F 진입 — 사용자 9시간 in-progress (5/2 01:41 KST 작성, 어떤 NEXT commit에도 미포함)
+
+[10:53:02 KST] $ find /sessions/determined-pensive-meitner/mnt/GovProcu/frontend/test-results -name "*.png" -newer /tmp/anchor
+# e2e 실패 4 시나리오 × 3 산출물 = 12건 (mtime 5/2 10:47:39 KST = sync 4분 전 사용자 dev run)
+# bid-trace 3건 + vendor-profile 1건 (Theme Toggle / EntityLink 통합 회귀 가능성)
+
+[10:53:02 KST] $ git reset --hard origin/main && git clean -fdx -e .git
+# mount lag 정리 (M=141건, server.py 79 vs 171, README 85 vs 89, .gitignore truncated)
+# .gitignore 차단 정상: theme-*.png / test-results/ / tsconfig.tsbuildinfo / govprocu_mcp.egg-info/ / tmp/
+
+[decision]
+- UI Phase F 3 untracked 미push (사용자 단일 commit 대기 + e2e 회귀 해소 후)
+- 본 사이클: worklog 행 1건 + terminal 블록 1건만 commit & push
+- e2e 실패는 사용자 dev 환경 검증 흐름 — 자동 sync 트리거 노트만 (실 push 없음)
