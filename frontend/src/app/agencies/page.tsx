@@ -2,7 +2,6 @@
  * 발주기관 분석 — agency_procurement_history + analyze_agency_price_pattern
  */
 import { Suspense } from "react";
-import { unstable_cacheTag as cacheTag } from "next/cache";
 import { getAgencyHistory, getAgencyPricePattern } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon, fmtRate, fmtDate } from "@/lib/format";
@@ -10,7 +9,6 @@ import { AgencyPricePatternChart } from "@/components/charts/AgencyPricePatternC
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cacheTags } from "@/lib/cache-tags";
 
 export default async function AgenciesPage(props: {
   searchParams: Promise<{
@@ -96,8 +94,6 @@ async function PriceCard({
   from?: string;
   to?: string;
 }) {
-  "use cache";
-  cacheTag(cacheTags.agency(instName));
   const r = await getAgencyPricePattern(instName, bizType, from, to);
   const data = extractMcpData<any>(r.data);
   if (!data) return null;
@@ -143,8 +139,6 @@ async function HistoryTable({
   from?: string;
   to?: string;
 }) {
-  "use cache";
-  cacheTag(cacheTags.agency(instName));
   const r = await getAgencyHistory(instName, from, to, bizType);
   const data = extractMcpData<any>(r.data);
   if (!data) return null;

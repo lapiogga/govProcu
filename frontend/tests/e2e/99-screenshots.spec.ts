@@ -14,7 +14,7 @@ import { test, expect } from "@playwright/test";
 const PAGES: { name: string; path: string }[] = [
   { name: "01-dashboard", path: "/" },
   { name: "02-bids-trace", path: "/bids/trace?no=20240315678&ord=00" },
-  { name: "03-search", path: "/search?keyword=AI" },
+  { name: "03-search-redirect", path: "/search?q=AI" },
   { name: "04-bids-list", path: "/bids?keyword=AI" },
   { name: "05-vendor-profile", path: "/vendors/1234567890" },
   { name: "06-agencies", path: "/agencies?name=%EA%B5%AD%EB%B0%A9%EC%9E%AC%EC%A0%95%EA%B4%80%EB%A6%AC%EB%8B%A8" },

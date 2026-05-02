@@ -2,15 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // GovProcu 데스크톱·태블릿 웹앱 (모바일 비대상)
-  output: "standalone",  // NEXT5-5 Docker 배포 (Dockerfile.frontend)
-  experimental: {
-    // NEXT4-2: Cache Components 활성화 (Next.js 15+)
-    // FRONTEND-TECH.md Wave 2 — analytics/agencies 캐시 적중 시 ms 응답
-    cacheComponents: true,
-  },
+  output: "standalone", // NEXT5-5 Docker 배포 (Dockerfile.frontend)
+  // NEXT7-SEC-1: Next 15.5.15 stable에서 cacheComponents 는 canary-only.
+  // 'use cache' directive + cacheTag 는 임시 비활성. Next 16 정식 출시 후 재활성 (R&D 트랙).
   env: {
-    GOVPROCU_MCP_URL:
-      process.env.GOVPROCU_MCP_URL || "http://localhost:8080",
+    GOVPROCU_MCP_URL: process.env.GOVPROCU_MCP_URL || "http://localhost:8080",
   },
 };
 

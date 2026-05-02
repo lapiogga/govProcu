@@ -2,13 +2,11 @@
  * 분석/통계 — industry_trend + market_share
  */
 import { Suspense } from "react";
-import { unstable_cacheTag as cacheTag } from "next/cache";
 import { getIndustryTrend, getMarketShare } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon } from "@/lib/format";
 import { IndustryTrendChart } from "@/components/charts/IndustryTrendChart";
 import { MarketShareChart } from "@/components/charts/MarketShareChart";
-import { cacheTags } from "@/lib/cache-tags";
 
 export default async function AnalyticsPage(props: {
   searchParams: Promise<{ type?: string; from?: string; to?: string }>;
@@ -75,9 +73,7 @@ async function TrendSection({
   from?: string;
   to?: string;
 }) {
-  // NEXT4-2 Cache Components — 동향은 업종 단위 tag
-  "use cache";
-  cacheTag(cacheTags.industry(bizType));
+  // Cache 전략은 NEXT7-SEC-1 후 보류 (CACHE-STRATEGY.md §2)
   const r = await getIndustryTrend(bizType, undefined, from, to);
   const data = extractMcpData<any>(r.data);
   const monthly = data?.monthly || [];
@@ -151,9 +147,6 @@ async function MarketShareSection({
   from?: string;
   to?: string;
 }) {
-  // NEXT4-2 Cache Components — 시장 점유도 업종 단위 tag
-  "use cache";
-  cacheTag(cacheTags.industry(bizType));
   const r = await getMarketShare(bizType, from, to, 20);
   const data = extractMcpData<any>(r.data);
   const top = data?.top_vendors || [];

@@ -1,7 +1,9 @@
 /**
  * Mock fixtures — MCP_MOCK_MODE=true 일 때 callMcpTool 가 반환할 데이터.
  *
- * 운영 데이터를 흉내 낸 샘플로 11 페이지 전체 캡쳐 검증용.
+ * 각 fixture 의 schema 는 해당 페이지 RSC가 기대하는 형태와 정확히 일치해야 한다.
+ * (페이지 코드 base — 임의 수정 금지)
+ *
  * 운영 환경에 절대 노출되면 안 됨 (env 분기 필수).
  */
 
@@ -9,6 +11,8 @@ const SAMPLE_BID_NO = "20240315678";
 const SAMPLE_BID_ORD = "00";
 const SAMPLE_BIZ = "1234567890";
 const SAMPLE_INST = "국방재정관리단";
+const SAMPLE_INST_CODE = "1234567";
+const SAMPLE_CONTRACT = "C-2026-04-789";
 
 const sampleNotice = {
   bid_notice_no: SAMPLE_BID_NO,
@@ -48,10 +52,12 @@ const sampleNoticesList = [
   },
 ];
 
-const sampleVendors = [
-  { biz_no: "1234567890", vendor_name: "디지털혁신㈜" },
-  { biz_no: "9876543210", vendor_name: "스마트인포텍㈜" },
-  { biz_no: "1122334455", vendor_name: "AI솔루션즈㈜" },
+const traceParticipants = [
+  { opening_rank: 1, participant_name: "디지털혁신㈜", participant_biz_no: SAMPLE_BIZ, participant_bid_amount: 268_500_000, is_winner: true },
+  { opening_rank: 2, participant_name: "스마트인포텍㈜", participant_biz_no: "9876543210", participant_bid_amount: 271_400_000, is_winner: false },
+  { opening_rank: 3, participant_name: "AI솔루션즈㈜", participant_biz_no: "1122334455", participant_bid_amount: 273_200_000, is_winner: false },
+  { opening_rank: 4, participant_name: "넥스트테크㈜", participant_biz_no: "5544332211", participant_bid_amount: 275_800_000, is_winner: false },
+  { opening_rank: 5, participant_name: "정보통신협력㈜", participant_biz_no: "6677889900", participant_bid_amount: 278_500_000, is_winner: false },
 ];
 
 export const MOCK_FIXTURES: Record<string, unknown> = {
@@ -63,54 +69,41 @@ export const MOCK_FIXTURES: Record<string, unknown> = {
   },
   get_bid_notice_detail: sampleNotice,
 
-  // === workflow — trace_bid_lifecycle (★ 핵심) ===
+  // === workflow — trace_bid_lifecycle (★ 핵심, 페이지 schema 정확히 일치) ===
   trace_bid_lifecycle: {
-    bid_notice_no: SAMPLE_BID_NO,
-    bid_ord: SAMPLE_BID_ORD,
     summary: {
       title: sampleNotice.bid_title,
       inst_name: SAMPLE_INST,
       biz_type: "용역",
       estimated_price: sampleNotice.estimated_price,
-      base_amount: sampleNotice.base_amount,
+      participant_count: 12,
       publish_date: sampleNotice.publish_date,
-      stages_complete: 5,
-      stages_total: 6,
+      open_date: sampleNotice.open_date,
+      winner_name: "디지털혁신㈜",
+      winner_biz_no: SAMPLE_BIZ,
+      award_amount: 268_500_000,
+      award_rate: 91.02, // percentage 단위 (fmtRate 가 toFixed(2) + "%")
     },
     stages: {
-      "1_pre_spec": {
-        status: "found",
-        items: [{ pre_spec_no: "PS-2024-0123", title: sampleNotice.bid_title }],
+      pre_specification: { found: true, items: [{ pre_spec_no: "PS-2024-0123" }] },
+      bid_notice: { found: true, notice: sampleNotice },
+      participants: {
+        participant_count: 12,
+        items: traceParticipants,
       },
-      "2_notice": { status: "found", notice: sampleNotice },
-      "3_participants": {
-        status: "found",
-        count: 12,
-        items: sampleVendors.concat([
-          { biz_no: "5544332211", vendor_name: "넥스트테크㈜" },
-          { biz_no: "6677889900", vendor_name: "정보통신협력㈜" },
-        ]),
-      },
-      "4_award": {
-        status: "found",
-        winner: {
-          biz_no: "1234567890",
-          vendor_name: "디지털혁신㈜",
+      award: {
+        found: true,
+        summary: {
+          winner_name: "디지털혁신㈜",
+          winner_biz_no: SAMPLE_BIZ,
           award_amount: 268_500_000,
-          award_rate: 0.91,
+          award_rate: 91.02,
         },
       },
-      "5_nts_verify": {
-        status: "found",
-        biz_status_code: "01",
-        verified: true,
+      winner_nts_status: {
+        items: [{ b_stt_cd: "01", b_stt: "계속사업자" }],
       },
-      "6_contract": {
-        status: "found",
-        contract_no: "C-2026-04-789",
-        signed_date: "20260512",
-        amount: 268_500_000,
-      },
+      contract: { found: false },
     },
   },
 
@@ -134,12 +127,12 @@ export const MOCK_FIXTURES: Record<string, unknown> = {
         items: [
           {
             open_date: "20260420",
-            bid_notice_no: "20240315678",
+            bid_notice_no: SAMPLE_BID_NO,
             bid_ord: "00",
             bid_title: "AI 기반 입찰정보 통합관리 시스템",
             inst_name: SAMPLE_INST,
             award_amount: 268_500_000,
-            award_rate: 0.91,
+            award_rate: 91.02,
           },
           {
             open_date: "20260315",
@@ -147,7 +140,7 @@ export const MOCK_FIXTURES: Record<string, unknown> = {
             bid_title: "데이터 거버넌스 컨설팅",
             inst_name: "행정안전부",
             award_amount: 145_000_000,
-            award_rate: 0.87,
+            award_rate: 87.5,
           },
           {
             open_date: "20260205",
@@ -155,7 +148,7 @@ export const MOCK_FIXTURES: Record<string, unknown> = {
             bid_title: "디지털 트윈 PoC",
             inst_name: "국토교통부",
             award_amount: 98_000_000,
-            award_rate: 0.93,
+            award_rate: 93.4,
           },
         ],
       },
@@ -222,36 +215,63 @@ export const MOCK_FIXTURES: Record<string, unknown> = {
     grand_total_won: 152_300_000_000,
     vendor_count_total: 487,
     top_vendors: [
-      { biz_no: "1234567890", vendor_name: "디지털혁신㈜", awards_total: 8_750_000_000, share_pct: 5.74 },
-      { biz_no: "9876543210", vendor_name: "스마트인포텍㈜", awards_total: 6_200_000_000, share_pct: 4.07 },
-      { biz_no: "1122334455", vendor_name: "AI솔루션즈㈜", awards_total: 5_100_000_000, share_pct: 3.35 },
-      { biz_no: "5544332211", vendor_name: "넥스트테크㈜", awards_total: 4_800_000_000, share_pct: 3.15 },
-      { biz_no: "6677889900", vendor_name: "정보통신협력㈜", awards_total: 3_900_000_000, share_pct: 2.56 },
+      { biz_no: SAMPLE_BIZ, name: "디지털혁신㈜", award_total: 8_750_000_000, award_count: 32, market_share_pct: 5.74 },
+      { biz_no: "9876543210", name: "스마트인포텍㈜", award_total: 6_200_000_000, award_count: 24, market_share_pct: 4.07 },
+      { biz_no: "1122334455", name: "AI솔루션즈㈜", award_total: 5_100_000_000, award_count: 19, market_share_pct: 3.35 },
+      { biz_no: "5544332211", name: "넥스트테크㈜", award_total: 4_800_000_000, award_count: 17, market_share_pct: 3.15 },
+      { biz_no: "6677889900", name: "정보통신협력㈜", award_total: 3_900_000_000, award_count: 14, market_share_pct: 2.56 },
     ],
   },
 
-  // === lookup ===
+  // === lookup (페이지 schema: data.keys.{bid_notice_no, bid_ord, inst_code, inst_name, vendor_biz_no, vendor_name, contract_no}) ===
   lookup_by_bid_no: {
-    bid_notice: sampleNotice,
-    agency: { inst_code: "1234567", inst_name: SAMPLE_INST },
-    winner: { biz_no: SAMPLE_BIZ, vendor_name: "디지털혁신㈜", award_amount: 268_500_000 },
-    contract: { contract_no: "C-2026-04-789", signed_date: "20260512" },
+    keys: {
+      bid_notice_no: SAMPLE_BID_NO,
+      bid_ord: SAMPLE_BID_ORD,
+      inst_code: SAMPLE_INST_CODE,
+      inst_name: SAMPLE_INST,
+      vendor_biz_no: SAMPLE_BIZ,
+      vendor_name: "디지털혁신㈜",
+      contract_no: SAMPLE_CONTRACT,
+    },
+    summary: {
+      title: sampleNotice.bid_title,
+      estimated_price: 320_000_000,
+      award_amount: 268_500_000,
+      award_rate: 91.02,
+    },
   },
   lookup_by_biz_no: {
-    vendor: { biz_no: SAMPLE_BIZ, vendor_name: "디지털혁신㈜" },
-    recent_awards: 14,
-    top_agencies: [
-      { inst_name: SAMPLE_INST, deal_count: 5, total_amount: 1_200_000_000 },
-      { inst_name: "행정안전부", deal_count: 3, total_amount: 580_000_000 },
-    ],
+    keys: {
+      bid_notice_no: SAMPLE_BID_NO,
+      bid_ord: SAMPLE_BID_ORD,
+      inst_code: SAMPLE_INST_CODE,
+      inst_name: SAMPLE_INST,
+      vendor_biz_no: SAMPLE_BIZ,
+      vendor_name: "디지털혁신㈜",
+      contract_no: SAMPLE_CONTRACT,
+    },
+    summary: {
+      vendor_name: "디지털혁신㈜",
+      recent_awards: 14,
+      total_awards_won: 3_750_000_000,
+    },
   },
   lookup_by_inst_code: {
-    agency: { inst_code: "1234567", inst_name: SAMPLE_INST },
-    notice_count: 156,
-    top_winners: [
-      { winner_biz_no: SAMPLE_BIZ, winner_name: "디지털혁신㈜", deal_count: 5 },
-      { winner_biz_no: "9876543210", winner_name: "스마트인포텍㈜", deal_count: 3 },
-    ],
+    keys: {
+      bid_notice_no: SAMPLE_BID_NO,
+      bid_ord: SAMPLE_BID_ORD,
+      inst_code: SAMPLE_INST_CODE,
+      inst_name: SAMPLE_INST,
+      vendor_biz_no: SAMPLE_BIZ,
+      vendor_name: "디지털혁신㈜",
+      contract_no: SAMPLE_CONTRACT,
+    },
+    summary: {
+      inst_name: SAMPLE_INST,
+      notice_count: 156,
+      total_award_won: 28_500_000_000,
+    },
   },
 
   // === me ===
