@@ -25,6 +25,7 @@ from app.tools import qualification as qualification_tools
 from app.tools import prediction as prediction_tools
 from app.tools import multi_agency as multi_agency_tools
 from app.tools import graph as graph_tools
+from app.tools import graphrag as graphrag_tools
 
 # 구조화 로깅
 logging.basicConfig(level=settings.log_level)
@@ -128,6 +129,8 @@ mcp.tool()(graph_tools.graph_query_path)
 mcp.tool()(graph_tools.find_collusion_clusters)
 mcp.tool()(graph_tools.agency_vendor_network)
 mcp.tool()(graph_tools.vendor_supply_concentration)
+# graphrag 영역 (R4 GraphRAG — 자연어 → Cypher)
+mcp.tool()(graphrag_tools.graph_natural_query)
 
 
 def _get_asgi_app():

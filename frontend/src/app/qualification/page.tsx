@@ -3,6 +3,11 @@
  */
 import { calcQualification } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 export default async function QualificationPage(props: {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -19,30 +24,28 @@ export default async function QualificationPage(props: {
         </p>
       </header>
 
-      <form
-        action="/qualification"
-        className="grid grid-cols-2 gap-3 rounded border bg-[var(--color-bg-muted)] p-4 lg:grid-cols-3"
-      >
-        <Field label="응찰가 (원)" name="bid_amount" defaultValue={sp.bid_amount} required />
-        <Field label="기초금액 (원)" name="base_amount" defaultValue={sp.base_amount} required />
-        <Select
-          label="업종"
-          name="biz_type"
-          options={["공사", "용역", "물품"]}
-          defaultValue={sp.biz_type || "공사"}
-        />
-        <Field label="시공경험 실적" name="experience_actual" defaultValue={sp.experience_actual} />
-        <Field label="시공경험 기준" name="experience_standard" defaultValue={sp.experience_standard} />
-        <Field label="기술자 수" name="tech_count" defaultValue={sp.tech_count} />
-        <Field label="요구 기술자 수" name="tech_required" defaultValue={sp.tech_required} />
-        <Field label="신용등급 (예: AA-)" name="credit_grade" defaultValue={sp.credit_grade} />
-        <button
-          type="submit"
-          className="col-span-2 rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--color-primary-fg)] lg:col-span-3"
-        >
-          계산
-        </button>
-      </form>
+      <Card>
+        <CardContent className="p-4">
+          <form action="/qualification" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <Field label="응찰가 (원)" name="bid_amount" defaultValue={sp.bid_amount} required />
+            <Field label="기초금액 (원)" name="base_amount" defaultValue={sp.base_amount} required />
+            <Select
+              label="업종"
+              name="biz_type"
+              options={["공사", "용역", "물품"]}
+              defaultValue={sp.biz_type || "공사"}
+            />
+            <Field label="시공경험 실적" name="experience_actual" defaultValue={sp.experience_actual} />
+            <Field label="시공경험 기준" name="experience_standard" defaultValue={sp.experience_standard} />
+            <Field label="기술자 수" name="tech_count" defaultValue={sp.tech_count} />
+            <Field label="요구 기술자 수" name="tech_required" defaultValue={sp.tech_required} />
+            <Field label="신용등급 (예: AA-)" name="credit_grade" defaultValue={sp.credit_grade} />
+            <Button type="submit" className="col-span-2 lg:col-span-3">
+              계산
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {hasInput && <Result params={sp} />}
     </main>
@@ -62,57 +65,59 @@ async function Result({ params }: { params: Record<string, string | undefined> }
   });
   if (!r.ok) {
     return (
-      <div className="rounded border border-[var(--color-danger)] p-4 text-sm">
-        오류: {r.error}
-      </div>
+      <Card className="border-[var(--color-danger)]">
+        <CardContent className="p-4 text-sm">오류: {r.error}</CardContent>
+      </Card>
     );
   }
   const data = extractMcpData<any>(r.data);
   if (!data) return <p className="text-sm">결과 없음</p>;
 
   const scores = data.scores || {};
+  const passVariant: "success" | "warning" | "danger" =
+    data.ratio_pct >= 90 ? "success" : data.ratio_pct >= 70 ? "warning" : "danger";
 
   return (
-    <section className="rounded-lg border p-4">
-      <div className="mb-3 flex items-baseline gap-3">
-        <h2 className="text-lg font-medium">총점</h2>
-        <span className="font-mono text-2xl font-bold tabular-nums">
-          {data.total} / {data.max_total}
-        </span>
-        <span className="text-sm text-[var(--color-fg-muted)]">
-          ({data.ratio_pct}%)
-        </span>
-      </div>
-      <table className="w-full text-sm">
-        <thead className="bg-[var(--color-bg-muted)]">
-          <tr>
-            <th className="px-3 py-2 text-left">항목</th>
-            <th className="px-3 py-2 text-right">점수</th>
-            <th className="px-3 py-2 text-right">만점</th>
-            <th className="px-3 py-2 text-left">상세</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(scores).map(([k, v]: any) => (
-            <tr key={k} className="border-t">
-              <td className="px-3 py-2 font-medium">{labelMap[k] || k}</td>
-              <td className="px-3 py-2 text-right tabular-nums">
-                {v.score}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums text-[var(--color-fg-muted)]">
-                {v.max}
-              </td>
-              <td className="px-3 py-2 text-xs text-[var(--color-fg-muted)]">
-                {summarizeDetail(v.detail)}
-              </td>
+    <Card>
+      <CardHeader>
+        <div className="flex items-baseline gap-3">
+          <CardTitle>총점</CardTitle>
+          <span className="font-mono text-2xl font-bold tabular-nums">
+            {data.total} / {data.max_total}
+          </span>
+          <Badge variant={passVariant}>{data.ratio_pct}%</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <table className="w-full text-sm">
+          <thead className="bg-[var(--color-bg-muted)]">
+            <tr>
+              <th className="px-3 py-2 text-left">항목</th>
+              <th className="px-3 py-2 text-right">점수</th>
+              <th className="px-3 py-2 text-right">만점</th>
+              <th className="px-3 py-2 text-left">상세</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="mt-3 text-xs text-[var(--color-fg-muted)]">
-        {data.note}
-      </p>
-    </section>
+          </thead>
+          <tbody>
+            {Object.entries(scores).map(([k, v]: any) => (
+              <tr key={k} className="border-t">
+                <td className="px-3 py-2 font-medium">{labelMap[k] || k}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{v.score}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-[var(--color-fg-muted)]">
+                  {v.max}
+                </td>
+                <td className="px-3 py-2 text-xs text-[var(--color-fg-muted)]">
+                  {summarizeDetail(v.detail)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="border-t px-4 py-3 text-xs text-[var(--color-fg-muted)]">
+          {data.note}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -146,15 +151,17 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="text-sm">
-      <span className="text-[var(--color-fg-muted)]">{label}</span>
-      <input
+    <div className="space-y-1">
+      <Label htmlFor={name} className="text-xs text-[var(--color-fg-muted)]">
+        {label}
+      </Label>
+      <Input
+        id={name}
         name={name}
         defaultValue={defaultValue}
         required={required}
-        className="mt-1 w-full rounded border bg-[var(--color-bg)] px-3 py-2"
       />
-    </label>
+    </div>
   );
 }
 
@@ -170,12 +177,15 @@ function Select({
   defaultValue?: string;
 }) {
   return (
-    <label className="text-sm">
-      <span className="text-[var(--color-fg-muted)]">{label}</span>
+    <div className="space-y-1">
+      <Label htmlFor={name} className="text-xs text-[var(--color-fg-muted)]">
+        {label}
+      </Label>
       <select
+        id={name}
         name={name}
         defaultValue={defaultValue}
-        className="mt-1 w-full rounded border bg-[var(--color-bg)] px-3 py-2"
+        className="flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         {options.map((o) => (
           <option key={o} value={o}>
@@ -183,6 +193,6 @@ function Select({
           </option>
         ))}
       </select>
-    </label>
+    </div>
   );
 }

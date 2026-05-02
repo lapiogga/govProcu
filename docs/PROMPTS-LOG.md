@@ -59,3 +59,4 @@
 | 03:10 | 28 | **"진행"** (4회차) | 선택 | NEXT4 1-5 완료 후 5개 후보 순차 확정. ① watchlist/qualification 등 나머지 도구 ContextVar 통합 → ② shadcn 페이지 확장 (vendors/agencies/lookup/me) → ③ Tremor 차트 추가 (vendor profile/agency 사정률) → ④ 도구 카탈로그 + 사용자 매뉴얼 docs → ⑤ Docker compose 통합 (MCP + Redis + Neo4j + frontend). |
 | 03:30 | 29 | **"진행"** (5회차) | 선택 | NEXT5 1-5 완료 후 5개 후보 순차 확정. ① agencies/me/lookup shadcn 마무리 → ② 알림 디스패처 (이메일+슬랙+카카오) → ③ ML v2 (시계열 split + GridSearch + SHAP) → ④ Neo4j R3 (MCP 도구 통합: graph_query_path 등) → ⑤ 보안 강화 (rate limit per user + NTS quota + audit log). |
 | 03:55 | 30 | **"지금까지 내용 정리하고, 시점관리 포인트 설정하고, git에 저장"** | 운영지시 | 5/2 세션 마무리. WORK-LOG 종합 요약 + 시점관리 표 v3 갱신 + SESSION-SUMMARY 1쪽 + 최종 push. context 65% 도달, 다음 라운드는 신규 세션 권장. |
+| 04:?? | 31 | **"순서대로"** | 선택 | 신규 세션 재개. SESSION-SUMMARY v3 대기 항목 8종(T1 검증 가이드 → T2 외부 어댑터 4종 골격 → T3 디스패처 운영 가이드 → T4 카카오 알림톡 → T5 shadcn 100% → T6 Cache Components → T7 Neo4j R4 GraphRAG → T8 로그 archive)을 순차 진행. NEXT7 라운드. |

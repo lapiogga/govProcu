@@ -115,12 +115,25 @@ MCP_API_TOKENS=alice-2026Q2-xxx,bob-2026Q2-yyy
 - [ ] PROMPTS-LOG 분기별 백업
 
 ### 분기별
-- [ ] SQLite VACUUM (크기 압축):
+- [ ] **로그·감사 archive (90일+)** — NEXT7-T8:
+  ```powershell
+  # dry-run 으로 대상 확인
+  python scripts\archive_logs.py --days 90 --dry-run
+  # 실제 이관 (logs/archive/, runtime/archive/)
+  python scripts\archive_logs.py --days 90
+  # 또는 자동 등록:
+  .\deploy\scheduler\setup-archive-task.ps1
+  ```
+- [ ] SQLite VACUUM (크기 압축, archive_logs.py 가 자동 수행하지만 별도 검증):
   ```bash
   sqlite3 runtime/govprocu.db "VACUUM;"
   ```
 - [ ] dependency 업데이트 (`pip list --outdated`, `npm outdated`)
-- [ ] 접근 토큰 갱신 (PAT, MCP_API_TOKENS)
+- [ ] **접근 토큰 갱신** (분기별 의무):
+  - GitHub PAT (90일 권장): https://github.com/settings/tokens
+  - `MCP_API_TOKENS` (분기별 회전): `.env` 갱신 후 클라이언트 token 동시 교체
+  - `ANTHROPIC_API_KEY` (사용량 검토 + 필요 시 재발급)
+  - `NEO4J_PASSWORD` (운영 시 분기별 회전)
 
 ---
 

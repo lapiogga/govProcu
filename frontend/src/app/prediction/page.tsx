@@ -5,6 +5,13 @@ import { Suspense } from "react";
 import { predictBidPrice, compareBidStrategies } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+const SELECT_CLASS =
+  "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]";
 
 export default async function PredictionPage(props: {
   searchParams: Promise<{
@@ -27,64 +34,69 @@ export default async function PredictionPage(props: {
         </p>
       </header>
 
-      <form action="/prediction" className="grid grid-cols-2 gap-3 rounded border bg-[var(--color-bg-muted)] p-4 lg:grid-cols-3">
-        <label className="text-sm lg:col-span-3">
-          <span className="text-[var(--color-fg-muted)]">공고번호 (자동 메타 추출)</span>
-          <input
-            name="bid_no"
-            defaultValue={sp.bid_no}
-            placeholder="20240315678 (또는 base+inst 직접 입력)"
-            className="mt-1 w-full rounded border bg-[var(--color-bg)] px-3 py-2"
-          />
-        </label>
-        <label className="text-sm">
-          <span className="text-[var(--color-fg-muted)]">기초금액 (원)</span>
-          <input
-            name="base"
-            defaultValue={sp.base}
-            className="mt-1 w-full rounded border bg-[var(--color-bg)] px-3 py-2"
-          />
-        </label>
-        <label className="text-sm">
-          <span className="text-[var(--color-fg-muted)]">발주기관</span>
-          <input
-            name="inst"
-            defaultValue={sp.inst}
-            className="mt-1 w-full rounded border bg-[var(--color-bg)] px-3 py-2"
-          />
-        </label>
-        <label className="text-sm">
-          <span className="text-[var(--color-fg-muted)]">업종</span>
-          <select
-            name="type"
-            defaultValue={sp.type || "용역"}
-            className="mt-1 w-full rounded border bg-[var(--color-bg)] px-3 py-2"
-          >
-            <option value="공사">공사</option>
-            <option value="용역">용역</option>
-            <option value="물품">물품</option>
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="text-[var(--color-fg-muted)]">목표 낙찰 확률</span>
-          <select
-            name="target"
-            defaultValue={sp.target || "0.7"}
-            className="mt-1 w-full rounded border bg-[var(--color-bg)] px-3 py-2"
-          >
-            <option value="0.9">매우 높음 (0.9 — p10 근처)</option>
-            <option value="0.7">높음 (0.7 — p25 근처)</option>
-            <option value="0.5">중간 (0.5 — median)</option>
-            <option value="0.3">낮음 (0.3 — p75)</option>
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-[var(--color-primary-fg)] lg:col-span-1"
-        >
-          예측
-        </button>
-      </form>
+      <Card>
+        <CardContent className="p-4">
+          <form action="/prediction" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <div className="space-y-1 lg:col-span-3">
+              <Label htmlFor="bid_no" className="text-xs text-[var(--color-fg-muted)]">
+                공고번호 (자동 메타 추출)
+              </Label>
+              <Input
+                id="bid_no"
+                name="bid_no"
+                defaultValue={sp.bid_no}
+                placeholder="20240315678 (또는 base+inst 직접 입력)"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="base" className="text-xs text-[var(--color-fg-muted)]">
+                기초금액 (원)
+              </Label>
+              <Input id="base" name="base" defaultValue={sp.base} />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="inst" className="text-xs text-[var(--color-fg-muted)]">
+                발주기관
+              </Label>
+              <Input id="inst" name="inst" defaultValue={sp.inst} />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="type" className="text-xs text-[var(--color-fg-muted)]">
+                업종
+              </Label>
+              <select id="type" name="type" defaultValue={sp.type || "용역"} className={SELECT_CLASS}>
+                <option value="공사">공사</option>
+                <option value="용역">용역</option>
+                <option value="물품">물품</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="target" className="text-xs text-[var(--color-fg-muted)]">
+                목표 낙찰 확률
+              </Label>
+              <select
+                id="target"
+                name="target"
+                defaultValue={sp.target || "0.7"}
+                className={SELECT_CLASS}
+              >
+                <option value="0.9">매우 높음 (0.9 — p10 근처)</option>
+                <option value="0.7">높음 (0.7 — p25 근처)</option>
+                <option value="0.5">중간 (0.5 — median)</option>
+                <option value="0.3">낮음 (0.3 — p75)</option>
+              </select>
+            </div>
+
+            <Button type="submit" className="self-end">
+              예측
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {hasInput && (
         <Suspense fallback={<Skel h={32} />}>
@@ -111,35 +123,40 @@ async function PredictResult({ params }: { params: any }) {
   });
   if (!r.ok) {
     return (
-      <div className="rounded border border-[var(--color-danger)] p-4 text-sm">
-        오류: {r.error}
-      </div>
+      <Card className="border-[var(--color-danger)]">
+        <CardContent className="p-4 text-sm">오류: {r.error}</CardContent>
+      </Card>
     );
   }
   const data = extractMcpData<any>(r.data);
   if (!data || data.status === "missing_base_amount") {
     return (
-      <div className="rounded border p-4 text-sm">
-        기초금액 + 발주기관(또는 공고번호) 입력 필요.
-      </div>
+      <Card>
+        <CardContent className="p-4 text-sm">
+          기초금액 + 발주기관(또는 공고번호) 입력 필요.
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <section className="rounded-lg border bg-[var(--color-bg-muted)] p-4">
-      <h2 className="mb-3 text-lg font-medium">예측 결과</h2>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="추정 응찰가" v={fmtWon(data.recommended_amount)} highlight />
-        <Stat label="추정 응찰률" v={`${data.recommended_rate_pct}%`} />
-        <Stat label="95% CI 하한" v={fmtWon(data.ci_95?.low_amount)} />
-        <Stat label="95% CI 상한" v={fmtWon(data.ci_95?.high_amount)} />
-      </div>
-      <p className="mt-3 text-xs text-[var(--color-fg-muted)]">
-        모델: {data.model} · 발주기관 샘플 n=
-        {data.agency_pattern?.sample_count ?? "n/a"} ·{" "}
-        {data.agency_pattern?.interpretation || data.note}
-      </p>
-    </section>
+    <Card className="bg-[var(--color-bg-muted)]">
+      <CardHeader>
+        <CardTitle>예측 결과</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Stat label="추정 응찰가" v={fmtWon(data.recommended_amount)} highlight />
+          <Stat label="추정 응찰률" v={`${data.recommended_rate_pct}%`} />
+          <Stat label="95% CI 하한" v={fmtWon(data.ci_95?.low_amount)} />
+          <Stat label="95% CI 상한" v={fmtWon(data.ci_95?.high_amount)} />
+        </div>
+        <p className="mt-3 text-xs text-[var(--color-fg-muted)]">
+          모델: {data.model} · 발주기관 샘플 n={data.agency_pattern?.sample_count ?? "n/a"} ·{" "}
+          {data.agency_pattern?.interpretation || data.note}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -156,40 +173,40 @@ async function ScenarioTable({ params }: { params: any }) {
   if (scenarios.length === 0) return null;
 
   return (
-    <section className="rounded-lg border">
-      <header className="border-b px-4 py-2 text-sm font-medium">
-        시나리오별 낙찰 확률 비교 (n={data.agency_sample_count})
-      </header>
-      <table className="w-full text-sm">
-        <thead className="bg-[var(--color-bg-muted)]">
-          <tr>
-            <th className="px-3 py-2 text-left">응찰률</th>
-            <th className="px-3 py-2 text-right">응찰가</th>
-            <th className="px-3 py-2 text-right">예상 낙찰확률</th>
-            <th className="px-3 py-2 text-left">막대</th>
-          </tr>
-        </thead>
-        <tbody>
-          {scenarios.map((s: any, i: number) => (
-            <tr key={i} className="border-t">
-              <td className="px-3 py-2 tabular-nums">{s.bid_rate_pct}%</td>
-              <td className="px-3 py-2 text-right tabular-nums">
-                {fmtWon(s.bid_amount)}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums">
-                {(s.estimated_win_prob * 100).toFixed(0)}%
-              </td>
-              <td className="px-3 py-2">
-                <div
-                  className="h-2 rounded bg-[var(--color-primary)]"
-                  style={{ width: `${s.estimated_win_prob * 100}%` }}
-                />
-              </td>
+    <Card>
+      <CardHeader>
+        <CardTitle>시나리오별 낙찰 확률 비교 (n={data.agency_sample_count})</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <table className="w-full text-sm">
+          <thead className="bg-[var(--color-bg-muted)]">
+            <tr>
+              <th className="px-3 py-2 text-left">응찰률</th>
+              <th className="px-3 py-2 text-right">응찰가</th>
+              <th className="px-3 py-2 text-right">예상 낙찰확률</th>
+              <th className="px-3 py-2 text-left">막대</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
+          </thead>
+          <tbody>
+            {scenarios.map((s: any, i: number) => (
+              <tr key={i} className="border-t">
+                <td className="px-3 py-2 tabular-nums">{s.bid_rate_pct}%</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmtWon(s.bid_amount)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">
+                  {(s.estimated_win_prob * 100).toFixed(0)}%
+                </td>
+                <td className="px-3 py-2">
+                  <div
+                    className="h-2 rounded bg-[var(--color-primary)]"
+                    style={{ width: `${s.estimated_win_prob * 100}%` }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -204,7 +221,7 @@ function Stat({
 }) {
   return (
     <div
-      className={`rounded border p-3 ${
+      className={`rounded-md border p-3 ${
         highlight ? "border-[var(--color-primary)] bg-[var(--color-bg)]" : ""
       }`}
     >

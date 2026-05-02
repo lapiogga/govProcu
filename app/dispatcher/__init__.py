@@ -44,7 +44,7 @@ async def dispatch_digest(
     else:
         results["slack"] = "skipped"
 
-    if notify_kakao:
+    if notify_kakao and os.getenv("KAKAO_API_KEY"):
         try:
             await send_kakao(notify_kakao, body)
             results["kakao"] = "sent"
