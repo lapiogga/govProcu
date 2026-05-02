@@ -571,3 +571,20 @@ HEAD = 1930394 (5/2 세션 마무리 commit, 02:40 KST 사용자 push)
 nothing to commit beyond worklog dormancy row
 ```
 6시간 32분 dormancy — 변경 없음. WORK-LOG에 휴면 행 1건 추가.
+
+### [09:33:18 KST] $ 정기 sync (NEXT7 untracked 인지)
+```
+[mount 새 untracked 4건]
+docs/CACHE-STRATEGY.md      4,097 bytes   121줄  (NEXT7-T6, 09:30:01)
+docs/NOTIFICATIONS.md       7,025 bytes   216줄  (dispatcher 매뉴얼, 09:23:23)
+docs/TROUBLESHOOTING.md     6,368 bytes   171줄  (사용자 액션 3종, 09:20:50)
+frontend/src/lib/cache-tags.ts  988 bytes  22줄  (cacheTags helper, 09:28:37)
+
+[mount-lag 표면 M=129건] 전부 mount filesystem stale (이전 14 사이클과 동일 패턴)
+- server.py mount=79줄 vs origin=160줄
+- README.md mount=85줄 vs origin=89줄
+- WORK-LOG.md / TERMINAL-LOG.md mount=origin 일치 (직전 commit 정상 반영)
+
+[decision] 사용자 NEXT7 in-progress → 후속 단일 commit 대기
+이번 사이클 = 본 worklog dormancy + awareness 행 추가만
+```
