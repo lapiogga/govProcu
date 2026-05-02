@@ -984,3 +984,27 @@ mount 30분 내 mtime 변동: logs 2건뿐 (직전 8b23d30 sync 정합성 도달
 # mount-lag 표면 M 146건 정리, baseline = origin 5b14779
 
 [16:11 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 16:11 KST" && git push origin main
+
+[16:29:42 KST] $ TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S KST'
+2026-05-02 16:29:42 KST
+
+[16:29:50 KST] $ df -h /tmp $HOME
+# /tmp 9.6G/9.6G (96K free) — 풀 지속, uid 1058 권한 부재
+# /sessions/funny-hopeful-davinci 8.7G free — $HOME 워크 사용
+
+[16:30 KST] $ git clone https://github.com/lapiogga/govProcu.git $HOME/GovProcu_push
+# Cloning into '/sessions/funny-hopeful-davinci/GovProcu_push'... done
+
+[16:30:30 KST] $ rsync -a --delete --exclude='.git' --exclude='.pat' --exclude='node_modules' $MOUNT/ $WORK/
+# 0 transferred (mount lag 정상)
+
+[16:30:35 KST] $ find $MOUNT -newermt '2026-05-02 16:11:00' -not -path '*/.git/*' -not -path '*/node_modules/*' -not -path '*/.next/*'
+# 0건 — 사용자 휴면 5시간 12분 지속 (17 연속 dormancy)
+
+[16:30:40 KST] $ diff <(tr -d '\r' < $MOUNT/logs/WORK-LOG.md) <(tr -d '\r' < logs/WORK-LOG.md)
+# (empty) — CRLF 정규화 후 mount=origin=89,477 bytes 일치 확인
+
+[16:31 KST] $ git checkout -- . && git clean -fd
+# mount-lag 표면 M 다수 + frontend/src/app/bids/search·logs/archive·tmp 정리, baseline = origin 6db375f
+
+[16:31 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 16:31 KST" && git push origin main
