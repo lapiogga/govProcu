@@ -77,3 +77,7 @@
 | 21:?? | 44-D | **"지금 7개 활용신청 시작하겠음"** | 선택 | 진행. probe_external_apis.py 검증 → LH endpoint 작동(자체 포털 EUC-KR XML, 필수 파라미터 명세 필요), EX/KWater는 추정 URL 오류(HTTP 500) |
 | 21:?? | 44-E | **"Docker Desktop 시작 → Neo4j PoC 검증"** | 선택 | 활용신청 대기 중 병렬 트랙 — Docker Desktop 시작 요청 (사용자 작업 대기 중) |
 | 22:?? | 45 | **"EX를 뺀 LH, KWATER는 활용신청 OK"** | 정정 | 활용신청 범위 축소: LH 5종 + KWater 1종 = 6종 OK. EX 제외, Korail 보류. 다음 단계: probe 재실행으로 키 활성 확인 + LH/KWater 명세서로 어댑터 endpoint 갱신 |
+| 22:?? | 46 | **(스크린샷 첨부) kwater-01.png + lh-01.png** | 통찰 | KWater 미리보기 응답 파악 (resultCode 00, 9개 필드 contract용). LH 14건 활용신청 OK 확인 |
+| 22:?? | 47 | **"https://apis.data.go.kr/B500001/ebid/cntrct3/cntrwkList?serviceKey=...&_type=xml&searchDt=202205"** | 통찰 | KWater 정확한 endpoint 제공. 즉시 검증 → HTTP 200 totalCount 61, json/xml 둘 다 지원. KWater 어댑터 BASE_URL=B500001, ENDPOINT=cntrwkList로 갱신 |
+| 22:?? | 48 | **(스크린샷 + URL) lh-02.png + LH 사전규격 호출 URL** | 통찰 | LH 자체 포털 endpoint 패턴 확인 (OpenAdvcinfoReqList.dev). 단, "SERVICE KEY IS NOT REGISTERED ERROR (resultCode 30)" — G2B 통합 키와 별개로 LH 자체 포털 키 활성화 필요. data.go.kr 단일 인증키 정책이 LH 자체 포털엔 적용 안 됨 |
+| 22:?? | 49 | **"LH는 연결하지 않아도 됨. 정보화 업무영역에서는 포함이 안되어도 됨"** | 정정 | LH 5종 트랙 보류 결정. 정보화 영역(주로 IT 용역)과 LH 업무(건축/토목/주택)는 거리 있음. KWater만 ACTIVE 유지 — 단일 외부 어댑터 검증 케이스로 운영. EX/Korail/LH 모두 비-사용 |

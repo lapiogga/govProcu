@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     # 국세청 사업자등록 진위확인 및 상태조회
     nts_api_key: str = Field(default="", description="국세청 사업자등록 상태조회 인증키 (data.go.kr 발급, Decoding 권장)")
 
+    # 외부 발주기관 OpenAPI (data.go.kr 단일 인증키 재사용 가능. LH는 자체 포털 별도 활성화 필요)
+    lh_api_key: str = Field(default="", description="LH 자체 포털 (openapi.ebid.lh.or.kr)")
+    ex_api_key: str = Field(default="", description="EX 한국도로공사 — 사용자 #45로 보류")
+    kwater_api_key: str = Field(default="", description="K-water apis.data.go.kr/B500001/ebid/cntrct3")
+    korail_api_key: str = Field(default="", description="Korail — data.go.kr 미제공으로 보류")
+
     # MCP 인증
     mcp_api_tokens: str = Field(default="", description="콤마 구분 토큰 목록")
 

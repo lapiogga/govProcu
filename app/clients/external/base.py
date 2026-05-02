@@ -14,7 +14,20 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
 from typing import Any
+
+# .env 자동 로드 — pydantic-settings 는 Settings 멤버에만 값을 채우고
+# os.environ 에는 export 하지 않으므로, os.getenv 기반 어댑터를 위해 한 번 명시 로드.
+_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+if _ENV_FILE.exists() and not os.getenv("_GOVPROCU_ENV_LOADED"):
+    for _line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#") or "=" not in _line:
+            continue
+        _k, _, _v = _line.partition("=")
+        os.environ.setdefault(_k.strip(), _v.strip())
+    os.environ["_GOVPROCU_ENV_LOADED"] = "1"
 
 
 class AdapterStatus(str, Enum):

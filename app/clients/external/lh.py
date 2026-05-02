@@ -1,11 +1,16 @@
-"""한국토지주택공사(LH) OpenAPI 어댑터.
+"""한국토지주택공사(LH) OpenAPI 어댑터 — 정보화 영역 외, 보류.
 
-발급처: data.go.kr "LH 입찰" 검색 (또는 LH 공식 데이터포털 lh.or.kr)
-환경변수: LH_API_KEY
-endpoint 후보:
-    /1611000/HfBidNoticeService/getHfBidNoticeListInfoInqire (기관 자체 endpoint 발급 후 갱신)
+5/2 사용자 #49: 정보화 업무영역(IT 용역)과 LH(건축/토목/주택) 거리 → 비-사용 결정.
+스킬레톤은 유지 — 향후 건설/토목 분야 확장 시 활용 가능.
 
-키 발급 + 운영 검증 후 STATUS = AdapterStatus.ACTIVE 로 변경 시 search_bids 본문이 자동 호출됨.
+만약 활성화한다면:
+- data.go.kr 에서 LH 입찰공고/사전규격/개찰/계약/발주계획 5종 활용신청 (자동승인)
+- LH 자체 포털(http://openapi.ebid.lh.or.kr/...) 은 별도 키 활성화 필요
+  (data.go.kr 통합 키와 별개. 마이페이지 → LH 별도 인증 절차)
+- endpoint 패턴 (확인됨):
+    /OpenBidInfoList.dev    (입찰공고)
+    /OpenAdvcinfoReqList.dev (사전규격)
+    EUC-KR XML 응답
 """
 from __future__ import annotations
 import os
