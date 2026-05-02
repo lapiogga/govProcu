@@ -935,3 +935,15 @@ mount 30분 내 mtime 변동: logs 2건뿐 (직전 8b23d30 sync 정합성 도달
 # mount-lag 표면 M 정리, baseline = origin 2bafa76
 
 [15:11 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 15:11 KST" && git push origin main
+
+[15:29:30 KST] $ find $MOUNT -newermt '2026-05-02 14:51:00' -type f | grep -v /.git/ | grep -v .next/ | wc -l
+0
+# 직전 sync 이후 mount mtime 활동 전무 — 사용자 휴면 4시간 12분 지속 (14 연속 dormancy)
+
+[15:30:30 KST] $ diff <(tr -d '\r' < $MOUNT/logs/WORK-LOG.md) <(tr -d '\r' < logs/WORK-LOG.md)
+# (empty) — CRLF 정규화 후 mount=origin 일치 확인
+
+[15:31:00 KST] $ git checkout -- . && git clean -fd
+# mount-lag 표면 M 정리, baseline = origin 4c00cc7
+
+[15:31 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 15:31 KST" && git push origin main
