@@ -4,8 +4,10 @@
  * MCP Streamable HTTP transport 호환. AI SDK 5의 tool 호출에 직결.
  * UI-PLAN.md 기술 스택, FRONTEND-TECH.md Wave 2.
  */
+import { buildMockResult } from "./mocks";
 
 const MCP_URL = process.env.GOVPROCU_MCP_URL || "http://localhost:8080";
+const MOCK_MODE = process.env.MCP_MOCK_MODE === "true";
 
 export interface McpToolCall {
   name: string;
@@ -21,11 +23,17 @@ export interface McpResult {
 /**
  * MCP tool 호출 (Server Action·Route Handler에서 사용).
  * 클라이언트에서 직접 호출하지 않음 (CORS·인증 분리).
+ *
+ * MCP_MOCK_MODE=true 시 fixture 응답 (캡쳐 검증용).
  */
 export async function callMcpTool(
   toolName: string,
   args: Record<string, unknown> = {},
 ): Promise<McpResult> {
+  if (MOCK_MODE) {
+    return { ok: true, data: buildMockResult(toolName) };
+  }
+
   try {
     const resp = await fetch(`${MCP_URL}/mcp`, {
       method: "POST",
