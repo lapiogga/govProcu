@@ -39,7 +39,10 @@ structlog.configure(
 )
 log = structlog.get_logger()
 
-# FastMCP 인스턴스
+# FastMCP 인스턴스 — frontend Server Action(단순 JSON-RPC)을 위해 stateless 모드.
+# stateless_http는 http_app() 인자 또는 FASTMCP_STATELESS_HTTP 환경변수.
+import os as _os
+_os.environ.setdefault("FASTMCP_STATELESS_HTTP", "true")
 mcp = FastMCP(
     name="GovProcu",
     instructions=(
@@ -138,10 +141,14 @@ mcp.tool()(external_tools.list_external_adapters)
 
 
 def _get_asgi_app():
-    """FastMCP 버전별 ASGI app 추출 (호환성 처리)."""
+    """FastMCP 버전별 ASGI app 추출 (호환성 처리).
+
+    5/3 N31 — frontend (Next.js Server Action) 가 단순 JSON-RPC POST 로 호출하므로
+    stateless_http=True + json_response=True 로 session 초기화 우회.
+    """
     # FastMCP 2.x 신규 API
     if hasattr(mcp, "http_app"):
-        return mcp.http_app()
+        return mcp.http_app(stateless_http=True, json_response=True)
     # FastMCP 1.x 구 API
     if hasattr(mcp, "streamable_http_app"):
         return mcp.streamable_http_app()
