@@ -8,6 +8,7 @@
  * 정보화 영역 외(주로 토목/공사) — 다만 "용역" 항목은 K-water IT 분야 검토 가능.
  */
 import { Suspense } from "react";
+import Link from "next/link";
 import { searchKwaterContracts } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon, fmtDate } from "@/lib/format";
@@ -15,6 +16,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+function buildContractHref(it: ContractRow): string {
+  const qs = new URLSearchParams();
+  if (it.contract_no) qs.set("no", it.contract_no);
+  if (it.contract_date) qs.set("dt", it.contract_date);
+  if (it.title) qs.set("title", it.title);
+  if (it.dept_name) qs.set("dept", it.dept_name);
+  if (it.biz_type) qs.set("biz", it.biz_type);
+  if (it.winner_name) qs.set("winner", it.winner_name);
+  if (it.contract_method) qs.set("method", it.contract_method);
+  if (it.limit_method) qs.set("limit", it.limit_method);
+  if (it.contract_amount != null) qs.set("amount", String(it.contract_amount));
+  if (it.period_from) qs.set("p_from", it.period_from);
+  if (it.period_to) qs.set("p_to", it.period_to);
+  return `/external/kwater/contract?${qs.toString()}`;
+}
 
 interface ContractRow {
   contract_no?: string;
@@ -163,49 +180,86 @@ async function Results({
           </tr>
         </thead>
         <tbody>
-          {items.map((it: ContractRow) => (
-            <tr
-              key={it.contract_no}
-              className="border-t hover:bg-[var(--color-bg-muted)]"
-            >
-              <td className="px-3 py-2 tabular-nums">
-                {fmtDate(it.contract_date)}
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">
-                {it.contract_no || "—"}
-              </td>
-              <td className="px-3 py-2">{it.title || "—"}</td>
-              <td className="px-3 py-2 text-xs">{it.dept_name || "—"}</td>
-              <td className="px-3 py-2">
-                <Badge
-                  variant={
-                    it.biz_type === "용역"
-                      ? "default"
-                      : it.biz_type === "공사"
-                        ? "secondary"
-                        : "outline"
-                  }
-                >
-                  {it.biz_type || "—"}
-                </Badge>
-              </td>
-              <td className="px-3 py-2">{it.winner_name || "—"}</td>
-              <td className="px-3 py-2 text-xs">
-                {it.contract_method || "—"}
-                {it.limit_method && it.limit_method !== "-" && (
-                  <span className="ml-1 text-[var(--color-fg-muted)]">
-                    ({it.limit_method})
-                  </span>
-                )}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums">
-                {fmtWon(it.contract_amount)}
-              </td>
-              <td className="px-3 py-2 text-xs tabular-nums">
-                {fmtDate(it.period_from)}~{fmtDate(it.period_to)}
-              </td>
-            </tr>
-          ))}
+          {items.map((it: ContractRow) => {
+            const detailHref = buildContractHref(it);
+            return (
+              <tr
+                key={it.contract_no}
+                className="border-t hover:bg-[var(--color-bg-muted)]"
+              >
+                <td className="px-3 py-2 tabular-nums">
+                  {fmtDate(it.contract_date)}
+                </td>
+                <td className="px-3 py-2 font-mono text-xs">
+                  {it.contract_no ? (
+                    <Link
+                      href={detailHref}
+                      className="entity-link"
+                      title={`계약 상세 — ${it.contract_no}`}
+                    >
+                      {it.contract_no}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  {it.title ? (
+                    <Link
+                      href={detailHref}
+                      className="entity-link font-medium"
+                      title={`계약 상세 — ${it.title}`}
+                    >
+                      {it.title}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-3 py-2 text-xs">{it.dept_name || "—"}</td>
+                <td className="px-3 py-2">
+                  <Badge
+                    variant={
+                      it.biz_type === "용역"
+                        ? "default"
+                        : it.biz_type === "공사"
+                          ? "secondary"
+                          : "outline"
+                    }
+                  >
+                    {it.biz_type || "—"}
+                  </Badge>
+                </td>
+                <td className="px-3 py-2">
+                  {it.winner_name ? (
+                    <Link
+                      href={`/vendors?name=${encodeURIComponent(it.winner_name)}`}
+                      className="entity-link font-medium"
+                      title={`업체 LIKE 검색 — ${it.winner_name}`}
+                    >
+                      {it.winner_name}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-3 py-2 text-xs">
+                  {it.contract_method || "—"}
+                  {it.limit_method && it.limit_method !== "-" && (
+                    <span className="ml-1 text-[var(--color-fg-muted)]">
+                      ({it.limit_method})
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums">
+                  {fmtWon(it.contract_amount)}
+                </td>
+                <td className="px-3 py-2 text-xs tabular-nums">
+                  {fmtDate(it.period_from)}~{fmtDate(it.period_to)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </section>

@@ -69,12 +69,15 @@ export default async function BidsPage(props: {
     to?: string;
     sort?: string;
     page?: string;
+    deep?: string;
   }>;
 }) {
   const sp = await props.searchParams;
   const hasQuery = !!(sp.q || sp.type || sp.inst || sp.from || sp.to);
   const sortKey = parseSort(sp.sort);
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
+  // 5/3 N40: deep=1 → scan_pages=5 (LIKE 매칭률↑), default scan_pages=1
+  const scanPages = sp.deep === "1" ? 5 : 1;
 
   return (
     <main className="space-y-4">
@@ -89,7 +92,7 @@ export default async function BidsPage(props: {
             <Input
               name="q"
               defaultValue={sp.q}
-              placeholder="키워드 (예: 정보화)"
+              placeholder="키워드 (LIKE 부분일치, 예: 정보화)"
               className="md:col-span-2"
             />
             <select
@@ -106,6 +109,16 @@ export default async function BidsPage(props: {
             <Button type="submit">검색</Button>
             <Input name="from" defaultValue={sp.from} placeholder="YYYYMMDD" />
             <Input name="to" defaultValue={sp.to} placeholder="YYYYMMDD" />
+            <label className="flex items-center gap-1 text-xs text-[var(--color-fg-muted)]">
+              <input
+                type="checkbox"
+                name="deep"
+                value="1"
+                defaultChecked={sp.deep === "1"}
+                className="h-3.5 w-3.5"
+              />
+              깊은 검색(5x, LIKE 매칭률↑)
+            </label>
             <input type="hidden" name="sort" value={sortKey} />
             <input type="hidden" name="page" value="1" />
           </form>
@@ -122,6 +135,7 @@ export default async function BidsPage(props: {
             date_to={sp.to}
             sort={sortKey}
             page={page}
+            scanPages={scanPages}
             sp={sp}
           />
         </Suspense>
@@ -142,10 +156,11 @@ async function Results(params: {
   date_to?: string;
   sort: SortKey;
   page: number;
+  scanPages: number;
   sp: Record<string, string | undefined>;
 }) {
-  const { sort, page, sp, ...searchParams } = params;
-  const result = await searchBidNotices({ ...searchParams, page });
+  const { sort, page, scanPages, sp, ...searchParams } = params;
+  const result = await searchBidNotices({ ...searchParams, page, scan_pages: scanPages });
   if (!result.ok) {
     return (
       <div className="rounded border border-[var(--color-danger)] p-4 text-sm">

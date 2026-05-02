@@ -43,6 +43,7 @@ async def search_bid_notices(
     date_to: str | None = None,
     limit: int = 20,
     page: int = 1,
+    scan_pages: int = 1,
 ) -> dict:
     """나라장터 입찰공고를 키워드/업종/지역/기관/기간으로 검색합니다.
 
@@ -54,7 +55,9 @@ async def search_bid_notices(
         date_from: 공고일 시작 (YYYYMMDD)
         date_to: 공고일 종료 (YYYYMMDD)
         limit: 최대 반환 건수 (1~100)
-        page: 페이지 번호 (default 1). 단일 페이지(numOfRows=999)만 스캔 — 깊은 검색은 page=2,3,... 또는 date 분할.
+        page: 시작 페이지 번호 (default 1). cursor 페이징.
+        scan_pages: 스캔할 페이지 수 (default 1, max 10). G2B keyword 무시되어 client-side LIKE
+                   매칭이라 매칭률을 높이려면 scan_pages를 늘림. 단 응답 시간 페이지당 ~5초.
 
     Returns:
         items, total_count, returned_count, has_more, page를 포함한 dict.
@@ -69,6 +72,8 @@ async def search_bid_notices(
         inst_name=inst_name, date_from=date_from, date_to=date_to, limit=limit,
         page=page,
     )
+    # caller-controlled scan depth (1~10)
+    max_scan_pages = max(1, min(int(scan_pages), 10))
 
     biz_div = _BIZ_DIV_MAP.get(inp.biz_type) if inp.biz_type else None
 
@@ -83,10 +88,7 @@ async def search_bid_notices(
     # 서버측 keyword/inst_name/region 필터가 무시되는 이슈 → 클라이언트측 필터링
     needs_client_filter = bool(inp.keyword or inp.inst_name or inp.region)
     page_size = 999 if needs_client_filter else inp.limit
-    # 5/3 N34: frontend live timeout 방지 — 단일 페이지만 스캔(999건).
-    # G2B API 페이지당 ~6초. 다중 페이지 풀스캔(5페이지=30초+)은 frontend timeout 유발.
-    # 더 깊은 검색이 필요하면 caller가 date_from/date_to 를 좁혀서 호출 분할.
-    max_scan_pages = 1
+    # 5/3 N40: caller-controlled scan_pages (default 1=빠름 / 5=LIKE 매칭률↑)
     max_scan = page_size * max_scan_pages
 
     matches: list[dict] = []

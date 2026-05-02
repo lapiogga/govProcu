@@ -152,7 +152,7 @@ async def list_bid_openings(
     total_count = 0
     used_endpoints: list[str] = []
 
-    client = G2BClient()
+    client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
         for biz_div in biz_divs:
             if len(matches) >= limit:
@@ -225,7 +225,7 @@ async def search_awards(
     total_count = 0
     used_endpoints: list[str] = []
 
-    client = G2BClient()
+    client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
         for biz_div in biz_divs:
             if len(matches) >= limit:
@@ -285,7 +285,7 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
     if not allowed:
         raise RuntimeError(f"rate_limit: g2b_award_detail 토큰 소진 (remaining={remaining})")
 
-    client = G2BClient()
+    client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
         for biz_div, endpoint in _AWARD_ENDPOINTS.items():
             params = {
@@ -343,15 +343,17 @@ async def search_awards_by_vendor(
     target_biz_no = _normalize_biz_no(vendor_biz_no)
     biz_divs = _resolve_biz_divs(biz_type)
 
-    max_scan_per_biz = 10000  # 안전 상한
-    page_size = 999
+    # 5/3 N40: G2B 낙찰정보서비스 numOfRows 최대 500 (999는 resultCode 07 입력범위초과).
+    # date range 1개월 제한. 응답 ~12초 목표.
+    page_size = 500
+    max_scan_per_biz = 1000  # 2페이지 = 1000건
 
     matches: list[dict] = []
     total_count = 0
     scanned_total = 0
     used_endpoints: list[str] = []
 
-    client = G2BClient()
+    client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
         for biz_div in biz_divs:
             if len(matches) >= limit:
@@ -433,7 +435,7 @@ async def list_bid_participants(
     if not allowed:
         raise RuntimeError(f"rate_limit: g2b_participants 토큰 소진 (remaining={remaining})")
 
-    client = G2BClient()
+    client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
         for biz_div, endpoint in _OPENING_ENDPOINTS.items():
             params = {

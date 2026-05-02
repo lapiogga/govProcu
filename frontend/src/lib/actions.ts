@@ -33,11 +33,13 @@ export async function searchBidNotices(params: {
   date_to?: string;
   limit?: number;
   page?: number;
+  scan_pages?: number;
 }) {
   return callMcpTool("search_bid_notices", {
     ...params,
     limit: params.limit ?? 30,
     page: params.page ?? 1,
+    scan_pages: params.scan_pages ?? 1,
   });
 }
 
@@ -222,6 +224,21 @@ export async function lookupByInstCode(
     inst_name: instName,
     date_from: dateFrom,
     date_to: dateTo,
+  });
+}
+
+// 업체명 LIKE 검색 (5/3 N41) — search_awards_by_vendor 활용
+export async function searchVendorsByName(
+  vendorName: string,
+  dateFrom?: string,
+  dateTo?: string,
+  limit = 30,
+) {
+  return callMcpTool("search_awards_by_vendor", {
+    vendor_name: vendorName,
+    date_from: dateFrom,
+    date_to: dateTo,
+    limit,
   });
 }
 

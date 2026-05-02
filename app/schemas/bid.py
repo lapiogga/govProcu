@@ -14,6 +14,7 @@ class BidNoticeSearchInput(BaseModel):
     date_to: str | None = Field(None, description="공고일 종료 (YYYYMMDD)")
     limit: int = Field(20, ge=1, le=100, description="최대 반환 건수")
     page: int = Field(1, ge=1, le=100, description="페이지 번호 (cursor 페이징)")
+    scan_pages: int = Field(1, ge=1, le=10, description="스캔 페이지 수 (LIKE 매칭률 향상, 응답 시간 trade-off)")
 
 
 class BidNoticeSummary(BaseModel):

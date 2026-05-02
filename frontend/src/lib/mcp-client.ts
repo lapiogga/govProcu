@@ -53,9 +53,19 @@ export async function callMcpTool(
     }
     const text = await resp.text();
     // SSE 또는 JSON 응답 파싱
-    const payload = text.startsWith("event:")
-      ? JSON.parse(text.split("data:")[1]?.trim() || "{}")
-      : JSON.parse(text);
+    // SSE 의 keepalive ping(`: ping - N`) line 은 무시하고
+    // 마지막 `data:` line 의 JSON 만 사용 (5/3 N40 — 22초+ 응답 대응)
+    let payload: { result?: unknown };
+    if (text.startsWith("event:") || text.includes("\ndata:")) {
+      const dataLines = text
+        .split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trim());
+      const lastData = dataLines[dataLines.length - 1] || "{}";
+      payload = JSON.parse(lastData);
+    } else {
+      payload = JSON.parse(text);
+    }
 
     return { ok: true, data: payload.result };
   } catch (err) {

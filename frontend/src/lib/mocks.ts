@@ -381,6 +381,63 @@ export const MOCK_FIXTURES: Record<string, unknown> = {
     ],
   },
 
+  // === 업체명 LIKE 검색 (5/3 N41) — search_awards_by_vendor mock ===
+  search_awards_by_vendor: {
+    items: [
+      {
+        bid_no: "20260315678",
+        bid_ord: "00",
+        bid_title: "AI 기반 정보화전략계획(ISP) 수립 용역",
+        winner_name: "디지털혁신㈜",
+        winner_biz_no: "1234567890",
+        award_amount: 268_500_000,
+        open_date: "20260315",
+        inst_name: "조달청",
+      },
+      {
+        bid_no: "20260301456",
+        bid_ord: "00",
+        bid_title: "차세대 통합정보시스템 구축 1단계",
+        winner_name: "디지털혁신㈜",
+        winner_biz_no: "1234567890",
+        award_amount: 412_000_000,
+        open_date: "20260301",
+        inst_name: "행정안전부",
+      },
+      {
+        bid_no: "20260220123",
+        bid_ord: "00",
+        bid_title: "공공 데이터 분석 플랫폼 운영 용역",
+        winner_name: "테크솔루션 주식회사",
+        winner_biz_no: "9876543210",
+        award_amount: 195_000_000,
+        open_date: "20260220",
+        inst_name: "한국정보화진흥원",
+      },
+      {
+        bid_no: "20260105789",
+        bid_ord: "01",
+        bid_title: "스마트시티 IoT 인프라 구축",
+        winner_name: "스마트시스템즈㈜",
+        winner_biz_no: "5555556666",
+        award_amount: 850_000_000,
+        open_date: "20260105",
+        inst_name: "국토교통부",
+      },
+    ],
+    total_count: 4,
+    scanned: 4,
+    returned_count: 4,
+    has_more: false,
+    endpoints_used: ["/ScsbidInfoService/getOpengResultListInfoServc"],
+    filter: {
+      vendor_biz_no: null,
+      vendor_name: "혁신",
+      date_range: [null, null],
+      biz_type: null,
+    },
+  },
+
   // === external — KWater contract API (5/2 N26 — 실 응답 구조 그대로) ===
   search_kwater_contracts: {
     items: [
