@@ -967,3 +967,20 @@ mount 30분 내 mtime 변동: logs 2건뿐 (직전 8b23d30 sync 정합성 도달
 # mount-lag 표면 M 146건 정리, baseline = origin a9bc0cb
 
 [15:51 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 15:51 KST" && git push origin main
+
+[16:09:40 KST] $ MOUNT=/sessions/quirky-great-ramanujan/mnt/GovProcu; uid=1057
+# 새 세션 진입, /tmp 풀(9.6G/9.6G, 248K free) 지속 — 세션 전용 tmp 사용 유지
+
+[16:09:40 KST] $ WORK=/sessions/quirky-great-ramanujan/tmp/GovProcu_push; git clone https://github.com/lapiogga/govProcu.git $WORK
+# 세션 전용 tmp(/dev/sdc 8.7G free)에 신규 clone, askpass=/sessions/.../tmp/.askpass.sh
+
+[16:09:40 KST] $ find $MOUNT -newermt '2026-05-02 15:11:00' -not -path '*/.git/*' -not -path '*/node_modules/*' -not -path '*/.next/*'
+# 0건 — 사용자 휴면 4시간 52분 지속 (16 연속 dormancy)
+
+[16:09:40 KST] $ diff <(tr -d '\r' < $MOUNT/logs/WORK-LOG.md) <(tr -d '\r' < logs/WORK-LOG.md)
+# (empty) — CRLF 정규화 후 mount=origin 일치 확인
+
+[16:11 KST] $ git checkout -- . && git clean -fd
+# mount-lag 표면 M 146건 정리, baseline = origin 5b14779
+
+[16:11 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 16:11 KST" && git push origin main
