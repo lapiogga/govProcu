@@ -223,13 +223,15 @@ export async function lookupByInstCode(
   });
 }
 
-// 외부 발주기관 OpenAPI (5/2 N26)
+// 외부 발주기관 OpenAPI (5/2 N26 + N30 — biz_type)
 export async function searchKwaterContracts(
   searchDt?: string,
+  bizType?: string,
   limit = 30,
 ) {
   return callMcpTool("search_kwater_contracts", {
     search_dt: searchDt,
+    biz_type: bizType,
     limit,
   });
 }

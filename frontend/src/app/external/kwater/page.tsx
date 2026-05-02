@@ -40,11 +40,15 @@ function defaultMonth(): string {
   return `${yyyy}${mm}`;
 }
 
+const SELECT_CLASS =
+  "flex h-9 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]";
+
 export default async function KwaterContractsPage(props: {
-  searchParams: Promise<{ dt?: string; limit?: string }>;
+  searchParams: Promise<{ dt?: string; biz?: string; limit?: string }>;
 }) {
   const sp = await props.searchParams;
   const searchDt = sp.dt || defaultMonth();
+  const bizType = sp.biz === "공사" ? "공사" : "용역"; // 정보화 영역 default
   const limit = parseInt(sp.limit || "30", 10) || 30;
 
   return (
@@ -52,8 +56,8 @@ export default async function KwaterContractsPage(props: {
       <header>
         <h1 className="text-2xl font-semibold">한국수자원공사 계약공개</h1>
         <p className="text-xs text-[var(--color-fg-muted)]">
-          K-water 전자조달 공사 계약 정보 (월 단위 — searchDt YYYYMM).
-          외부 어댑터 ACTIVE — apis.data.go.kr/B500001/ebid/cntrct3/cntrwkList
+          K-water 전자조달 계약 정보 (월 단위 — searchDt YYYYMM, biz_type 공사/용역).
+          외부 어댑터 ACTIVE — apis.data.go.kr/B500001/ebid/cntrct3
         </p>
       </header>
 
@@ -65,27 +69,35 @@ export default async function KwaterContractsPage(props: {
               defaultValue={searchDt}
               placeholder="YYYYMM (예: 202205)"
               pattern="\d{6}"
-              className="max-w-[200px]"
+              className="max-w-[180px]"
               required
             />
+            <select
+              name="biz"
+              defaultValue={bizType}
+              className={SELECT_CLASS}
+            >
+              <option value="용역">용역 (정보화)</option>
+              <option value="공사">공사</option>
+            </select>
             <Input
               name="limit"
               defaultValue={String(limit)}
               type="number"
               min="1"
               max="1000"
-              className="max-w-[120px]"
+              className="max-w-[100px]"
             />
             <Button type="submit">검색</Button>
             <span className="ml-auto text-xs text-[var(--color-fg-muted)]">
-              현재: {searchDt} · 행 {limit}
+              현재: {searchDt} · {bizType} · 행 {limit}
             </span>
           </form>
         </CardContent>
       </Card>
 
       <Suspense fallback={<TableSkeleton />}>
-        <Results searchDt={searchDt} limit={limit} />
+        <Results searchDt={searchDt} bizType={bizType} limit={limit} />
       </Suspense>
     </main>
   );
@@ -93,12 +105,14 @@ export default async function KwaterContractsPage(props: {
 
 async function Results({
   searchDt,
+  bizType,
   limit,
 }: {
   searchDt: string;
+  bizType: string;
   limit: number;
 }) {
-  const r = await searchKwaterContracts(searchDt, limit);
+  const r = await searchKwaterContracts(searchDt, bizType, limit);
   if (!r.ok) {
     return (
       <div className="rounded border border-[var(--color-danger)] p-4 text-sm">
@@ -127,7 +141,7 @@ async function Results({
     <section className="rounded-lg border">
       <div className="flex items-center justify-between border-b bg-[var(--color-bg-muted)] px-4 py-2 text-sm">
         <span>
-          {searchDt}월 · 총 {data?.total_count ?? items.length}건 (반환{" "}
+          {searchDt}월 · {bizType} · 총 {data?.total_count ?? items.length}건 (반환{" "}
           {items.length})
         </span>
         <span className="text-xs text-[var(--color-fg-muted)]">

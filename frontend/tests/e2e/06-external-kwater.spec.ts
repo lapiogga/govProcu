@@ -44,6 +44,25 @@ test.describe("External — K-water 계약공개", () => {
     await expect(page).toHaveURL(/dt=202206/, { timeout: 10_000 });
   });
 
+  test("biz_type selector — 용역 default + 공사 전환 (5/2 N30)", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.goto("/external/kwater");
+    await page.waitForLoadState("domcontentloaded");
+
+    // default = 용역 (정보화 영역)
+    const bizSelect = page.locator('select[name="biz"]');
+    await expect(bizSelect).toHaveValue("용역");
+
+    // 공사로 전환 후 검색
+    await bizSelect.selectOption("공사");
+    await page.getByRole("button", { name: /^검색$/ }).click();
+    await expect(page).toHaveURL(/biz=%EA%B3%B5%EC%82%AC|biz=공사/, {
+      timeout: 10_000,
+    });
+  });
+
   test("대시보드 메뉴 카드 → 진입", async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto("/");

@@ -21,15 +21,21 @@ _KWATER = KWaterAdapter()
 
 async def search_kwater_contracts(
     search_dt: str | None = None,
+    biz_type: str | None = None,
     limit: int = 20,
 ) -> dict[str, Any]:
-    """한국수자원공사(K-water) 전자조달 공사 계약 정보 검색.
+    """한국수자원공사(K-water) 전자조달 계약 정보 검색.
 
     K-water 는 data.go.kr 에 입찰공고 미공개, 계약 결과만 공개.
     월 단위 (searchDt YYYYMM) 검색만 지원. 키워드/기관 필터 미지원.
 
+    biz_type 별 endpoint (5/2 N29 검증):
+        '공사' → /ebid/cntrct3/cntrwkList
+        '용역' → /ebid/cntrct3/servcList  (정보화 영역 핵심)
+
     Args:
         search_dt: 검색 연월 YYYYMM (예: '202205'). 미지정 시 어댑터 default.
+        biz_type: '공사' (default) / '용역'. 정보화 영역 사용 시 '용역' 권장.
         limit: 페이지당 row 수 (default 20, max 1000)
 
     Returns:
@@ -38,10 +44,15 @@ async def search_kwater_contracts(
                  contract_amount, period_from, period_to}, ...]
         total_count: 해당 월 전체 건수
         agency: 'kwater'
+        biz_type: 호출한 업종
         endpoint: 호출 URL
         status: 'active' / 'pending_key' / 'pending_implementation'
     """
-    return await _KWATER.search_contracts(search_dt=search_dt, limit=limit)
+    return await _KWATER.search_contracts(
+        search_dt=search_dt,
+        biz_type=biz_type,
+        limit=limit,
+    )
 
 
 def list_external_adapters() -> dict[str, Any]:

@@ -85,3 +85,4 @@
 | 22:?? | 50-A | **"<redacted 16자리 App Password>"** | 운영지시 | Gmail App Password 16자리 paste. .env에 SMTP_HOST=smtp.gmail.com / PORT=587 / USER=lapiogga@gmail.com / PASSWORD=<masked> / FROM 추가. send_email() 자체 발송 테스트 → "OK 발송 완료" → SMTP dispatcher 검증 OK |
 | 22:?? | 51 | **"continue"** | 선택 | 자율 v4 라운드 진입. v5 종결 후 SESSION-SUMMARY v5 §6 권장 우선순위 ① KWater frontend 통합 — search_contracts MCP 도구 등록 + frontend 통합 + mock + e2e |
 | 22:?? | 52 | **"SLACK과 kakao 연결은 꼭 필요한가? 꼭 필수가 아니면 연결하지말고 Skip"** | 정정 | Slack Webhook + Kakao 알림톡 트랙 영구 Skip. 알림 채널은 Gmail SMTP 단일로 종결 (#50 N24 검증 완료). USER-ACTIONS.md §2.2~2.3 보류 표시. SESSION-SUMMARY 시점관리에서 미진행 → Skip 갱신 |
+| 23:?? | 53 | **"실제 구현으로 진입"** | 핵심지시 | 자율 v5 라운드. KWater 추가 endpoint 검증(servcList 발견 — 정보화 영역 핵심 용역 131건) → 어댑터 ENDPOINTS 분기(공사/용역) → MCP 도구 biz_type 파라미터 → frontend 페이지 업종 select(default 용역) → e2e 4개 PASS, 전체 36/36 PASS |

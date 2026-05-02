@@ -37,8 +37,12 @@ class KWaterAdapter(BaseAgencyAdapter):
     AGENCY_NAME = "한국수자원공사"
     BASE_URL = "https://apis.data.go.kr/B500001"
     SERVICE_KEY_ENV = "KWATER_API_KEY"
-    # 공사 계약 (다른 endpoint: 용역/물품은 마이페이지 추가 명세 필요)
-    DEFAULT_ENDPOINT = "/ebid/cntrct3/cntrwkList"
+    # 5/2 N29 — biz_type 별 endpoint (공사/용역 검증 완료, 물품은 cntrct3 분류 미존재)
+    ENDPOINTS = {
+        "공사": "/ebid/cntrct3/cntrwkList",
+        "용역": "/ebid/cntrct3/servcList",  # 정보화 영역 핵심
+    }
+    DEFAULT_ENDPOINT = "/ebid/cntrct3/cntrwkList"  # base 호환
     STATUS = AdapterStatus.ACTIVE  # 5/2 N23 검증 완료 (HTTP 200, totalCount 61)
 
     async def search_bids(
@@ -64,12 +68,14 @@ class KWaterAdapter(BaseAgencyAdapter):
     async def search_contracts(
         self,
         search_dt: str | None = None,
+        biz_type: str | None = None,
         limit: int = 20,
     ) -> dict:
-        """K-water 공사 계약 정보 검색.
+        """K-water 계약 정보 검색.
 
         Args:
-            search_dt: 검색 연월 YYYYMM (예: 202205). 미지정 시 최근 월 1건 호출.
+            search_dt: 검색 연월 YYYYMM (예: 202205). 미지정 시 어댑터 default.
+            biz_type: '공사' / '용역' (default '공사'). 정보화 영역은 '용역'.
             limit: 페이지당 row 수 (max 1000)
         """
         status = self.current_status()
@@ -82,13 +88,16 @@ class KWaterAdapter(BaseAgencyAdapter):
                 "note": f"{self.SERVICE_KEY_ENV} 환경변수 미설정.",
             }
 
+        # biz_type → endpoint 분기 (default 공사)
+        endpoint = self.ENDPOINTS.get(biz_type or "공사", self.DEFAULT_ENDPOINT)
+
         params: dict = {"numOfRows": limit, "pageNo": 1}
         if search_dt:
             params["searchDt"] = search_dt
 
         result = await call_data_go_kr_standard(
             base_url=self.BASE_URL,
-            endpoint=self.DEFAULT_ENDPOINT,
+            endpoint=endpoint,
             service_key=os.environ[self.SERVICE_KEY_ENV],
             params=params,
         )
@@ -96,6 +105,7 @@ class KWaterAdapter(BaseAgencyAdapter):
             "items": [self.normalize_contract(it) for it in result.get("items", [])],
             "total_count": result.get("total_count", 0),
             "agency": self.AGENCY_KEY,
+            "biz_type": biz_type or "공사",
             "endpoint": result.get("endpoint", ""),
             "raw_count": len(result.get("items", [])),
             "status": status.value,
