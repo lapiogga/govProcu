@@ -947,3 +947,23 @@ mount 30분 내 mtime 변동: logs 2건뿐 (직전 8b23d30 sync 정합성 도달
 # mount-lag 표면 M 정리, baseline = origin 4c00cc7
 
 [15:31 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 15:31 KST" && git push origin main
+
+[15:51:43 KST] $ MOUNT=/sessions/pensive-serene-einstein/mnt/GovProcu; ls -d /sessions/*/mnt/GovProcu
+# uid=1056 새 세션 진입, mount 경로 동적 탐색
+
+[15:51:43 KST] $ df -h /tmp
+# /dev/sda1 9.6G 9.5G 376K 100% — /tmp 디스크 풀 (이전 세션 GovProcu_push_1043~1055 누적)
+
+[15:51:43 KST] $ WORK=/sessions/pensive-serene-einstein/tmp/GovProcu_push; git clone https://github.com/lapiogga/govProcu.git $WORK
+# 세션 전용 tmp(/dev/sdc 8.9G free)로 워크 디렉터리 이전 + 신규 clone, askpass=/sessions/.../tmp/.askpass.sh
+
+[15:51:43 KST] $ find $MOUNT -newermt '2026-05-02 15:11:00' -not -path '*/.git/*' -not -path '*/node_modules/*' -not -path '*/.next/*'
+# 0건 — 사용자 휴면 4시간 32분 지속 (15 연속 dormancy)
+
+[15:51:43 KST] $ diff <(tr -d '\r' < $MOUNT/logs/WORK-LOG.md) <(tr -d '\r' < logs/WORK-LOG.md)
+# (empty) — CRLF 정규화 후 mount=origin 일치 확인
+
+[15:51 KST] $ git checkout -- . && git clean -fd
+# mount-lag 표면 M 146건 정리, baseline = origin a9bc0cb
+
+[15:51 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 15:51 KST" && git push origin main
