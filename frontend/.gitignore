@@ -5,3 +5,7 @@ node_modules
 *.log
 next-env.d.ts
 .vercel
+tsconfig.tsbuildinfo
+playwright-report
+test-results
+tests/e2e/screenshots
