@@ -5,15 +5,14 @@ import { Suspense } from "react";
 import { listMyWatchlist, listMySubscriptions } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import {
-  removeWatchlistAction,
   unsubscribeAction,
   subscribeKeywordAction,
 } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { VendorLink, AgencyLink, BidLink } from "@/components/EntityLink";
+import { WatchlistTable, type WatchlistItem } from "./watchlist-table";
+import { AddWatchlistDialog } from "./add-watchlist-dialog";
 
 const SELECT_CLASS =
   "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]";
@@ -41,8 +40,12 @@ export default async function MePage() {
 
 async function Watchlist() {
   const r = await listMyWatchlist();
-  const data = extractMcpData<any>(r.data);
-  const items = data?.items || [];
+  const data = extractMcpData<{
+    items?: WatchlistItem[];
+    total_count?: number;
+    by_type?: Record<string, number>;
+  }>(r.data);
+  const items: WatchlistItem[] = data?.items || [];
   const summary =
     Object.entries(data?.by_type || {})
       .map(([k, v]) => `${k}=${v}`)
@@ -51,55 +54,21 @@ async function Watchlist() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>즐겨찾기</CardTitle>
-        <span className="text-xs text-[var(--color-fg-muted)]">
-          총 {data?.total_count ?? 0} · {summary}
-        </span>
+        <div>
+          <CardTitle>즐겨찾기</CardTitle>
+          <p className="mt-1 text-xs text-[var(--color-fg-muted)]">
+            총 {data?.total_count ?? 0} · {summary}
+          </p>
+        </div>
+        <AddWatchlistDialog />
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-4">
         {items.length === 0 ? (
-          <p className="p-4 text-sm text-[var(--color-fg-muted)]">
-            저장된 즐겨찾기 없음. 입찰 추적·업체 프로필 페이지에서 추가하세요.
+          <p className="text-sm text-[var(--color-fg-muted)]">
+            저장된 즐겨찾기 없음. "추가" 버튼 또는 입찰 추적·업체 프로필 페이지에서 추가하세요.
           </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--color-bg-muted)]">
-              <tr>
-                <th className="px-3 py-2 text-left">유형</th>
-                <th className="px-3 py-2 text-left">키</th>
-                <th className="px-3 py-2 text-left">라벨</th>
-                <th className="px-3 py-2 text-left">메모</th>
-                <th className="px-3 py-2 text-left">추가일</th>
-                <th className="px-3 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it: any) => (
-                <tr key={it.id} className="border-t">
-                  <td className="px-3 py-2">
-                    <TypeBadge type={it.item_type} />
-                  </td>
-                  <td className="px-3 py-2 font-mono">
-                    <WatchlistLink item={it} />
-                  </td>
-                  <td className="px-3 py-2">{it.item_label || "—"}</td>
-                  <td className="px-3 py-2 text-[var(--color-fg-muted)]">
-                    {it.note || ""}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums text-xs">{it.created_at}</td>
-                  <td className="px-3 py-2 text-right">
-                    <form action={removeWatchlistAction}>
-                      <input type="hidden" name="item_type" value={it.item_type} />
-                      <input type="hidden" name="item_key" value={it.item_key} />
-                      <Button type="submit" variant="link" size="sm" className="text-[var(--color-danger)]">
-                        제거
-                      </Button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <WatchlistTable items={items} />
         )}
       </CardContent>
     </Card>
@@ -176,30 +145,6 @@ async function Subscriptions() {
       </CardContent>
     </Card>
   );
-}
-
-function TypeBadge({ type }: { type: string }) {
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-    bid: { label: "공고", variant: "default" },
-    vendor: { label: "업체", variant: "secondary" },
-    agency: { label: "기관", variant: "outline" },
-    contract: { label: "계약", variant: "outline" },
-  };
-  const cfg = map[type] || { label: type, variant: "outline" as const };
-  return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
-}
-
-function WatchlistLink({ item }: { item: any }) {
-  if (item.item_type === "bid") {
-    return <BidLink bidNo={item.item_key} title={item.item_key} />;
-  }
-  if (item.item_type === "vendor") {
-    return <VendorLink bizNo={item.item_key} name={item.item_key} />;
-  }
-  if (item.item_type === "agency") {
-    return <AgencyLink name={item.item_key} />;
-  }
-  return <span>{item.item_key}</span>;
 }
 
 function Skel({ h }: { h: number }) {

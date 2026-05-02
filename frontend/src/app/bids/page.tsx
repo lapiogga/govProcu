@@ -8,6 +8,57 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BidLink, AgencyLink } from "@/components/EntityLink";
+import { SortMenu, type SortKey } from "./sort-menu";
+
+const VALID_SORTS: SortKey[] = [
+  "publish_desc",
+  "publish_asc",
+  "deadline",
+  "amount_desc",
+  "amount_asc",
+];
+
+function parseSort(raw: string | undefined): SortKey {
+  if (raw && (VALID_SORTS as string[]).includes(raw)) return raw as SortKey;
+  return "publish_desc";
+}
+
+function sortItems(items: Bid[], key: SortKey): Bid[] {
+  const out = [...items];
+  switch (key) {
+    case "publish_asc":
+      return out.sort((a, b) =>
+        (a.publish_date || "").localeCompare(b.publish_date || ""),
+      );
+    case "deadline":
+      return out.sort((a, b) =>
+        (a.deadline_date || "9999").localeCompare(b.deadline_date || "9999"),
+      );
+    case "amount_desc":
+      return out.sort(
+        (a, b) => (b.estimated_price ?? 0) - (a.estimated_price ?? 0),
+      );
+    case "amount_asc":
+      return out.sort(
+        (a, b) => (a.estimated_price ?? 0) - (b.estimated_price ?? 0),
+      );
+    default:
+      return out.sort((a, b) =>
+        (b.publish_date || "").localeCompare(a.publish_date || ""),
+      );
+  }
+}
+
+interface Bid {
+  bid_no: string;
+  bid_ord?: string;
+  title?: string;
+  inst_name?: string;
+  biz_type?: string;
+  estimated_price?: number;
+  publish_date?: string;
+  deadline_date?: string;
+}
 
 export default async function BidsPage(props: {
   searchParams: Promise<{
@@ -16,15 +67,18 @@ export default async function BidsPage(props: {
     inst?: string;
     from?: string;
     to?: string;
+    sort?: string;
   }>;
 }) {
   const sp = await props.searchParams;
   const hasQuery = !!(sp.q || sp.type || sp.inst || sp.from || sp.to);
+  const sortKey = parseSort(sp.sort);
 
   return (
     <main className="space-y-4">
-      <header>
+      <header className="flex items-start justify-between">
         <h1 className="text-2xl font-semibold">입찰 검색</h1>
+        {hasQuery && <SortMenu current={sortKey} />}
       </header>
 
       <Card>
@@ -50,6 +104,7 @@ export default async function BidsPage(props: {
             <Button type="submit">검색</Button>
             <Input name="from" defaultValue={sp.from} placeholder="YYYYMMDD" />
             <Input name="to" defaultValue={sp.to} placeholder="YYYYMMDD" />
+            <input type="hidden" name="sort" value={sortKey} />
           </form>
         </CardContent>
       </Card>
@@ -62,6 +117,7 @@ export default async function BidsPage(props: {
             inst_name={sp.inst}
             date_from={sp.from}
             date_to={sp.to}
+            sort={sortKey}
           />
         </Suspense>
       ) : (
@@ -79,8 +135,10 @@ async function Results(params: {
   inst_name?: string;
   date_from?: string;
   date_to?: string;
+  sort: SortKey;
 }) {
-  const result = await searchBidNotices(params);
+  const { sort, ...searchParams } = params;
+  const result = await searchBidNotices(searchParams);
   if (!result.ok) {
     return (
       <div className="rounded border border-[var(--color-danger)] p-4 text-sm">
@@ -89,7 +147,8 @@ async function Results(params: {
     );
   }
   const data = extractData(result.data);
-  const items = data?.items || [];
+  const rawItems: Bid[] = data?.items || [];
+  const items = sortItems(rawItems, sort);
 
   if (items.length === 0) {
     return (
@@ -116,7 +175,7 @@ async function Results(params: {
           </tr>
         </thead>
         <tbody>
-          {items.map((bid: any) => (
+          {items.map((bid: Bid) => (
             <tr key={`${bid.bid_no}-${bid.bid_ord}`} className="border-t hover:bg-[var(--color-bg-muted)]">
               <td className="px-3 py-2 tabular-nums">
                 {fmtDate(bid.publish_date)}

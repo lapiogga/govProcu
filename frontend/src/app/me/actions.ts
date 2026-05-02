@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   removeFromWatchlist,
+  addToWatchlist,
   unsubscribeKeyword,
   subscribeKeyword,
 } from "@/lib/actions";
@@ -13,6 +14,27 @@ export async function removeWatchlistAction(formData: FormData) {
   const item_type = formData.get("item_type") as string;
   const item_key = formData.get("item_key") as string;
   await removeFromWatchlist(item_type, item_key);
+  revalidatePath("/me");
+}
+
+export async function addWatchlistAction(formData: FormData) {
+  const item_type = formData.get("item_type") as
+    | "vendor"
+    | "bid"
+    | "agency"
+    | "contract";
+  const item_key_raw = (formData.get("item_key") as string) || "";
+  const item_label = (formData.get("item_label") as string) || undefined;
+  const note = (formData.get("note") as string) || undefined;
+
+  // 사업자번호 자동 정규화 (10자리 숫자)
+  const item_key =
+    item_type === "vendor"
+      ? item_key_raw.replace(/\D/g, "")
+      : item_key_raw.trim();
+
+  if (!item_key) return;
+  await addToWatchlist(item_type, item_key, item_label, note);
   revalidatePath("/me");
 }
 
