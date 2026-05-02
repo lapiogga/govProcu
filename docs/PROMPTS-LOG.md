@@ -70,3 +70,10 @@
 | 14:30 | 41 | **"지금까지 진행 정리/기록하고 시점관리하고, git배포하고"** | 운영지시 | 본 5/2 세션(31~40번 자율 라운드 포함) 최종 종결 commit. PROMPTS-LOG 41번 + WORK-LOG 종결 행 + SESSION-SUMMARY v3 footer + 최종 push. 17 트랙(NEXT7 8 + mock + 보안 + 링크/테마 + NEXT8 5 + N9 3 + N10 + N11) 전부 commit + push 완료. context 80%+ — 신규 세션 진입 권장. |
 | 20:32 | 42 | **"오케스트레이터인 관리자의 의사결정 대기 하지말고, 권장사항을 지속적으로 업무 수행하기 바람"** | 운영지시 | 자율 진행 모드 v3 진입. 41번 종결 후 동일 세션 재개. SESSION-SUMMARY v3 §5 권장 우선순위 순차 진행: ① shadcn Wave 2 (DropdownMenu/Dialog/DataTable) → ② cmdk Command Palette (Cmd+K) → ③ 추가 e2e + 문서. 외부 의존 없는 트랙만 자율 진행, OpenAPI 키/SMTP/카카오 등 외부 의존 트랙은 사용자 액션 영역 유지. |
 | 20:38 | 43 | **"외부의존 트랙도 진행.. 의사결정함"** | 운영지시 | 자율 v3 범위 확장. 외부 의존 트랙 중 내가 수행 가능한 것은 자율 진행: ① ai SDK v6 마이그레이션 (route + 콘솔 + Generative UI) ② ML 학습 인프라 검증 (pip install -e ".[ml]" + dataset 생성 + train 시도) ③ Neo4j PoC docker compose 시도 (Docker Desktop 가용 시) ④ Cache Components canary 검증 (참조 구현). 정부 사이트 키 발급/SMTP·Slack·Kakao 비즈니스 계정 등록은 사용자만 가능 — 가이드 문서 강화로 대체 (TROUBLESHOOTING/NOTIFICATIONS/OPERATIONS 보강). |
+| 21:?? | 44 | **"남은 사용자 액션 하자"** | 핵심지시 | 외부 의존 트랙 같이 진행 — OpenAPI 키 발급 / SMTP / Slack / Docker. 사용자가 외부 사이트에서 가입·신청·승인을 하고, 내가 .env 갱신·어댑터 갱신·검증을 담당하는 협업 모드 |
+| 21:?? | 44-A | **"공공데이터포털 OpenAPI 키 4종"** (4지선다) | 선택 | OpenAPI 트랙 우선. data.go.kr LH/EX/KWater/Korail 입찰 OpenAPI 존재 여부 검증 → LH 5종(입찰공고/사전규격/개찰/계약/발주계획) + EX 1종(계약공개) + KWater 1종(계약정보공개) 신청 가능, Korail은 data.go.kr 미제공으로 보류 |
+| 21:?? | 44-B | **"LH 5종 + EX/KWater 계약 2종 = 7개 일괄"** | 선택 | 일괄 신청 모드 채택 |
+| 21:?? | 44-C | **"기존 G2B 키 재사용"** | 선택 | data.go.kr 단일 인증키 정책에 맞춰 .env에 LH_API_KEY/EX_API_KEY/KWATER_API_KEY를 G2B 키 재사용으로 설정 |
+| 21:?? | 44-D | **"지금 7개 활용신청 시작하겠음"** | 선택 | 진행. probe_external_apis.py 검증 → LH endpoint 작동(자체 포털 EUC-KR XML, 필수 파라미터 명세 필요), EX/KWater는 추정 URL 오류(HTTP 500) |
+| 21:?? | 44-E | **"Docker Desktop 시작 → Neo4j PoC 검증"** | 선택 | 활용신청 대기 중 병렬 트랙 — Docker Desktop 시작 요청 (사용자 작업 대기 중) |
+| 22:?? | 45 | **"EX를 뺀 LH, KWATER는 활용신청 OK"** | 정정 | 활용신청 범위 축소: LH 5종 + KWater 1종 = 6종 OK. EX 제외, Korail 보류. 다음 단계: probe 재실행으로 키 활성 확인 + LH/KWater 명세서로 어댑터 endpoint 갱신 |

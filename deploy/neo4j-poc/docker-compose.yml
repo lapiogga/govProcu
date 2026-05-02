@@ -28,7 +28,9 @@ services:
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
-      - ./cypher:/var/lib/neo4j/import:ro
+      # Neo4j 컨테이너가 import 디렉토리에 chown 을 시도하므로 :ro 제거
+      # (cypher 파일 무결성은 host 측 git 으로 관리)
+      - ./cypher:/var/lib/neo4j/import
 
 volumes:
   neo4j_data:

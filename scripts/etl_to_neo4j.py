@@ -212,12 +212,13 @@ async def main() -> None:
     parser = argparse.ArgumentParser(description="GovProcu → Neo4j PoC ETL")
     parser.add_argument("--days", type=int, default=7, help="최근 N일 (기본 7)")
     parser.add_argument("--biz-type", type=str, default=None, help="공사/용역/물품")
+    parser.add_argument("--yes", action="store_true", help="ingest confirm 자동 (CI/script용)")
     args = parser.parse_args()
 
     records = await collect_bids(args.days, args.biz_type)
     print(f"\n수집 완료: {len(records)} records")
 
-    if input("Neo4j ingest 진행? (y/N) ").lower() != "y":
+    if not args.yes and input("Neo4j ingest 진행? (y/N) ").lower() != "y":
         print("ingest 건너뜀.")
         return
 
