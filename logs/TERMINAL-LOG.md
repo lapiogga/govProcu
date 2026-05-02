@@ -610,3 +610,36 @@ git reset --hard origin/main → mount-lag 정리
 worklog 행 1건 + terminal 블록 1건 추가 후 commit & push
 NEXT7 통합 대기 정책 성공 확인 — 사용자 13분 연속 4 commit 단일 라운드 흡수
 ```
+
+### [10:12:00 KST] $ 정기 sync (Next.js 15.5.15 보안 + tsbuildinfo 차단 인지)
+```
+[직전 09:54 사이클 이후 origin 신규 commit 2건]
+87ab260  chore(gitignore): tsbuildinfo + playwright artifacts 제외        (09:57:36)
+d2d53d1  fix(frontend): next 15.1.0 → 15.5.15 + cacheTag → unstable_cacheTag (09:58:30)
+현재 origin HEAD = d2d53d1 → push 시 a19505a(직전 sync) 위로 진행
+
+[d2d53d1 영향 — 8파일 +7,378/-25]
+- Next.js critical RCE CVE-2025-66478 외 7 advisory 패치
+- eslint-config-next 15.5.15 동기화
+- next/cache export: cacheTag → unstable_cacheTag (agencies/analytics/vendors/lookup 4 페이지)
+- frontend/package-lock.json 7,352줄 신규 (legacy-peer-deps 적용)
+- lookup/page.tsx dead-code type narrowing 정리
+- ai/jsondiffpatch moderate 4건은 차기 v6 마이그레이션 트랙
+
+[87ab260 영향 — frontend/.gitignore +4]
++ tsconfig.tsbuildinfo
++ playwright-report
++ test-results
++ tests/e2e/screenshots
+
+[mount 정합성]
+표면 M=147건 → 전부 mount filesystem lag (server.py 79/171, package.json 32/47, .gitignore mid-truncated ".v")
+package-lock.json mount=265,409 bytes(09:50 KST 사용자 환경 신선본) vs origin=258,998 bytes → origin 우선
+WORK-LOG mount=origin=46,611 / TERMINAL-LOG mount=origin=26,028 일치 (직전 a19505a 반영)
+truly-new untracked 4건: PDF / screenshots/ / tsbuildinfo / tmp/ → 모두 무시
+
+[decision]
+git reset --hard origin/main → mount-lag 정리
+worklog 행 1건 + terminal 블록 1건 추가 후 commit & push
+사용자 hotfix 2 commit 4분 연속 = NEXT7 직후 인프라 정리 라운드, 본 사이클은 awareness 기록만
+```
