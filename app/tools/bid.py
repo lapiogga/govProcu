@@ -80,7 +80,11 @@ async def search_bid_notices(
     # 서버측 keyword/inst_name/region 필터가 무시되는 이슈 → 클라이언트측 필터링
     needs_client_filter = bool(inp.keyword or inp.inst_name or inp.region)
     page_size = 999 if needs_client_filter else inp.limit
-    max_scan = 50000  # 안전 상한 (대형 결과셋 방어)
+    # 5/3 N34: frontend live timeout 방지 — 단일 페이지만 스캔(999건).
+    # G2B API 페이지당 ~6초. 다중 페이지 풀스캔(5페이지=30초+)은 frontend timeout 유발.
+    # 더 깊은 검색이 필요하면 caller가 date_from/date_to 를 좁혀서 호출 분할.
+    max_scan_pages = 1
+    max_scan = page_size * max_scan_pages
 
     matches: list[dict] = []
     page = 1
