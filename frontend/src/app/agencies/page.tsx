@@ -2,7 +2,7 @@
  * 발주기관 분석 — agency_procurement_history + analyze_agency_price_pattern
  */
 import { Suspense } from "react";
-import { cacheTag } from "next/cache";
+import { unstable_cacheTag as cacheTag } from "next/cache";
 import { getAgencyHistory, getAgencyPricePattern } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon, fmtRate, fmtDate } from "@/lib/format";

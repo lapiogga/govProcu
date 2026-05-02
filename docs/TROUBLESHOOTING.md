@@ -16,6 +16,10 @@
 | `node-gyp` Windows | Visual Studio Build Tools 부재 | `npm install --global windows-build-tools` 또는 VS Build Tools 2022 설치 |
 | Node 버전 불일치 | Node 20+ 요구 | `node -v` 확인, 미만이면 nvm-windows로 LTS 설치 |
 
+### 1.1.1 `npm install` 후 보안 경고
+
+`npm audit` 결과 모더레이트 4건은 `ai`/`jsondiffpatch` chain (v6 메이저 fix). 본 프로젝트는 file upload 기능 미사용이라 실 위험 낮음 — 차기 세션에서 ai SDK v6 마이그레이션 트랙(`route.ts` `parameters→inputSchema`, `useChat` 시그니처) 별도 진행. critical(next RCE)은 NEXT7-SEC-1 에서 15.5.15 패치 완료.
+
 ### 1.2 `npm run verify` 실패
 
 verify는 `tsc --noEmit && next build`. 자주 깨지는 곳:

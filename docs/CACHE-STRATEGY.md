@@ -22,7 +22,7 @@
 명시적인 헬퍼 사용 (typo 방지):
 
 ```ts
-import { cacheTag } from "next/cache";
+import { unstable_cacheTag as cacheTag } from "next/cache";
 import { cacheTags } from "@/lib/cache-tags";
 
 async function Profile({ bizNo }) {

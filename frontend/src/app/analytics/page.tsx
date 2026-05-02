@@ -2,7 +2,7 @@
  * 분석/통계 — industry_trend + market_share
  */
 import { Suspense } from "react";
-import { cacheTag } from "next/cache";
+import { unstable_cacheTag as cacheTag } from "next/cache";
 import { getIndustryTrend, getMarketShare } from "@/lib/actions";
 import { extractMcpData } from "@/lib/extract";
 import { fmtWon } from "@/lib/format";

@@ -131,10 +131,7 @@ async function Result({ mode, q, ord }: { mode: Mode; q: string; ord: string }) 
       {/* 4 키 그래프 시각화 (xyflow) */}
       <section>
         <h2 className="mb-2 text-sm font-medium">관계 그래프</h2>
-        <LookupGraph
-          keys={keys}
-          startingKey={mode === "contract" ? "contract" : (mode as any)}
-        />
+        <LookupGraph keys={keys} startingKey={mode} />
       </section>
 
       {/* 4 키 카드 (보조) */}

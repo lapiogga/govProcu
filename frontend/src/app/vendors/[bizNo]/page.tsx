@@ -3,7 +3,7 @@
  * NTS 진위 + 기간 내 입찰/응찰/개찰/낙찰 통계.
  */
 import { Suspense } from "react";
-import { cacheTag } from "next/cache";
+import { unstable_cacheTag as cacheTag } from "next/cache";
 import { getVendorProfile } from "@/lib/actions";
 import { fmtWon, fmtRate, fmtBizNo, fmtDate } from "@/lib/format";
 import { VendorAwardChart } from "@/components/charts/VendorAwardChart";
