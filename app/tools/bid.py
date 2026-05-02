@@ -42,6 +42,7 @@ async def search_bid_notices(
     date_from: str | None = None,
     date_to: str | None = None,
     limit: int = 20,
+    page: int = 1,
 ) -> dict:
     """나라장터 입찰공고를 키워드/업종/지역/기관/기간으로 검색합니다.
 
@@ -53,9 +54,10 @@ async def search_bid_notices(
         date_from: 공고일 시작 (YYYYMMDD)
         date_to: 공고일 종료 (YYYYMMDD)
         limit: 최대 반환 건수 (1~100)
+        page: 페이지 번호 (default 1). 단일 페이지(numOfRows=999)만 스캔 — 깊은 검색은 page=2,3,... 또는 date 분할.
 
     Returns:
-        items, total_count, returned_count, has_more를 포함한 dict.
+        items, total_count, returned_count, has_more, page를 포함한 dict.
     """
     # Rate limit 체크
     allowed, remaining = await check_rate("g2b_bid", capacity=10, refill_per_sec=1.0)
@@ -65,6 +67,7 @@ async def search_bid_notices(
     inp = BidNoticeSearchInput(
         keyword=keyword, biz_type=biz_type, region=region,
         inst_name=inst_name, date_from=date_from, date_to=date_to, limit=limit,
+        page=page,
     )
 
     biz_div = _BIZ_DIV_MAP.get(inp.biz_type) if inp.biz_type else None
@@ -87,7 +90,7 @@ async def search_bid_notices(
     max_scan = page_size * max_scan_pages
 
     matches: list[dict] = []
-    page = 1
+    cur_page = inp.page  # caller 가 지정한 시작 페이지 (cursor 페이징)
     scanned = 0
     total_count = 0
 
@@ -95,7 +98,7 @@ async def search_bid_notices(
     try:
         while len(matches) < inp.limit and scanned < max_scan:
             params: dict = {
-                "pageNo": page,
+                "pageNo": cur_page,
                 "numOfRows": page_size,
                 "inqryDiv": "1",  # 등록일 기준
             }
@@ -134,15 +137,23 @@ async def search_bid_notices(
             # 다음 페이지 진행 조건: 마지막 페이지면 종료
             if len(items_raw) < page_size:
                 break
-            page += 1
+            cur_page += 1
     finally:
         await client.aclose()
+
+    # has_more: 단일 페이지(max_scan_pages=1) 모드에서 (page * page_size) < total_count
+    has_more = (
+        (total_count > inp.page * page_size)
+        if max_scan_pages == 1
+        else (total_count > scanned) and (len(matches) >= inp.limit)
+    )
 
     return BidNoticeSearchResult(
         items=matches,
         total_count=total_count,
         returned_count=len(matches),
-        has_more=(total_count > scanned) and (len(matches) >= inp.limit),
+        has_more=has_more,
+        page=inp.page,
     ).model_dump()
 
 

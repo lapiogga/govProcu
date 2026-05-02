@@ -68,11 +68,13 @@ export default async function BidsPage(props: {
     from?: string;
     to?: string;
     sort?: string;
+    page?: string;
   }>;
 }) {
   const sp = await props.searchParams;
   const hasQuery = !!(sp.q || sp.type || sp.inst || sp.from || sp.to);
   const sortKey = parseSort(sp.sort);
+  const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
 
   return (
     <main className="space-y-4">
@@ -105,6 +107,7 @@ export default async function BidsPage(props: {
             <Input name="from" defaultValue={sp.from} placeholder="YYYYMMDD" />
             <Input name="to" defaultValue={sp.to} placeholder="YYYYMMDD" />
             <input type="hidden" name="sort" value={sortKey} />
+            <input type="hidden" name="page" value="1" />
           </form>
         </CardContent>
       </Card>
@@ -118,6 +121,8 @@ export default async function BidsPage(props: {
             date_from={sp.from}
             date_to={sp.to}
             sort={sortKey}
+            page={page}
+            sp={sp}
           />
         </Suspense>
       ) : (
@@ -136,9 +141,11 @@ async function Results(params: {
   date_from?: string;
   date_to?: string;
   sort: SortKey;
+  page: number;
+  sp: Record<string, string | undefined>;
 }) {
-  const { sort, ...searchParams } = params;
-  const result = await searchBidNotices(searchParams);
+  const { sort, page, sp, ...searchParams } = params;
+  const result = await searchBidNotices({ ...searchParams, page });
   if (!result.ok) {
     return (
       <div className="rounded border border-[var(--color-danger)] p-4 text-sm">
@@ -149,19 +156,52 @@ async function Results(params: {
   const data = extractData(result.data);
   const rawItems: Bid[] = data?.items || [];
   const items = sortItems(rawItems, sort);
+  const totalCount = data?.total_count ?? 0;
+  const hasMore = !!data?.has_more;
+  const buildHref = (newPage: number) => {
+    const qs = new URLSearchParams();
+    if (sp.q) qs.set("q", sp.q);
+    if (sp.type) qs.set("type", sp.type);
+    if (sp.inst) qs.set("inst", sp.inst);
+    if (sp.from) qs.set("from", sp.from);
+    if (sp.to) qs.set("to", sp.to);
+    if (sort) qs.set("sort", sort);
+    qs.set("page", String(newPage));
+    return `/bids?${qs.toString()}`;
+  };
 
   if (items.length === 0) {
     return (
-      <p className="rounded border p-4 text-sm">
-        결과 없음 ({data?.total_count ?? 0}건)
-      </p>
+      <div className="space-y-2">
+        <p className="rounded border p-4 text-sm">
+          결과 없음 ({totalCount}건). 페이지 {page}.
+          {hasMore && " 다음 페이지를 시도하세요."}
+        </p>
+        {(page > 1 || hasMore) && (
+          <PageNav
+            page={page}
+            hasMore={hasMore}
+            buildHref={buildHref}
+            totalCount={totalCount}
+          />
+        )}
+      </div>
     );
   }
 
   return (
     <section className="rounded-lg border">
-      <div className="border-b bg-[var(--color-bg-muted)] px-4 py-2 text-sm">
-        총 {data?.total_count ?? items.length}건 (반환 {items.length})
+      <div className="flex items-center justify-between border-b bg-[var(--color-bg-muted)] px-4 py-2 text-sm">
+        <span>
+          총 {totalCount}건 (반환 {items.length}, 페이지 {page})
+        </span>
+        <PageNav
+          page={page}
+          hasMore={hasMore}
+          buildHref={buildHref}
+          totalCount={totalCount}
+          inline
+        />
       </div>
       <table className="w-full text-sm">
         <thead className="bg-[var(--color-bg-muted)]">
@@ -212,6 +252,48 @@ function TableSkeleton() {
         <div key={n} className="h-10 animate-pulse rounded bg-[var(--color-bg-muted)]" />
       ))}
     </div>
+  );
+}
+
+function PageNav({
+  page,
+  hasMore,
+  buildHref,
+  totalCount,
+  inline = false,
+}: {
+  page: number;
+  hasMore: boolean;
+  buildHref: (newPage: number) => string;
+  totalCount: number;
+  inline?: boolean;
+}) {
+  // 단일 페이지 = 999건 (max_scan_pages=1, page_size=999)
+  const pageSize = 999;
+  const lastPage = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  return (
+    <nav className={inline ? "flex items-center gap-2 text-xs" : "flex items-center justify-end gap-2 text-xs"}>
+      {page > 1 && (
+        <a
+          href={buildHref(page - 1)}
+          className="rounded border border-[var(--color-border)] px-2 py-1 hover:bg-[var(--color-bg)]"
+        >
+          ← 이전
+        </a>
+      )}
+      <span className="text-[var(--color-fg-muted)]">
+        {page} / {lastPage}
+      </span>
+      {hasMore && (
+        <a
+          href={buildHref(page + 1)}
+          className="rounded border border-[var(--color-border)] px-2 py-1 hover:bg-[var(--color-bg)]"
+        >
+          다음 →
+        </a>
+      )}
+    </nav>
   );
 }
 

@@ -32,10 +32,12 @@ export async function searchBidNotices(params: {
   date_from?: string;
   date_to?: string;
   limit?: number;
+  page?: number;
 }) {
   return callMcpTool("search_bid_notices", {
     ...params,
     limit: params.limit ?? 30,
+    page: params.page ?? 1,
   });
 }
 

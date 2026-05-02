@@ -13,6 +13,7 @@ class BidNoticeSearchInput(BaseModel):
     date_from: str | None = Field(None, description="공고일 시작 (YYYYMMDD)")
     date_to: str | None = Field(None, description="공고일 종료 (YYYYMMDD)")
     limit: int = Field(20, ge=1, le=100, description="최대 반환 건수")
+    page: int = Field(1, ge=1, le=100, description="페이지 번호 (cursor 페이징)")
 
 
 class BidNoticeSummary(BaseModel):
@@ -35,3 +36,4 @@ class BidNoticeSearchResult(BaseModel):
     total_count: int
     returned_count: int
     has_more: bool
+    page: int = 1
