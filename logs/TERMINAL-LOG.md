@@ -731,3 +731,27 @@ EntityLink.tsx        mount=origin=3,020 bytes   ✅
          ai SDK v6🟡 (보류 트랙 가이드 명시, moderate 4건 exposure 없음)
 
 [11:13 KST] $ git add -A && git commit && git push origin main
+
+[11:29 KST] $ git fetch && git log --oneline origin/main -3
+cfe3596 fix: stash conflict 정리 — 충돌 마커 제거 + console 타입 명시  ← 11:17:37 KST 사용자 push (신규)
+3f97f0f chore(worklog): 20분 주기 자동 동기화 2026-05-02 11:13 KST
+b7f0c68 docs: SESSION-SUMMARY v2 + 시점관리 v4 — NEXT7~N9 17 트랙 마무리  ← 11:10:36 KST 사용자 push (신규, 직전 사이클 commit과 race)
+
+[11:30 KST] $ # mount 정합성 점검
+logs/WORK-LOG.md      mount=origin=61,989 bytes  ✅
+logs/TERMINAL-LOG.md  mount=origin=32,971 bytes  ✅
+docs/SESSION-SUMMARY-2026-05-02-v2.md  mount=origin=6,481 bytes  ✅ (b7f0c68에 137줄 통합 push 정상)
+docs/AI-SDK-V6-MIGRATION.md  mount=5,400 vs origin=5,238 Δ+162 → CRLF 가짜 차이 (file: mount=CRLF·origin=LF, tr -d \r 정규화 후 diff 0줄)
+표면 M(modified) 다수 — 이전 19 사이클 동일 mount filesystem lag 패턴
+비차단 untracked: tmp/fetch.ps1 (5/1 PS, 무시), UsersUserGovProcu.tmp_pps_api.pdf (무시)
+
+[decision]
+사용자 18분간 5 commit(NEXT7→Phase F→NEXT8→N9→SESSION-SUMMARY→stash) 폭주 후 약 12분 휴면 진입
+→ 5/2 세션 v2 마무리 단계 해석. 본 사이클은 origin baseline 유지 + worklog 행만 추가 + push
+AI-SDK-V6 CRLF는 false positive 확정 — 다음 사이클부터 line ending 정규화 표준화
+
+시점관리: SESSION-SUMMARY v2 (🟡→✅ 137줄 17 트랙 마무리)
+         stash 충돌 정리 (⏳→✅ 5 파일 마커 + console 타입 명시)
+         AI-SDK-V6 (🟡 유지 — CRLF 가짜 차이, 실제 origin 동일)
+
+[11:33 KST] $ git add -A && git commit && git push origin main
