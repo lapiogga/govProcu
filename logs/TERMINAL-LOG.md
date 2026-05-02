@@ -643,3 +643,42 @@ git reset --hard origin/main → mount-lag 정리
 worklog 행 1건 + terminal 블록 1건 추가 후 commit & push
 사용자 hotfix 2 commit 4분 연속 = NEXT7 직후 인프라 정리 라운드, 본 사이클은 awareness 기록만
 ```
+
+[10:25:00 KST 사이클 — 정기 sync]
+$ git fetch origin main && git reset --hard origin/main
+HEAD is now at 92fa9ff fix(frontend): mock fixture schema 정합화 + cacheComponents 비활성
+
+[직전 10:12 사이클 이후 origin 신규 commit 1건]
+92fa9ff  fix(frontend): mock fixture schema 정합화 + cacheComponents 비활성   (10:15:24 KST)
+현재 origin HEAD = 92fa9ff → 본 sync는 그 위로 worklog 행만 추가
+
+[92fa9ff 영향 — 8파일 +97/-97]
+- frontend/next.config.ts: cacheComponents 옵션 제거 (canary-only 확정)
+- frontend/src/app/{agencies,analytics,vendors/[bizNo]}/page.tsx: 'use cache' + cacheTag 호출 제거
+- frontend/src/app/me/actions.ts: revalidateTag 제거
+- frontend/src/lib/mocks.ts: 150줄 schema 정합화 (trace_bid_lifecycle/lookup_*/market_share/award_rate)
+- frontend/tests/e2e/99-screenshots.spec.ts: 03-search → /search?q=AI redirect 트리거
+- docs/PROMPTS-LOG.md: 33-35번 발화 추가
+
+[Playwright 검증 — Desktop Chromium 1.1m]
+13/13 페이지 PASS
+- ★ trace_bid_lifecycle 6단계 + 응찰업체 5사 + 액션 버튼
+- xyflow 4 키 그래프 + 5 엣지
+- vendor_profile NTS + Tremor + 낙찰 3건
+- analytics 동향 6개월 + 시장점유 Donut + Top 5
+- qualification 87.5/100 + 6 항목 / prediction 95% CI + 6 시나리오
+- me 즐겨찾기 + 알림 + shadcn Badge/Button
+
+[mount 정합성]
+M=0건 — WORK-LOG 49,725 / TERMINAL-LOG 27,676 mount=origin 일치
+신규 자동 생성물 17건 모두 .gitignore 차단 정상:
+  - 13개 screenshots PNG (10:13:13~10:13:32 KST 생성)
+  - tsconfig.tsbuildinfo / test-results/.last-run.json / next-env.d.ts
+truly-new untracked 1건: tmp/fetch.ps1 (5/1 PS, 무시)
+
+[decision]
+worklog 행 1건 + terminal 블록 1건 추가 후 commit & push
+사용자 mock 스크린샷 자가 검증 완결 (32번 지시 완료)
+cacheComponents 보류 = Next.js 15.5.15 stable 채널 유지를 위한 의도적 후퇴
+본 사이클은 awareness 기록만, 신규 도구·페이지·문서 변경 없음
+```
