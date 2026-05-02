@@ -588,3 +588,25 @@ frontend/src/lib/cache-tags.ts  988 bytes  22줄  (cacheTags helper, 09:28:37)
 [decision] 사용자 NEXT7 in-progress → 후속 단일 commit 대기
 이번 사이클 = 본 worklog dormancy + awareness 행 추가만
 ```
+
+### [09:54:00 KST] $ 정기 sync (NEXT7+screenshot mock+npmrc 후속 push 인지)
+```
+[직전 09:30~09:33 사이클 이후 origin 신규 commit 4건]
+5ead9af  NEXT7 1-8 — 외부 어댑터 + shadcn 100% + Cache Components + GraphRAG + archive  (09:34~09:50 KST)
+95ece0c  feat: 프론트 mock 모드 + 전 페이지 스크린샷 검증 인프라                          (09:43:14)
+6fa3f4c  docs(prompts-log): 32번 발화 추가 — mock 스크린샷 검증 지시                     (09:44:00)
+c3f7222  fix(frontend): .npmrc legacy-peer-deps — Tremor v3 vs React 19 peer 충돌 해결    (09:47:12)
+현재 origin HEAD = c3f7222
+
+[mount 정합성]
+표면 M=144건 → 전부 mount filesystem lag (server.py 79/171, README 85/89 등 origin 정본)
+graphrag.py 218/218, archive_logs.py 163/163 → NEXT7 push 마운트 도달 일치
+WORK-LOG mount=41,590 vs origin=43,284 (NEXT7 통합 행 lag)
+TERMINAL-LOG mount=origin=24,733 (일치)
+truly-new untracked 3건: UsersUserGovProcu.tmp_pps_api.pdf / frontend/package-lock.json / tmp/fetch.ps1 → 모두 무시
+
+[decision]
+git reset --hard origin/main → mount-lag 정리
+worklog 행 1건 + terminal 블록 1건 추가 후 commit & push
+NEXT7 통합 대기 정책 성공 확인 — 사용자 13분 연속 4 commit 단일 라운드 흡수
+```
