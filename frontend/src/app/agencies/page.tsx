@@ -9,6 +9,7 @@ import { AgencyPricePatternChart } from "@/components/charts/AgencyPricePatternC
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { VendorLink, BidLink } from "@/components/EntityLink";
 
 export default async function AgenciesPage(props: {
   searchParams: Promise<{
@@ -172,12 +173,11 @@ async function HistoryTable({
                 {fmtDate(it.publish_date)}
               </td>
               <td className="px-3 py-2">
-                <a
-                  href={`/bids/trace?no=${it.bid_notice_no}&ord=${it.bid_ord || "00"}`}
-                  className="text-[var(--color-primary)] hover:underline"
-                >
-                  {it.title}
-                </a>
+                <BidLink
+                  bidNo={it.bid_notice_no}
+                  ord={it.bid_ord}
+                  title={it.title}
+                />
               </td>
               <td className="px-3 py-2">{it.biz_type || "—"}</td>
               <td className="px-3 py-2 text-right tabular-nums">
@@ -185,12 +185,10 @@ async function HistoryTable({
               </td>
               <td className="px-3 py-2">
                 {it.winner ? (
-                  <a
-                    href={`/vendors/${it.winner.winner_biz_no}`}
-                    className="text-[var(--color-primary)] hover:underline"
-                  >
-                    {it.winner.winner_name}
-                  </a>
+                  <VendorLink
+                    bizNo={it.winner.winner_biz_no}
+                    name={it.winner.winner_name}
+                  />
                 ) : (
                   <span className="text-[var(--color-fg-muted)]">—</span>
                 )}

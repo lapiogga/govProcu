@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { VendorLink, AgencyLink, BidLink } from "@/components/EntityLink";
 
 const SELECT_CLASS =
   "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]";
@@ -190,24 +191,13 @@ function TypeBadge({ type }: { type: string }) {
 
 function WatchlistLink({ item }: { item: any }) {
   if (item.item_type === "bid") {
-    return (
-      <a
-        href={`/bids/trace?no=${item.item_key}`}
-        className="text-[var(--color-primary)] hover:underline"
-      >
-        {item.item_key}
-      </a>
-    );
+    return <BidLink bidNo={item.item_key} title={item.item_key} />;
   }
   if (item.item_type === "vendor") {
-    return (
-      <a
-        href={`/vendors/${item.item_key}`}
-        className="text-[var(--color-primary)] hover:underline"
-      >
-        {item.item_key}
-      </a>
-    );
+    return <VendorLink bizNo={item.item_key} name={item.item_key} />;
+  }
+  if (item.item_type === "agency") {
+    return <AgencyLink name={item.item_key} />;
   }
   return <span>{item.item_key}</span>;
 }

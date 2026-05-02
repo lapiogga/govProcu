@@ -7,6 +7,7 @@ import { extractMcpData } from "@/lib/extract";
 import { fmtWon } from "@/lib/format";
 import { IndustryTrendChart } from "@/components/charts/IndustryTrendChart";
 import { MarketShareChart } from "@/components/charts/MarketShareChart";
+import { VendorLink } from "@/components/EntityLink";
 
 export default async function AnalyticsPage(props: {
   searchParams: Promise<{ type?: string; from?: string; to?: string }>;
@@ -184,14 +185,11 @@ async function MarketShareSection({
             <tr key={v.biz_no} className="border-t hover:bg-[var(--color-bg-muted)]">
               <td className="px-3 py-2 tabular-nums">{i + 1}</td>
               <td className="px-3 py-2">
-                <a
-                  href={`/vendors/${v.biz_no}`}
-                  className="text-[var(--color-primary)] hover:underline"
-                >
-                  {v.name}
-                </a>
+                <VendorLink bizNo={v.biz_no} name={v.name} />
               </td>
-              <td className="px-3 py-2 tabular-nums">{v.biz_no}</td>
+              <td className="px-3 py-2 tabular-nums">
+                <VendorLink bizNo={v.biz_no} name={v.biz_no} />
+              </td>
               <td className="px-3 py-2 text-right tabular-nums">
                 {fmtWon(v.award_total)}
               </td>

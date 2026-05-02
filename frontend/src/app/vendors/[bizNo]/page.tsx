@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { getVendorProfile } from "@/lib/actions";
 import { fmtWon, fmtRate, fmtBizNo, fmtDate } from "@/lib/format";
 import { VendorAwardChart } from "@/components/charts/VendorAwardChart";
+import { AgencyLink, BidLink } from "@/components/EntityLink";
 
 export default async function VendorPage(props: {
   params: Promise<{ bizNo: string }>;
@@ -131,18 +132,15 @@ async function Profile({
                     {fmtDate(a.open_date)}
                   </td>
                   <td className="px-3 py-2">
-                    {a.bid_notice_no ? (
-                      <a
-                        href={`/bids/trace?no=${a.bid_notice_no}&ord=${a.bid_ord || "00"}`}
-                        className="text-[var(--color-primary)] hover:underline"
-                      >
-                        {a.bid_title || a.bid_notice_no}
-                      </a>
-                    ) : (
-                      a.bid_title || "—"
-                    )}
+                    <BidLink
+                      bidNo={a.bid_notice_no}
+                      ord={a.bid_ord}
+                      title={a.bid_title}
+                    />
                   </td>
-                  <td className="px-3 py-2">{a.inst_name || "—"}</td>
+                  <td className="px-3 py-2">
+                    <AgencyLink name={a.inst_name} />
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {fmtWon(a.award_amount)}
                   </td>

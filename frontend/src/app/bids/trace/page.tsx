@@ -7,6 +7,7 @@
 import { Suspense } from "react";
 import { traceBidLifecycle } from "@/lib/actions";
 import { fmtWon, fmtRate, fmtDate, fmtBizNo } from "@/lib/format";
+import { VendorLink, AgencyLink } from "@/components/EntityLink";
 
 export default async function TracePage(props: {
   searchParams: Promise<{ no?: string; ord?: string }>;
@@ -97,7 +98,9 @@ async function Timeline({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
         <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 text-sm lg:grid-cols-4">
           <div>
             <dt className="text-[var(--color-fg-muted)]">발주기관</dt>
-            <dd className="font-medium">{summary.inst_name || "—"}</dd>
+            <dd className="font-medium">
+              <AgencyLink name={summary.inst_name} />
+            </dd>
           </div>
           <div>
             <dt className="text-[var(--color-fg-muted)]">업종</dt>
@@ -123,7 +126,12 @@ async function Timeline({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
           </div>
           <div>
             <dt className="text-[var(--color-fg-muted)]">낙찰자</dt>
-            <dd className="font-medium">{summary.winner_name || "—"}</dd>
+            <dd className="font-medium">
+              <VendorLink
+                bizNo={summary.winner_biz_no}
+                name={summary.winner_name}
+              />
+            </dd>
           </div>
           <div>
             <dt className="text-[var(--color-fg-muted)]">낙찰가/낙찰률</dt>
@@ -195,9 +203,17 @@ async function Timeline({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
                   <td className="px-3 py-2 tabular-nums">
                     {p.opening_rank ?? "—"}
                   </td>
-                  <td className="px-3 py-2">{p.participant_name || "—"}</td>
+                  <td className="px-3 py-2">
+                    <VendorLink
+                      bizNo={p.participant_biz_no}
+                      name={p.participant_name}
+                    />
+                  </td>
                   <td className="px-3 py-2 tabular-nums">
-                    {fmtBizNo(p.participant_biz_no)}
+                    <VendorLink
+                      bizNo={p.participant_biz_no}
+                      name={fmtBizNo(p.participant_biz_no)}
+                    />
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {fmtWon(p.participant_bid_amount)}

@@ -14,6 +14,7 @@ import { LookupGraph } from "@/components/graph/LookupGraph";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { VendorLink, AgencyLink } from "@/components/EntityLink";
 
 type Mode = "bid" | "biz" | "inst" | "contract";
 
@@ -206,15 +207,13 @@ async function Result({ mode, q, ord }: { mode: Mode; q: string; ord: string }) 
               {summary.top_winners.map((w: any) => (
                 <tr key={w.vendor_biz_no} className="border-t">
                   <td className="px-3 py-2">
-                    <a
-                      href={`/vendors/${w.vendor_biz_no}`}
-                      className="text-[var(--color-primary)] hover:underline"
-                    >
-                      {w.vendor_name || "—"}
-                    </a>
+                    <VendorLink bizNo={w.vendor_biz_no} name={w.vendor_name} />
                   </td>
                   <td className="px-3 py-2 tabular-nums">
-                    {fmtBizNo(w.vendor_biz_no)}
+                    <VendorLink
+                      bizNo={w.vendor_biz_no}
+                      name={fmtBizNo(w.vendor_biz_no)}
+                    />
                   </td>
                   <td className="px-3 py-2 text-right">{w.award_count}</td>
                   <td className="px-3 py-2 text-right tabular-nums">
@@ -245,12 +244,7 @@ async function Result({ mode, q, ord }: { mode: Mode; q: string; ord: string }) 
               {summary.top_agencies.map((a: any, i: number) => (
                 <tr key={i} className="border-t">
                   <td className="px-3 py-2">
-                    <a
-                      href={`/agencies?name=${encodeURIComponent(a.inst_name)}`}
-                      className="text-[var(--color-primary)] hover:underline"
-                    >
-                      {a.inst_name}
-                    </a>
+                    <AgencyLink name={a.inst_name} />
                   </td>
                   <td className="px-3 py-2 text-right">{a.deal_count}</td>
                   <td className="px-3 py-2 text-right tabular-nums">

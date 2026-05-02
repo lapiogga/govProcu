@@ -7,6 +7,7 @@ import { fmtWon, fmtDate } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { BidLink, AgencyLink } from "@/components/EntityLink";
 
 export default async function BidsPage(props: {
   searchParams: Promise<{
@@ -121,14 +122,15 @@ async function Results(params: {
                 {fmtDate(bid.publish_date)}
               </td>
               <td className="px-3 py-2">
-                <a
-                  href={`/bids/trace?no=${bid.bid_no}&ord=${bid.bid_ord || "00"}`}
-                  className="text-[var(--color-primary)] hover:underline"
-                >
-                  {bid.title}
-                </a>
+                <BidLink
+                  bidNo={bid.bid_no}
+                  ord={bid.bid_ord}
+                  title={bid.title}
+                />
               </td>
-              <td className="px-3 py-2">{bid.inst_name || "—"}</td>
+              <td className="px-3 py-2">
+                <AgencyLink name={bid.inst_name} />
+              </td>
               <td className="px-3 py-2">{bid.biz_type || "—"}</td>
               <td className="px-3 py-2 text-right tabular-nums">
                 {fmtWon(bid.estimated_price)}
