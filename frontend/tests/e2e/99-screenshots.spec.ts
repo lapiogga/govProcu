@@ -34,9 +34,9 @@ test.describe("@screenshot Mock-mode full page captures", () => {
       const resp = await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 });
       expect(resp?.ok(), `Page ${url} responded ${resp?.status()}`).toBeTruthy();
 
-      // Suspense streaming 페이지를 위한 대기
+      // Suspense streaming + Tremor hydration 안정화
       await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(800);
+      await page.waitForTimeout(1500);
 
       const dir = `screenshots/${testInfo.project.name.replace(/\s+/g, "-")}`;
       await page.screenshot({

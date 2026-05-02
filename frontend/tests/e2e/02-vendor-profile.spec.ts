@@ -12,10 +12,14 @@ test.describe("업체 프로필", () => {
     await page.goto("/");
     const search = page.getByPlaceholder(/공고번호.*사업자번호/);
     await search.fill(TEST_BIZ_NO);
-    await search.press("Enter");
+    await page.getByRole("button", { name: "검색" }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/vendors/${TEST_BIZ_NO}`));
-    await expect(page.getByRole("heading", { name: /업체 프로필/ })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/vendors/${TEST_BIZ_NO}`), {
+      timeout: 15_000,
+    });
+    await expect(
+      page.getByRole("heading", { name: /업체 프로필/ }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test("vendor 페이지에 NTS + 5종 통계", async ({ page }) => {

@@ -20,10 +20,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import gzip
+import io
 import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+
+# Windows cp949 콘솔에서 em-dash 출력 가능하도록 UTF-8 강제
+if hasattr(sys.stdout, "buffer"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "buffer"):
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # 프로젝트 루트 import
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -70,9 +77,21 @@ def archive_logs_files(days: int, dry_run: bool) -> dict:
 
 async def archive_audit_log(days: int, dry_run: bool) -> dict:
     """audit_log 테이블의 N일+ row를 JSONL.gz 로 export 후 삭제."""
-    import aiosqlite
+    try:
+        import aiosqlite
+    except ImportError:
+        return {
+            "skipped": True,
+            "reason": "aiosqlite 미설치 — pip install -e . 로 베이스 의존성 설치",
+        }
 
-    from app.storage.db import DB_PATH
+    try:
+        from app.storage.db import DB_PATH
+    except ImportError:
+        return {
+            "skipped": True,
+            "reason": "app 패키지 import 실패 — pip install -e . 후 재시도",
+        }
 
     if not Path(DB_PATH).exists():
         return {"error": "DB not found", "db_path": str(DB_PATH)}
