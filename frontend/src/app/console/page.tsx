@@ -104,7 +104,7 @@ export default function ConsolePage() {
             </div>
             <div className="whitespace-pre-wrap">
               {m.content}
-              {m.toolInvocations?.map((t, i) => (
+              {m.toolInvocations?.map((t: any, i: number) => (
                 <div
                   key={i}
                   className="mt-2 space-y-2"
