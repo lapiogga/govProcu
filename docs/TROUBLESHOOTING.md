@@ -12,7 +12,7 @@
 |------|------|------|
 | `EACCES` / 권한 오류 | npm 캐시가 관리자 권한으로 생성됨 | `npm cache clean --force` 후 재시도 |
 | `ETIMEDOUT` | 사내 프록시 차단 | `npm config set registry https://registry.npmjs.org/` + 회사 프록시 설정 |
-| `peer dep` 충돌 | React 19 RC 일부 패키지가 React 18 요구 | `--legacy-peer-deps` 옵션 |
+| `peer dep` 충돌 (Tremor v3 vs React 19) | `@tremor/react@3.x` 가 React 18 peer 만 명시 | `frontend/.npmrc` 에 `legacy-peer-deps=true` 영구 적용됨 (NEXT7-1) — 또는 `npm install --legacy-peer-deps` 일회성 |
 | `node-gyp` Windows | Visual Studio Build Tools 부재 | `npm install --global windows-build-tools` 또는 VS Build Tools 2022 설치 |
 | Node 버전 불일치 | Node 20+ 요구 | `node -v` 확인, 미만이면 nvm-windows로 LTS 설치 |
 
