@@ -788,3 +788,15 @@ mount 30분 내 mtime 변동: logs 2건뿐 (직전 8b23d30 sync 정합성 도달
   ⑤ AI SDK Generative UI 정착
 
 [11:51 KST] $ git add -A && git commit && git push origin main
+
+[12:09:35 KST] $ git status --porcelain | head -5
+# 표면 M 다수 + ?? tmp/ — 이전 사이클 동일 mount CRLF lag 패턴
+
+[12:09:42 KST] $ find $MOUNT -newermt '2026-05-02 11:52:00' -type f | wc -l
+0
+# 직전 sync 이후 mount mtime 활동 전무 — 사용자 휴면 53분 지속
+
+[12:10:21 KST] $ git checkout -- .
+# mount-lag 표면 M 정리, baseline = origin 59f256e
+
+[12:11 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 12:11 KST" && git push origin main
