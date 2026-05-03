@@ -167,6 +167,16 @@ async function ScenarioTable({ params }: { params: any }) {
     biz_type: params.type,
     strategies: [0.82, 0.85, 0.88, 0.9, 0.92, 0.95],
   });
+  if (!r.ok) {
+    // P30-R4 P1-21: r.ok 분기 — backend 통신 오류 사용자 인지 (PredictResult와 일관)
+    return (
+      <Card className="border-[var(--color-danger)]">
+        <CardContent className="p-4 text-sm">
+          시나리오 비교 오류: {r.error || "backend 통신 실패"}
+        </CardContent>
+      </Card>
+    );
+  }
   const data = extractMcpData<any>(r.data);
   const scenarios = data?.scenarios || [];
 
