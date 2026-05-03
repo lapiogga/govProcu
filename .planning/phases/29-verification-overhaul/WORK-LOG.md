@@ -1,0 +1,18 @@
+# Phase 29 — WORK-LOG (시계열)
+
+## 2026-05-04 (월)
+
+| 시각 (KST) | 행위자 | 작업 | 결과 / 산출물 |
+|-----------|--------|------|---------------|
+| 00:32 | user | 발화 #31 (오류투성이 / 검증 부족) | 자동 진행 멈춤 트리거 |
+| 00:35 | lead | Phase 29 신설 (PLAN.md + WORK-LOG.md) | 검증 절차 L1~L6 표준 정의. 단순 import OK는 통과 인정 안 함. v29.1 backend MCP 직접 호출 sprint 즉시 시작 |
+| 00:38 | lead | F11 진단 결과 phase 28에 정리 | P0~P3 4종. P0 즉시 fix 가능 (workflow.py:206 키 불일치). 사용자에게 진행 승인 요청 (3 옵션) |
+| 00:48 | cron `6cc910e8` | 자동 갱신 trigger fire #3 (1h 간격) | 점검: PROMPTS-LOG #21~#31(31건) / Phase 28 v28.1 + F11 도착 / Phase 29 신설 / background tasks (backend `bx4cbk05a` 8081, frontend `beonzk7mx` 3000) 모두 기록 정합. logs/WORK-LOG.md 외부 sync hook 미간섭. 다음 cron: 01:07 예상. **no-op (1~2줄 보충 후)** |
+| 00:50 | user | 발화 #32 ("진행") | 옵션 A — v29.1.1 fix + L3/L4 검증 진행 |
+| 00:52 | lead | v29.1.1 v1 fix | `workflow.py:206` `b_stt_cd`/`b_stt` → `status_code`/`status`/`raw.b_stt_cd` (3중 fallback). cache prefix `vendor_profile_v24` → `vendor_profile_v29` |
+| 00:54 | lead | L1 import OK | backend stop(`bx4cbk05a`) → restart(`bo9uxr7h2`) |
+| 00:56 | lead | **L3-T2 첫 시도 FAIL** | curl vendor_profile 7028600866 (7일) → HTTP 200, 19.94s, 3982 bytes. but `summary.nts_status_code=null`. sections.nts_status[0].status_code='01' (정상). **fix 무효** — agent F11 진단의 키 이름만으로는 부족 |
+| 00:58 | lead | root cause v2 발견 | `_safe_get(d, *keys)`는 dict.get만 지원, list index 처리 안 됨. `_safe_get(..., "items", 0, "status_code")` 호출 시 items가 list라 즉시 default 반환 |
+| 01:00 | lead | v29.1.1 v2 fix | nts_items 직접 추출 (`isinstance(nts_items, list) and nts_items` 체크). cache prefix `_v29` → `_v29a`. L2 unit test PASS |
+| 01:02 | lead | backend 재기동 (`bo9uxr7h2` → `bsdlr2aiz`) | uvicorn 8081 |
+| 01:04 | lead | **L3-T2 + L4-T1 PASS** | (T1) vendor_profile 7028600866: summary.nts_status_code='01' / sections.nts_status[0].status_code='01' / awards_count=0. (T2) vendor_profile 2391602024: 동일 PASS. **P0 fix 검증 완료** |

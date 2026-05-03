@@ -116,7 +116,7 @@ async def trace_bid_lifecycle(bid_notice_no: str, bid_ord: str = "00") -> dict:
 
 # === W2: vendor_profile ===
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="vendor_profile_v24")
+@cache_result(ttl=settings.cache_ttl_short, prefix="vendor_profile_v29a")
 
 async def vendor_profile(
     vendor_biz_no: str,
@@ -201,10 +201,20 @@ async def vendor_profile(
     parts_count = len(parts_items)
     win_rate = (awards_count / parts_count * 100) if parts_count else None
 
+    # v29.1.1 (F11 P0 fix v2): check_business_status 정규화 후 키는 status_code/status.
+    # 이전 _safe_get(..., "items", 0, ...) 호출은 list index를 처리 못함 (dict만 지원).
+    # → 직접 list 추출로 변경.
+    nts_items = _safe_get(result, "sections", "nts_status", "items", default=[]) or []
+    first_nts = nts_items[0] if isinstance(nts_items, list) and nts_items else {}
+    nts_status_code = (
+        first_nts.get("status_code")
+        or first_nts.get("status")
+        or _safe_get(first_nts, "raw", "b_stt_cd")
+    )
+
     result["summary"] = {
         "vendor_biz_no": vendor_biz_no,
-        "nts_status_code": _safe_get(result, "sections", "nts_status", "items", 0, "b_stt_cd")
-            or _safe_get(result, "sections", "nts_status", "items", 0, "b_stt"),
+        "nts_status_code": nts_status_code,
         "awards_count": awards_count,
         "awards_total_won": award_total_amt,
         "awards_avg_won": (award_total_amt // awards_count) if awards_count else 0,
