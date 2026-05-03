@@ -11,6 +11,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { VendorLink, BidLink } from "@/components/EntityLink";
 
+function todayYYYYMMDD(): string {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function defaultAgencyFrom(): string {
+  // 5/3 N42: 라이브 측정 기반 default = 오늘-365일 (P99 2.5초). 사정률 sample 충분 확보.
+  const d = new Date();
+  d.setDate(d.getDate() - 365);
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default async function AgenciesPage(props: {
   searchParams: Promise<{
     name?: string;
@@ -20,6 +32,8 @@ export default async function AgenciesPage(props: {
   }>;
 }) {
   const sp = await props.searchParams;
+  const dateFrom = sp.from || (sp.name ? defaultAgencyFrom() : undefined);
+  const dateTo = sp.to || (sp.name ? todayYYYYMMDD() : undefined);
   return (
     <main className="space-y-6">
       <header>
@@ -62,16 +76,16 @@ export default async function AgenciesPage(props: {
             <PriceCard
               instName={sp.name}
               bizType={sp.type}
-              from={sp.from}
-              to={sp.to}
+              from={dateFrom}
+              to={dateTo}
             />
           </Suspense>
           <Suspense fallback={<Skel h={48} />}>
             <HistoryTable
               instName={sp.name}
               bizType={sp.type}
-              from={sp.from}
-              to={sp.to}
+              from={dateFrom}
+              to={dateTo}
             />
           </Suspense>
         </>

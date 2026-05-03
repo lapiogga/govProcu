@@ -1008,3 +1008,11 @@ mount 30분 내 mtime 변동: logs 2건뿐 (직전 8b23d30 sync 정합성 도달
 # mount-lag 표면 M 다수 + frontend/src/app/bids/search·logs/archive·tmp 정리, baseline = origin 6db375f
 
 [16:31 KST] $ git add logs/ && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-02 16:31 KST" && git push origin main
+
+[16:50 KST] $ # bash workspace boot failed (4 retries)
+# RPC error -1: ensure user: useradd failed: exit status 1
+# useradd: /etc/passwd.XXXXX: No space left on device
+# useradd: cannot lock /etc/passwd; try again later.
+# 샌드박스 호스트 자원 고갈 — git/rsync/clone/push 전부 불가
+# 본 사이클은 mount 파일도구(Read/Edit)만으로 WORK-LOG·TERMINAL-LOG 갱신만 수행
+# 다음 사이클(17:11)에서 origin baseline 재점검 + 누적 push 일괄 처리 예정

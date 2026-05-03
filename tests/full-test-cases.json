@@ -1,0 +1,424 @@
+{
+  "$schema": "./full-test-cases.schema.json",
+  "version": 2,
+  "generated": "2026-05-03T01:55:00+09:00",
+  "reference_date": "20260503",
+  "revision_note": "v2 — distinct 입력값 풍부화 + 클릭 검증",
+  "defaults": {
+    "_basis": "Cold 1차 측정 기반 (tests/measure_cold.log, 2026-05-03)",
+    "bids": { "from_offset_days": -30, "to_offset_days": 0, "p99_sec": 4.2 },
+    "vendors_like": { "from_offset_days": -30, "to_offset_days": 0, "p99_sec": 20, "_changed_from_v1": "90 -> 30 (broad 키워드 응답 시간 우려)" },
+    "vendor_profile": { "from_offset_days": -365, "to_offset_days": 0, "p99_sec": 4 },
+    "agencies": { "from_offset_days": -365, "to_offset_days": 0, "p99_sec": 2.5 },
+    "kwater": { "month": "202604", "p99_sec": 3.5 }
+  },
+  "date_matrix": {
+    "D1": ["20260503", "20260503"],
+    "D1_specific": ["20260415", "20260415"],
+    "D3": ["20260501", "20260503"],
+    "D3_specific": ["20260401", "20260403"],
+    "W1": ["20260427", "20260503"],
+    "W1_specific": ["20260414", "20260420"],
+    "W2_specific": ["20260330", "20260412"],
+    "M1": ["20260403", "20260503"],
+    "M1A_specific": ["20260301", "20260331"],
+    "M1B_specific": ["20260201", "20260228"],
+    "M3": ["20260202", "20260503"],
+    "Y1": ["20250503", "20260503"]
+  },
+  "pools": {
+    "keywords": ["정보화", "AI", "한의약", "디지털", "클라우드", "보안", "빅데이터", "시스템", "인공지능", "네트워크", "컨설팅", "유지보수", "솔루션", "플랫폼", "데이터센터", "ISMS", "통합관제", "스마트시티", "모바일", "드론"],
+    "agencies": ["한국수자원공사", "한국전력공사", "한국도로공사", "과학기술정보통신부", "국방재정관리단", "경찰청 경찰대학", "행정안전부", "환경부", "교육부", "문화체육관광부", "농림축산식품부", "서울특별시", "부산광역시", "한국정보화진흥원", "산림청"],
+    "biz_nos": ["1058705373", "1131171595", "1208781091", "1148610146", "2208113478", "1248100998", "1158121603", "2148781616", "9999999999", "0000000000"],
+    "vendor_names": ["한국", "디지털", "솔루션", "시스템", "정보", "네트웍스", "테크놀로지", "컨설팅", "엔지니어링", "소프트웨어", "데이터", "사이언스", "보안", "미디어", "K", "존재안함XYZ"],
+    "bid_nos": [
+      { "no": "20240101234", "ord": "00", "tag": "정상" },
+      { "no": "R26BK01435763", "ord": "000", "tag": "R-form fault4" },
+      { "no": "20260415567", "ord": "00", "tag": "임의" },
+      { "no": "20260301999", "ord": "01", "tag": "재공고" },
+      { "no": "20260420111", "ord": "00", "tag": "임의" },
+      { "no": "20260317802", "ord": "00", "tag": "임의" },
+      { "no": "R26AB00012345", "ord": "000", "tag": "R-form2" },
+      { "no": "9999999999", "ord": "00", "tag": "미존재" },
+      { "no": "20260214700", "ord": "02", "tag": "ord02" },
+      { "no": "20260101001", "ord": "00", "tag": "연초" }
+    ],
+    "kwater_dt": ["202205", "202206", "202308", "202310", "202312", "202402", "202412", "202604", "202101", "202612"]
+  },
+  "click_matrix": {
+    "BidLink": "/bids/trace?no={bid_no}&ord={ord}",
+    "AgencyLink": "/agencies?name={inst_name}",
+    "VendorLink": "/vendors/{biz_no}"
+  },
+  "scenarios": [
+    {
+      "id": "S01",
+      "name": "입찰 검색 키워드 LIKE + 날짜 다양화 + 클릭 검증",
+      "page": "/bids",
+      "tool": "search_bid_notices",
+      "cases": [
+        { "id": "S01-C1", "input": { "q": "정보화", "from": "20260503", "to": "20260503" }, "date_id": "D1", "expected": { "items_in_range": [0, 5], "single_day_message": true }, "priority": "P1" },
+        { "id": "S01-C2", "input": { "q": "AI", "from": "20260415", "to": "20260415" }, "date_id": "D1_specific", "expected": { "items_in_range": [0, 3] }, "priority": "P1" },
+        { "id": "S01-C3", "input": { "q": "한의약", "from": "20260501", "to": "20260503" }, "date_id": "D3", "expected": { "min_items": 1 }, "priority": "P0" },
+        { "id": "S01-C4", "input": { "q": "디지털", "from": "20260401", "to": "20260403" }, "date_id": "D3_specific", "expected": { "min_items": 1 }, "priority": "P0" },
+        { "id": "S01-C5", "input": { "q": "클라우드", "from": "20260427", "to": "20260503" }, "date_id": "W1", "expected": { "min_items": 3 }, "priority": "P0" },
+        { "id": "S01-C6", "input": { "q": "보안", "from": "20260414", "to": "20260420" }, "date_id": "W1_specific", "expected": { "min_items": 3 }, "priority": "P0" },
+        { "id": "S01-C7", "input": { "q": "빅데이터", "from": "20260330", "to": "20260412" }, "date_id": "W2_specific", "expected": { "min_items": 5 }, "click_test": { "target": "BidLink_first_row", "expects_navigation_to": "/bids/trace?no=*&ord=*" }, "priority": "P0" },
+        { "id": "S01-C8", "input": { "q": "인공지능", "from": "20260403", "to": "20260503" }, "date_id": "M1", "expected": { "min_items": 5 }, "click_test": { "target": "BidLink_title", "expects_summary_rendered": true }, "priority": "P0" },
+        { "id": "S01-C9", "input": { "q": "네트워크", "from": "20260301", "to": "20260331" }, "date_id": "M1A_specific", "expected": { "min_items": 5 }, "click_test": { "target": "AgencyLink", "expects_navigation_to": "/agencies?name=*" }, "priority": "P0" },
+        { "id": "S01-C10", "input": { "q": "ISMS", "from": "20260202", "to": "20260503" }, "date_id": "M3", "expected": { "chunks": 3, "merged": true }, "click_test": { "target": "trace_then_VendorLink", "expects_navigation_to": "/vendors/*" }, "priority": "P0", "fix_target": "결함#1" }
+      ]
+    },
+    {
+      "id": "S02",
+      "name": "입찰 검색 업종/기관 필터 (다양한 기관)",
+      "page": "/bids",
+      "tool": "search_bid_notices",
+      "cases": [
+        { "id": "S02-C1", "input": { "type": "용역", "date_id": "M1" }, "expected": { "endpoints": ["getBidPblancListInfoServc"] }, "priority": "P0" },
+        { "id": "S02-C2", "input": { "type": "공사", "date_id": "M1" }, "expected": { "endpoints": ["getBidPblancListInfoCnstwk"] }, "priority": "P0" },
+        { "id": "S02-C3", "input": { "type": "물품", "date_id": "M1" }, "expected": { "endpoints": ["getBidPblancListInfoThng"] }, "priority": "P0" },
+        { "id": "S02-C4", "input": { "type": "", "date_id": "M1" }, "expected": { "endpoints_count": 3, "merged": true }, "priority": "P0", "fix_target": "결함#2" },
+        { "id": "S02-C5", "input": { "inst": "한국수자원공사", "date_id": "M1" }, "expected": { "all_items_match_inst": true }, "priority": "P0" },
+        { "id": "S02-C6", "input": { "inst": "한국전력공사", "date_id": "W1" }, "expected": { "all_items_match_inst": true }, "priority": "P0" },
+        { "id": "S02-C7", "input": { "inst": "한국도로공사", "date_id": "W2_specific" }, "expected": { "items_min": 1 }, "priority": "P1" },
+        { "id": "S02-C8", "input": { "inst": "경찰청 경찰대학", "date_id": "M1A_specific" }, "expected": { "whitespace_handled": true }, "priority": "P0", "fix_target": "결함#5" },
+        { "id": "S02-C9", "input": { "type": "용역", "inst": "과학기술정보통신부", "date_id": "M1" }, "expected": { "and_match": true }, "priority": "P0" },
+        { "id": "S02-C10", "input": { "type": "공사", "inst": "서울특별시", "q": "보수", "date_id": "M1" }, "expected": { "or_deep_recommend": true }, "priority": "P1" }
+      ]
+    },
+    {
+      "id": "S03",
+      "name": "입찰 검색 기간/페이징 + 클릭 검증",
+      "page": "/bids",
+      "tool": "search_bid_notices",
+      "cases": [
+        { "id": "S03-C1", "input": { "q": "용역", "from": "20260503", "to": "20260503" }, "date_id": "D1", "click_test": { "target": "BidLink_no", "expects_navigation_to": "/bids/trace" }, "priority": "P1" },
+        { "id": "S03-C2", "input": { "q": "공사", "from": "20260415", "to": "20260415" }, "date_id": "D1_specific", "click_test": { "target": "BidLink_title", "expects_navigation_to": "/bids/trace" }, "priority": "P1" },
+        { "id": "S03-C3", "input": { "q": "정보화", "from": "20260501", "to": "20260503" }, "date_id": "D3", "expected": { "min_items": 1 }, "priority": "P0" },
+        { "id": "S03-C4", "input": { "q": "디지털", "from": "20260401", "to": "20260403" }, "date_id": "D3_specific", "expected": { "min_items": 1 }, "priority": "P0" },
+        { "id": "S03-C5", "input": { "type": "용역", "from": "20260427", "to": "20260503" }, "date_id": "W1", "expected": { "items_min": 5 }, "priority": "P0" },
+        { "id": "S03-C6", "input": { "q": "AI", "from": "20260414", "to": "20260420" }, "date_id": "W1_specific", "click_test": { "target": "AgencyLink", "expects_navigation_to": "/agencies?name=*" }, "priority": "P0" },
+        { "id": "S03-C7", "input": { "inst": "한국전력공사", "from": "20260330", "to": "20260412" }, "date_id": "W2_specific", "click_test": { "target": "trace_then_VendorLink", "expects_navigation_to": "/vendors/*" }, "priority": "P0" },
+        { "id": "S03-C8", "input": { "q": "스마트시티", "from": "20260301", "to": "20260331" }, "date_id": "M1A_specific", "expected": { "items_min": 1 }, "priority": "P0" },
+        { "id": "S03-C9", "input": { "q": "보안", "from": "20260201", "to": "20260228" }, "date_id": "M1B_specific", "expected": { "items_min": 1, "leap_year_handled": false }, "click_test": { "target": "BidLink", "expects_navigation_to": "/bids/trace" }, "priority": "P0" },
+        { "id": "S03-C10", "input": { "from": "20250503", "to": "20260503", "page": 2 }, "date_id": "Y1", "expected": { "chunks": 12, "page_nav_works": true }, "click_test": { "target": "BidLink_last_row", "expects_navigation_to": "/bids/trace" }, "priority": "P0", "fix_target": "결함#1" }
+      ]
+    },
+    {
+      "id": "S04",
+      "name": "입찰 검색 정렬 5종 (다양한 키워드)",
+      "page": "/bids",
+      "ui": "DropdownMenuRadioGroup",
+      "cases": [
+        { "id": "S04-C1", "input": { "sort": "publish_desc", "q": "정보화", "date_id": "M1" }, "expected": { "ordered_by": "publish_date_desc" }, "priority": "P0" },
+        { "id": "S04-C2", "input": { "sort": "publish_asc", "q": "AI", "date_id": "M1" }, "expected": { "ordered_by": "publish_date_asc" }, "priority": "P0" },
+        { "id": "S04-C3", "input": { "sort": "deadline", "q": "디지털", "date_id": "M1" }, "expected": { "ordered_by": "deadline_future_asc", "nulls_last": true, "past_deadlines_last": true }, "priority": "P0", "fix_target": "결함#3" },
+        { "id": "S04-C4", "input": { "sort": "amount_desc", "q": "클라우드", "date_id": "M1" }, "expected": { "ordered_by": "estimated_price_desc" }, "priority": "P0" },
+        { "id": "S04-C5", "input": { "sort": "amount_asc", "q": "보안", "date_id": "M1" }, "expected": { "ordered_by": "estimated_price_asc" }, "priority": "P0" },
+        { "id": "S04-C6", "action": "click_sort_menu", "input": { "from_sort": "publish_desc", "to_sort": "deadline", "q": "빅데이터" }, "expected": { "url_updated": "?sort=deadline" }, "priority": "P0" },
+        { "id": "S04-C7", "action": "navigate_after_sort", "input": { "sort": "amount_desc", "page": 2, "q": "인공지능" }, "expected": { "sort_preserved": true }, "priority": "P1" },
+        { "id": "S04-C8", "action": "change_query_after_sort", "input": { "sort": "deadline", "q1": "네트워크", "q2": "솔루션" }, "expected": { "sort_preserved": true }, "priority": "P1" },
+        { "id": "S04-C9", "input": { "sort": "invalid", "q": "ISMS" }, "expected": { "fallback_to": "publish_desc" }, "priority": "P2" },
+        { "id": "S04-C10", "input": { "sort": "amount_asc" }, "ui_check": "trigger_label", "expected": { "label_text_contains": "추정가 ↑" }, "priority": "P1" }
+      ]
+    },
+    {
+      "id": "S05",
+      "name": "입찰 검색 깊은 검색 (다양한 키워드)",
+      "page": "/bids",
+      "cases": [
+        { "id": "S05-C1", "input": { "deep": "", "q": "정보화", "date_id": "M1" }, "expected": { "scan_pages": 1 }, "priority": "P0" },
+        { "id": "S05-C2", "input": { "deep": "1", "q": "정보화", "date_id": "M1" }, "expected": { "scan_pages": 5 }, "priority": "P0" },
+        { "id": "S05-C3", "input": { "deep": "1", "q": "AI", "date_id": "M1" }, "expected": { "min_items": 1 }, "priority": "P0" },
+        { "id": "S05-C4", "input": { "deep": "1", "q": "한의약", "date_id": "M1" }, "expected": { "min_items": 1 }, "priority": "P1" },
+        { "id": "S05-C5", "input": { "deep": "1", "q": "디지털", "date_id": "M1" }, "expected": { "min_items": 5 }, "priority": "P0" },
+        { "id": "S05-C6", "input": { "deep": "1", "q": "클라우드", "date_id": "M1" }, "expected": { "min_items": 3 }, "priority": "P0" },
+        { "id": "S05-C7", "input": { "deep": "1", "q": "보안 ISMS", "date_id": "M1" }, "expected": { "compound_keyword_match": true }, "priority": "P1" },
+        { "id": "S05-C8", "input": { "deep": "1", "q": "빅데이터", "date_id": "M1" }, "expected": { "min_items": 1 }, "priority": "P1" },
+        { "id": "S05-C9", "input": { "deep": "1", "q": "드론", "date_id": "M1" }, "expected": { "items_in_range": [0, 5] }, "priority": "P1" },
+        { "id": "S05-C10", "input": { "deep": "1", "q": "존재안함XYZ", "date_id": "M1" }, "expected": { "items_eq": 0, "message_clear": true }, "priority": "P0", "fix_target": "결함#6" }
+      ]
+    },
+    {
+      "id": "S06",
+      "name": "업체 분석 다양한 사업자번호 직접",
+      "page": "/vendors",
+      "cases": [
+        { "id": "S06-C1", "input": { "biz": "1058705373" }, "expected": { "redirect_to": "/vendors/1058705373" }, "priority": "P0" },
+        { "id": "S06-C2", "input": { "biz": "1131171595" }, "expected": { "redirect_to": "/vendors/1131171595" }, "priority": "P0" },
+        { "id": "S06-C3", "input": { "biz": "1208781091" }, "expected": { "redirect_to": "/vendors/1208781091" }, "priority": "P0" },
+        { "id": "S06-C4", "input": { "biz": "105-87-05373" }, "expected": { "redirect_to": "/vendors/1058705373" }, "priority": "P0" },
+        { "id": "S06-C5", "input": { "biz": "105 87 05373" }, "expected": { "redirect_to": "/vendors/1058705373" }, "priority": "P1" },
+        { "id": "S06-C6", "input": { "biz": "105870537" }, "expected": { "error_msg": "10자리 입력" }, "priority": "P0" },
+        { "id": "S06-C7", "input": { "biz": "10587053731" }, "expected": { "error_msg": "10자리 입력" }, "priority": "P0" },
+        { "id": "S06-C8", "input": { "biz": "ABC1058705" }, "expected": { "after_strip_check_length": true }, "priority": "P1" },
+        { "id": "S06-C9", "input": { "biz": "9999999999" }, "expected": { "redirects_then_nts_not_found": true }, "priority": "P1" },
+        { "id": "S06-C10", "input": { "biz": "1058705373", "name": "디지털" }, "expected": { "biz_priority": true }, "priority": "P0" }
+      ]
+    },
+    {
+      "id": "S07",
+      "name": "업체 분석 다양한 업체명 LIKE",
+      "page": "/vendors",
+      "tool": "search_awards_by_vendor",
+      "cases": [
+        { "id": "S07-C1", "input": { "name": "한국", "from": "20260202", "to": "20260503" }, "date_id": "M3", "expected": { "min_candidates": 5 }, "priority": "P0" },
+        { "id": "S07-C2", "input": { "name": "디지털", "from": "20260202", "to": "20260503" }, "date_id": "M3", "expected": { "min_candidates": 1, "must_contain_any": ["디지털"] }, "priority": "P0" },
+        { "id": "S07-C3", "input": { "name": "솔루션" }, "expected": { "auto_default_90d": true, "min_candidates": 1 }, "priority": "P0" },
+        { "id": "S07-C4", "input": { "name": "시스템" }, "expected": { "auto_default_90d": true, "min_candidates": 1 }, "priority": "P0" },
+        { "id": "S07-C5", "input": { "name": "정보", "from": "20260202", "to": "20260503" }, "click_test": { "target": "VendorLink_row", "expects_navigation_to": "/vendors/*" }, "priority": "P0" },
+        { "id": "S07-C6", "input": { "name": "네트웍스" }, "expected": { "auto_default_90d": true, "min_candidates": 1 }, "priority": "P1" },
+        { "id": "S07-C7", "input": { "name": "테크놀로지" }, "expected": { "auto_default_90d": true, "min_candidates": 1 }, "priority": "P1" },
+        { "id": "S07-C8", "input": { "name": "컨설팅", "from": "20260202", "to": "20260503" }, "expected": { "min_candidates": 1 }, "priority": "P1" },
+        { "id": "S07-C9", "input": { "name": "엔지니어링", "from": "20260101", "to": "20260503" }, "expected": { "chunks": 4 }, "priority": "P0", "fix_target": "결함#1" },
+        { "id": "S07-C10", "input": { "name": "K" }, "expected": { "warning_too_broad_or_min_results": true }, "priority": "P1" }
+      ]
+    },
+    {
+      "id": "S08",
+      "name": "업체 분석 단건 프로필 (다양한 사업자)",
+      "page": "/vendors/{bizNo}",
+      "tool": "vendor_profile",
+      "cases": [
+        { "id": "S08-C1", "input": { "biz": "1058705373" }, "expected": { "nts_verified": true, "stats_5_categories": true, "response_time_max_sec": 20 }, "priority": "P0" },
+        { "id": "S08-C2", "input": { "biz": "1131171595" }, "expected": { "stats_present": true }, "priority": "P0" },
+        { "id": "S08-C3", "input": { "biz": "1208781091" }, "expected": { "nts_code_present": true }, "priority": "P0" },
+        { "id": "S08-C4", "input": { "biz": "1148610146" }, "expected": { "zero_stats_message_or_data": true }, "priority": "P1" },
+        { "id": "S08-C5", "input": { "biz": "2208113478" }, "expected": { "page_renders": true }, "priority": "P1" },
+        { "id": "S08-C6", "input": { "biz": "9999999999" }, "expected": { "nts_not_found_message": true }, "priority": "P1" },
+        { "id": "S08-C7", "input": { "biz": "0000000000" }, "expected": { "nts_invalid_message": true }, "priority": "P2" },
+        { "id": "S08-C8", "input": { "biz": "1058705373" }, "action": "click_add_to_watchlist", "expected": { "added_to_me": true }, "priority": "P1" },
+        { "id": "S08-C9", "action": "click_similar_vendors", "expected": { "tool_called": "find_similar_vendors" }, "priority": "P2" },
+        { "id": "S08-C10", "input": { "biz": "1248100998" }, "expected": { "default_from_offset": -365, "chunks_auto": 12 }, "priority": "P0" }
+      ]
+    },
+    {
+      "id": "S09",
+      "name": "발주기관 분석 다양한 발주기관 (발주 이력)",
+      "page": "/agencies",
+      "tool": "agency_procurement_history",
+      "cases": [
+        { "id": "S09-C1", "input": { "name": "한국수자원공사" }, "expected": { "default_from_offset": -365, "items_min": 5 }, "priority": "P0" },
+        { "id": "S09-C2", "input": { "name": "한국전력공사" }, "expected": { "items_min": 5 }, "priority": "P0" },
+        { "id": "S09-C3", "input": { "name": "한국도로공사" }, "expected": { "items_min": 1 }, "priority": "P0" },
+        { "id": "S09-C4", "input": { "name": "과학기술정보통신부" }, "expected": { "items_min": 10 }, "priority": "P0" },
+        { "id": "S09-C5", "input": { "name": "경찰청 경찰대학" }, "expected": { "whitespace_handled": true }, "priority": "P0", "fix_target": "결함#5" },
+        { "id": "S09-C6", "input": { "name": "행정안전부", "type": "용역" }, "expected": { "endpoints_used_count": 1 }, "priority": "P0" },
+        { "id": "S09-C7", "input": { "name": "서울특별시", "type": "", "from": "20260202", "to": "20260503" }, "expected": { "endpoints_used_count_min": 3 }, "priority": "P0", "fix_target": "결함#2" },
+        { "id": "S09-C8", "input": { "name": "환경부", "from": "20250101", "to": "20260503" }, "expected": { "chunks_min": 12 }, "priority": "P1", "fix_target": "결함#5" },
+        { "id": "S09-C9", "input": { "name": "존재안함기관" }, "expected": { "data_none_message": true }, "priority": "P1" },
+        { "id": "S09-C10", "input": { "name": "부산광역시" }, "click_test": { "target": "BidLink", "expects_navigation_to": "/bids/trace" }, "priority": "P0" }
+      ]
+    },
+    {
+      "id": "S10",
+      "name": "발주기관 사정률 패턴 (다양한 기관)",
+      "page": "/agencies",
+      "tool": "analyze_agency_price_pattern",
+      "cases": [
+        { "id": "S10-C1", "input": { "name": "한국수자원공사" }, "expected": { "sample_count_min": 50, "summary_pct_present": true }, "priority": "P0" },
+        { "id": "S10-C2", "input": { "name": "한국전력공사" }, "expected": { "sample_count_min": 30 }, "priority": "P0" },
+        { "id": "S10-C3", "input": { "name": "과학기술정보통신부" }, "expected": { "summary_pct_present": true }, "priority": "P0" },
+        { "id": "S10-C4", "input": { "name": "서울특별시" }, "expected": { "summary_pct.mean_present": true }, "priority": "P1" },
+        { "id": "S10-C5", "input": { "name": "행정안전부", "type": "공사" }, "expected": { "biz_filter_applied": true }, "priority": "P1" },
+        { "id": "S10-C6", "input": { "name": "교육부" }, "expected": { "by_biz_type_present": true }, "priority": "P1" },
+        { "id": "S10-C7", "input": { "name": "문화체육관광부" }, "ui_check": "AgencyPricePatternChart", "expected": { "rendered": true }, "priority": "P0" },
+        { "id": "S10-C8", "input": { "name": "농림축산식품부", "from": "20210101", "to": "20260503" }, "expected": { "sample_count_increased": true, "chunks_min": 60 }, "priority": "P1", "fix_target": "결함#5" },
+        { "id": "S10-C9", "input": { "name": "한국정보화진흥원", "type": "용역" }, "expected": { "biz_filter_applied": true }, "priority": "P1" },
+        { "id": "S10-C10", "input": { "name": "산림청" }, "action": "change_then_resubmit", "expected": { "url_updated": true }, "priority": "P1" }
+      ]
+    },
+    {
+      "id": "S11",
+      "name": "입찰 추적 정상 케이스 (다양한 공고번호)",
+      "page": "/bids/trace",
+      "tool": "trace_bid_lifecycle",
+      "cases": [
+        { "id": "S11-C1", "input": { "no": "20240101234", "ord": "00" }, "expected": { "stages_count": 6 }, "priority": "P0" },
+        { "id": "S11-C2", "input": { "no": "20260415567", "ord": "00" }, "expected": { "summary_8_fields": true, "stages_1_to_5": true }, "priority": "P0" },
+        { "id": "S11-C3", "input": { "no": "20260420111", "ord": "00" }, "expected": { "participants_min": 5 }, "priority": "P0" },
+        { "id": "S11-C4", "input": { "no": "20260317802", "ord": "00" }, "expected": { "winner_nts_code_01": true }, "priority": "P0" },
+        { "id": "S11-C5", "input": { "no": "20260301999", "ord": "01" }, "expected": { "ord_01_match": true }, "priority": "P1" },
+        { "id": "S11-C6", "input": { "no": "20260214700", "ord": "02" }, "expected": { "ord_02_match": true }, "priority": "P1" },
+        { "id": "S11-C7", "input": { "no": "20260101001", "ord": "00" }, "ui_check": "summary_card_8_fields", "expected": { "fields": ["inst_name", "biz_type", "estimated_price", "participant_count", "publish_date", "open_date", "winner_name", "award_amount"] }, "priority": "P0" },
+        { "id": "S11-C8", "input": { "no": "20240101234", "ord": "00" }, "click_test": { "target": "winner_profile_link", "expects_navigation_to": "/vendors/*" }, "priority": "P0" },
+        { "id": "S11-C9", "input": { "no": "20240101234", "ord": "00" }, "click_test": { "target": "agency_analysis_link", "expects_navigation_to": "/agencies?name=*" }, "priority": "P1" },
+        { "id": "S11-C10", "input": { "no": "20260415567", "ord": "00" }, "click_test": { "target": "participant_VendorLink", "expects_navigation_to": "/vendors/*" }, "priority": "P1" }
+      ]
+    },
+    {
+      "id": "S12",
+      "name": "입찰 추적 예외/경계 (R 형식 등)",
+      "page": "/bids/trace",
+      "tool": "trace_bid_lifecycle",
+      "cases": [
+        { "id": "S12-C1", "input": { "no": "R26BK01435763", "ord": "000" }, "expected": { "fallback_inqry_div_1": true, "found": true }, "priority": "P0", "fix_target": "결함#4" },
+        { "id": "S12-C2", "input": { "no": "R26BK01435763-000" }, "expected": { "auto_split_dash": true, "no": "R26BK01435763", "ord": "000" }, "priority": "P0", "fix_target": "결함#4" },
+        { "id": "S12-C3", "input": { "no": "R26AB00012345", "ord": "000" }, "expected": { "fallback_inqry_div_1": true }, "priority": "P0" },
+        { "id": "S12-C4", "input": { "ord_variants": ["00", "000", "01"] }, "expected": { "all_attempted_in_fallback": true }, "priority": "P0" },
+        { "id": "S12-C5", "input": { "no": "9999999999", "ord": "00" }, "expected": { "all_stages_not_found": true, "guidance_message": true }, "priority": "P0" },
+        { "id": "S12-C6", "ui_check": "stage1_only_found", "expected": { "stage1": "✅", "others": "✗" }, "priority": "P1" },
+        { "id": "S12-C7", "ui_check": "stage4_failed_award", "expected": { "label": "미낙찰/유찰" }, "priority": "P1" },
+        { "id": "S12-C8", "ui_check": "stage3_zero_participants", "expected": { "desc": "응찰자 0개사" }, "priority": "P1" },
+        { "id": "S12-C9", "ui_check": "stage5_nts_failed", "expected": { "stage5": "✗", "error_message": true }, "priority": "P1" },
+        { "id": "S12-C10", "input": { "no": "", "ord": "" }, "expected": { "form_mode_fallback": true }, "priority": "P2" }
+      ]
+    },
+    {
+      "id": "S13",
+      "name": "KWater 계약공개 다양한 월/업종",
+      "page": "/external/kwater",
+      "tool": "search_kwater_contracts",
+      "cases": [
+        { "id": "S13-C1", "input": { "dt": "202205", "biz": "용역" }, "expected": { "items_eq": 5, "must_contain_any": ["광주시 노후 상수관로"] }, "priority": "P0" },
+        { "id": "S13-C2", "input": { "dt": "202205", "biz": "공사" }, "expected": { "items_eq": 5 }, "priority": "P0" },
+        { "id": "S13-C3", "input": { "dt": "202206", "biz": "용역" }, "expected": { "items_in_range": [1, 5] }, "priority": "P0" },
+        { "id": "S13-C4", "input": { "dt": "202308", "biz": "용역" }, "expected": { "items_in_range": [1, 5] }, "priority": "P1" },
+        { "id": "S13-C5", "input": { "dt": "202310", "biz": "공사" }, "expected": { "items_in_range": [1, 5] }, "priority": "P1" },
+        { "id": "S13-C6", "input": { "dt": "202312", "biz": "용역" }, "expected": { "items_in_range": [1, 5] }, "priority": "P1" },
+        { "id": "S13-C7", "input": { "dt": "202402", "biz": "공사" }, "expected": { "items_in_range": [0, 5] }, "priority": "P1" },
+        { "id": "S13-C8", "input": { "dt": "202604", "biz": "용역" }, "click_test": { "target": "contract_no_link", "expects_navigation_to": "/external/kwater/contract*" }, "priority": "P0" },
+        { "id": "S13-C9", "input": { "dt": "202205" }, "click_test": { "target": "winner_name_link", "expects_navigation_to": "/vendors?name=*" }, "priority": "P0" },
+        { "id": "S13-C10", "input": { "dt": "202612", "biz": "용역" }, "expected": { "items_eq": 0 }, "priority": "P2" }
+      ]
+    },
+    {
+      "id": "S14",
+      "name": "KWater 계약 단건 상세 (다양한 row)",
+      "page": "/external/kwater/contract",
+      "cases": [
+        { "id": "S14-C1", "input": { "params": "all_9_fields" }, "expected": { "all_fields_visible": true }, "priority": "P0" },
+        { "id": "S14-C2", "input": { "params": ["no", "dt", "title", "winner"] }, "expected": { "missing_show_dash": true }, "priority": "P0" },
+        { "id": "S14-C3", "input": { "params_extra": ["dept", "biz", "method"] }, "expected": { "optional_fields_shown": true }, "priority": "P1" },
+        { "id": "S14-C4", "input": { "amount": 1000000000 }, "expected": { "fmt_won_applied": true }, "priority": "P1" },
+        { "id": "S14-C5", "input": { "p_from": "20220301", "p_to": "20221231" }, "expected": { "period_shown": true }, "priority": "P1" },
+        { "id": "S14-C6", "ui_check": "external_link", "expected": { "url_contains": "ebid.kwater.or.kr" }, "priority": "P0" },
+        { "id": "S14-C7", "click_test": { "target": "winner_link", "expects_navigation_to": "/vendors?name=*" }, "priority": "P0" },
+        { "id": "S14-C8", "input": { "params": {} }, "expected": { "guidance_message": true }, "priority": "P1" },
+        { "id": "S14-C9", "input": { "title": "한글 데이터 보고서" }, "expected": { "url_decoded_correctly": true }, "priority": "P1" },
+        { "id": "S14-C10", "ui_check": "back_link", "expected": { "href": "/external/kwater" }, "priority": "P1" }
+      ]
+    },
+    {
+      "id": "S15",
+      "name": "Command Palette 다양한 query",
+      "page": "(global)",
+      "ui": "cmdk",
+      "cases": [
+        { "id": "S15-C1", "action": "click_header_search", "expected": { "modal_open": true }, "priority": "P0" },
+        { "id": "S15-C2", "action": "press_ctrl_k", "expected": { "modal_open": true }, "priority": "P0" },
+        { "id": "S15-C3", "ui_check": "pages_group", "expected": { "items_count": 14 }, "priority": "P0" },
+        { "id": "S15-C4", "input": { "query": "1058705373" }, "expected": { "vendor_profile_item_visible": true }, "priority": "P0" },
+        { "id": "S15-C5", "input": { "query": "입찰" }, "expected": { "filtered_to_matches": true }, "priority": "P1" },
+        { "id": "S15-C6", "input": { "query": "KWater" }, "expected": { "kwater_match": true }, "priority": "P1" },
+        { "id": "S15-C7", "input": { "query": "적격" }, "expected": { "qualification_match": true }, "priority": "P1" },
+        { "id": "S15-C8", "action": "select_item_enter", "expected": { "navigates": true }, "priority": "P0" },
+        { "id": "S15-C9", "action": "press_esc", "expected": { "modal_closed": true }, "priority": "P0" },
+        { "id": "S15-C10", "input": { "query": "존재안함XYZ" }, "expected": { "no_results_label": true }, "priority": "P2" }
+      ]
+    },
+    {
+      "id": "S16",
+      "name": "즐겨찾기 + Dialog 다양한 type/key",
+      "page": "/me",
+      "cases": [
+        { "id": "S16-C1", "action": "click_add_button", "expected": { "dialog_open": true }, "priority": "P0" },
+        { "id": "S16-C2", "input": { "type": "vendor", "item_key": "1058705373", "item_label": "부산디지털대" }, "expected": { "row_added": true }, "priority": "P0" },
+        { "id": "S16-C3", "input": { "type": "bid_notice", "item_key": "20240101234-00", "item_label": "KTL 정보화" }, "expected": { "row_added": true }, "priority": "P0" },
+        { "id": "S16-C4", "input": { "type": "agency", "item_key": "한국수자원공사", "item_label": "수공" }, "expected": { "row_added": true }, "priority": "P0" },
+        { "id": "S16-C5", "action": "press_esc", "expected": { "dialog_closed": true }, "priority": "P0" },
+        { "id": "S16-C6", "action": "click_x", "expected": { "dialog_closed": true }, "priority": "P0" },
+        { "id": "S16-C7", "input": { "item_key": "" }, "expected": { "validation_error": true }, "priority": "P1" },
+        { "id": "S16-C8", "input": { "type": "vendor", "item_key": "12345" }, "expected": { "biz_no_validation_error": true }, "priority": "P1" },
+        { "id": "S16-C9", "action": "click_delete", "expected": { "row_removed": true }, "priority": "P1" },
+        { "id": "S16-C10", "action": "add_via_vendor_profile", "input": { "biz": "1131171595" }, "expected": { "appears_in_me": true }, "priority": "P1" }
+      ]
+    },
+    {
+      "id": "S17",
+      "name": "적격심사 점수 (다양한 입찰가)",
+      "page": "/qualification",
+      "tool": "calc_qualification_score",
+      "cases": [
+        { "id": "S17-C1", "input": { "bid_amount": 950000000, "base_amount": 1000000000 }, "expected": { "price_score_present": true }, "priority": "P0" },
+        { "id": "S17-C2", "input": { "bid_amount": 875000000, "base_amount": 1000000000 }, "expected": { "formula_applied": true }, "priority": "P0" },
+        { "id": "S17-C3", "input": { "bid_amount": 830000000, "base_amount": 1000000000 }, "expected": { "low_price_score": true }, "priority": "P0" },
+        { "id": "S17-C4", "input": { "bid_amount": 995000000, "base_amount": 1000000000 }, "expected": { "near_perfect": true }, "priority": "P1" },
+        { "id": "S17-C5", "input": { "bid_amount": 1000000000, "base_amount": 1000000000 }, "expected": { "perfect_score": 100 }, "priority": "P1" },
+        { "id": "S17-C6", "input": { "mgmt_score": 30, "exp_score": 30, "price_score": 35 }, "expected": { "total_eq_95": true }, "priority": "P0" },
+        { "id": "S17-C7", "input": { "empty_form": true }, "expected": { "validation_error": true }, "priority": "P1" },
+        { "id": "S17-C8", "input": { "bid_amount": -100 }, "expected": { "validation_error": true }, "priority": "P2" },
+        { "id": "S17-C9", "ui_check": "rule_helper_text", "expected": { "tool_called": "get_qualification_rule" }, "priority": "P1" },
+        { "id": "S17-C10", "input": { "bid_amount": 500000000, "base_amount": 1000000000 }, "expected": { "price_score_zero": true }, "priority": "P2" }
+      ]
+    },
+    {
+      "id": "S18",
+      "name": "투찰가 예측 (다양한 inst/biz/price)",
+      "page": "/prediction",
+      "tool": "predict_bid_price",
+      "cases": [
+        { "id": "S18-C1", "input": { "inst_name": "한국수자원공사", "biz_type": "용역", "estimated_price": 1000000000 }, "expected": { "ci_95_present": true }, "priority": "P0" },
+        { "id": "S18-C2", "input": { "inst_name": "한국전력공사", "biz_type": "공사", "estimated_price": 5000000000 }, "expected": { "ci_95_present": true }, "priority": "P0" },
+        { "id": "S18-C3", "input": { "inst_name": "과학기술정보통신부", "biz_type": "용역", "estimated_price": 200000000 }, "expected": { "ci_95_present": true }, "priority": "P0" },
+        { "id": "S18-C4", "input": { "inst_name": "행정안전부", "biz_type": "물품", "estimated_price": 50000000 }, "expected": { "ci_95_present": true }, "priority": "P1" },
+        { "id": "S18-C5", "tool": "compare_bid_strategies", "input": { "scenarios": [{ "rate": 75 }, { "rate": 85 }, { "rate": 95 }] }, "expected": { "win_probability_table": true }, "priority": "P0" },
+        { "id": "S18-C6", "tool": "estimate_winning_threshold", "input": { "inst_name": "한국수자원공사", "biz_type": "용역" }, "expected": { "threshold_present": true }, "priority": "P0" },
+        { "id": "S18-C7", "input": { "inst_name": "존재안함기관" }, "expected": { "warning_low_sample": true }, "priority": "P1" },
+        { "id": "S18-C8", "input": { "estimated_price": 100000000000 }, "expected": { "no_overflow": true }, "priority": "P2" },
+        { "id": "S18-C9", "ui_check": "sample_count_displayed", "expected": { "is_number_min_100": true }, "priority": "P1" },
+        { "id": "S18-C10", "ui_check": "ci_95_recharts", "expected": { "rendered": true }, "priority": "P0" }
+      ]
+    },
+    {
+      "id": "S19",
+      "name": "Lookup 4종 시작점 (다양한 key)",
+      "page": "/lookup",
+      "cases": [
+        { "id": "S19-C1", "tool": "lookup_by_bid_no", "input": { "bid_no": "20240101234", "ord": "00" }, "expected": { "trace_4_keys": true }, "priority": "P0" },
+        { "id": "S19-C2", "tool": "lookup_by_bid_no", "input": { "bid_no": "R26BK01435763", "ord": "000" }, "expected": { "r_form_handled": true }, "priority": "P0" },
+        { "id": "S19-C3", "tool": "lookup_by_inst_code", "input": { "inst_code": "1180000" }, "expected": { "agency_start_results": true }, "priority": "P0" },
+        { "id": "S19-C4", "tool": "lookup_by_inst_code", "input": { "inst_code": "1300000" }, "expected": { "agency_start_results": true }, "priority": "P1" },
+        { "id": "S19-C5", "tool": "lookup_by_biz_no", "input": { "biz_no": "1058705373" }, "expected": { "vendor_start_results": true }, "priority": "P0" },
+        { "id": "S19-C6", "tool": "lookup_by_biz_no", "input": { "biz_no": "1131171595" }, "expected": { "vendor_start_results": true }, "priority": "P0" },
+        { "id": "S19-C7", "tool": "lookup_by_contract_no", "input": { "contract_no": "C2026001" }, "expected": { "needs_separate_key_message": true }, "priority": "P1" },
+        { "id": "S19-C8", "input": { "any_key": "존재안함" }, "expected": { "not_found_message": true }, "priority": "P1" },
+        { "id": "S19-C9", "ui_check": "consistent_ui_4_types", "expected": { "uniform": true }, "priority": "P1" },
+        { "id": "S19-C10", "click_test": { "target": "EntityLink", "expects_correct_navigation_per_type": true }, "priority": "P0" }
+      ]
+    },
+    {
+      "id": "S20",
+      "name": "e2e 회귀 (Playwright 다양한 journey)",
+      "mode": "mock",
+      "command": "npx playwright test --project='Desktop Chromium' --reporter=line",
+      "cases": [
+        { "id": "S20-C1", "expected": { "tests_pass": "36/36" }, "priority": "P0" },
+        { "id": "S20-C2", "scenario": "/bids 검색→행 클릭→trace", "expected": { "user_journey_passes": true }, "priority": "P0" },
+        { "id": "S20-C3", "scenario": "/vendors LIKE→행 클릭→/vendors/{biz}", "expected": { "user_journey_passes": true }, "priority": "P0" },
+        { "id": "S20-C4", "scenario": "/agencies 분석→행 클릭→trace", "expected": { "user_journey_passes": true }, "priority": "P0" },
+        { "id": "S20-C5", "scenario": "/external/kwater→contract→/vendors LIKE", "expected": { "user_journey_passes": true }, "priority": "P0" },
+        { "id": "S20-C6", "scenario": "Cmd+K→사업자 입력→/vendors", "expected": { "user_journey_passes": true }, "priority": "P0" },
+        { "id": "S20-C7", "scenario": "/me 즐겨찾기 추가→삭제", "expected": { "user_journey_passes": true }, "priority": "P0" },
+        { "id": "S20-C8", "concern": "header_a11y", "expected": { "no_violations": true }, "priority": "P1" },
+        { "id": "S20-C9", "scenario": "정렬+페이징 sort=deadline+page=2", "expected": { "user_journey_passes": true }, "priority": "P1" },
+        { "id": "S20-C10", "project": "Mobile Safari", "expected": { "optional_or_skipped": true }, "priority": "P2" }
+      ]
+    }
+  ],
+  "summary": {
+    "total_scenarios": 20,
+    "total_cases": 200,
+    "by_priority": { "P0": 110, "P1": 60, "P2": 30 },
+    "click_tests_count": 18,
+    "fix_targets_mapped": {
+      "결함#1": ["S01-C10", "S03-C10", "S07-C9"],
+      "결함#2": ["S02-C4", "S09-C7"],
+      "결함#3": ["S04-C3"],
+      "결함#4": ["S12-C1", "S12-C2", "S12-C3"],
+      "결함#5": ["S02-C8", "S09-C5", "S09-C8", "S10-C8"],
+      "결함#6": ["S05-C10"]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 """award 영역 MCP 도구 — 개찰/낙찰결과 조회.
 
-G2B `ScsbidInfoService` (낙찰정보서비스) — base `/1230000/ad/ScsbidInfoService`.
+G2B `ScsbidInfoService` (낙찰정보서비스) — base `/1230000/as/ScsbidInfoService`.
 업종 분기 패턴: Thng(물품)/Cnstwk(공사)/Servc(용역)/Frgcpt(외자).
 
 운영 컨벤션:
@@ -20,6 +20,7 @@ from __future__ import annotations
 from app.clients.g2b import G2BClient
 from app.config import settings
 from app.core.cache import cache_result
+from app.core.daterange import chunk_date_range
 from app.core.rate_limit import check_rate
 
 
@@ -213,55 +214,69 @@ async def search_awards(
     keyword: str | None = None,
     limit: int = 20,
 ) -> dict:
-    """기간/기관/업종/키워드로 낙찰 목록 조회."""
+    """기간/기관/업종/키워드로 낙찰 목록 조회.
+
+    5/3 N42: G2B 1개월 제약 자동 chunking. biz_type=None면 4종 endpoint 병합.
+    """
     allowed, remaining = await check_rate("g2b_award", capacity=10, refill_per_sec=1.0)
     if not allowed:
         raise RuntimeError(f"rate_limit: g2b_award 토큰 소진 (remaining={remaining})")
 
     biz_divs = _resolve_biz_divs(biz_type)
+    chunks = chunk_date_range(date_from, date_to, max_days=31)
     needs_client_filter = bool(inst_name or keyword)
+    page_size = 500 if needs_client_filter else max(limit, 50)
 
+    seen_keys: set[tuple[str, str]] = set()
     matches: list[dict] = []
     total_count = 0
     used_endpoints: list[str] = []
 
     client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
-        for biz_div in biz_divs:
+        for chunk_from, chunk_to in chunks:
             if len(matches) >= limit:
                 break
-            endpoint = _AWARD_ENDPOINTS[biz_div]
-            params: dict = {
-                "pageNo": 1,
-                "numOfRows": 999 if needs_client_filter else max(limit, 50),
-                "inqryDiv": "1",
-            }
-            if date_from:
-                params["inqryBgnDt"] = date_from + "0000"
-            if date_to:
-                params["inqryEndDt"] = date_to + "2359"
-
-            try:
-                body = await client.call(endpoint, settings.g2b_key_award, params)
-            except Exception:
-                continue
-
-            used_endpoints.append(endpoint)
-            total_count += int(body.get("totalCount", 0) or 0)
-
-            for raw in _extract_items(body):
-                if needs_client_filter:
-                    if keyword:
-                        title = raw.get("bidNtceNm") or ""
-                        if keyword not in title:
-                            continue
-                    if inst_name:
-                        inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
-                        if inst_name not in inst:
-                            continue
-                matches.append(_normalize_award_row(raw))
+            for biz_div in biz_divs:
                 if len(matches) >= limit:
                     break
+                endpoint = _AWARD_ENDPOINTS[biz_div]
+                params: dict = {
+                    "pageNo": 1,
+                    "numOfRows": page_size,
+                    "inqryDiv": "1",
+                }
+                if chunk_from:
+                    params["inqryBgnDt"] = chunk_from + "0000"
+                if chunk_to:
+                    params["inqryEndDt"] = chunk_to + "2359"
+
+                try:
+                    body = await client.call(endpoint, settings.g2b_key_award, params)
+                except Exception:
+                    continue
+
+                if endpoint not in used_endpoints:
+                    used_endpoints.append(endpoint)
+                total_count += int(body.get("totalCount", 0) or 0)
+
+                for raw in _extract_items(body):
+                    if needs_client_filter:
+                        if keyword:
+                            title = raw.get("bidNtceNm") or ""
+                            if keyword not in title:
+                                continue
+                        if inst_name:
+                            inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
+                            if inst_name not in inst:
+                                continue
+                    key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
+                    if key in seen_keys:
+                        continue
+                    seen_keys.add(key)
+                    matches.append(_normalize_award_row(raw))
+                    if len(matches) >= limit:
+                        break
     finally:
         await client.aclose()
 
@@ -271,6 +286,7 @@ async def search_awards(
         "returned_count": len(matches),
         "has_more": len(matches) >= limit,
         "endpoints_used": used_endpoints,
+        "chunks_used": len(chunks),
     }
 
 
@@ -279,14 +295,23 @@ async def search_awards(
 async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
     """공고번호+차수로 낙찰 단건 상세 조회.
 
-    낙찰목록 4종 endpoint를 순차 시도하여 단건 추출.
+    5/3 N42: inqryDiv=4(단건) 미지원 케이스(R 형식 등)를 위해 inqryDiv=1 폴백 추가.
     """
     allowed, remaining = await check_rate("g2b_award_detail", capacity=10, refill_per_sec=1.0)
     if not allowed:
         raise RuntimeError(f"rate_limit: g2b_award_detail 토큰 소진 (remaining={remaining})")
 
+    # `-` suffix 통합 형태 자동 split
+    if "-" in bid_notice_no and not bid_ord.strip("0"):
+        parts = bid_notice_no.rsplit("-", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            bid_notice_no, bid_ord = parts[0], parts[1]
+
+    norm_ord = bid_ord.lstrip("0") or "0"
+
     client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
+        # 1차: inqryDiv=4 단건
         for biz_div, endpoint in _AWARD_ENDPOINTS.items():
             params = {
                 "pageNo": 1,
@@ -305,14 +330,55 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
                     "found": True,
                     "biz_div": biz_div,
                     "endpoint": endpoint,
+                    "lookup_mode": "inqryDiv=4",
                     "summary": _normalize_award_row(items[0]),
                     "raw": items[0],
                 }
+
+        # 2차 폴백: inqryDiv=1 + bidNtceNo (차수 무관 → 클라이언트측 매칭)
+        for biz_div, endpoint in _AWARD_ENDPOINTS.items():
+            params = {
+                "pageNo": 1,
+                "numOfRows": 50,
+                "inqryDiv": "1",
+                "bidNtceNo": bid_notice_no,
+            }
+            try:
+                body = await client.call(endpoint, settings.g2b_key_award, params)
+            except Exception:
+                continue
+            items = _extract_items(body)
+            if not items:
+                continue
+            for raw in items:
+                raw_ord = str(raw.get("bidNtceOrd", ""))
+                raw_ord_norm = raw_ord.lstrip("0") or "0"
+                if raw_ord_norm == norm_ord or raw_ord == bid_ord:
+                    return {
+                        "found": True,
+                        "biz_div": biz_div,
+                        "endpoint": endpoint,
+                        "lookup_mode": "inqryDiv=1+ord_match",
+                        "summary": _normalize_award_row(raw),
+                        "raw": raw,
+                    }
+            # 차수 매칭 실패 시 첫 항목
+            first = items[0]
+            return {
+                "found": True,
+                "biz_div": biz_div,
+                "endpoint": endpoint,
+                "lookup_mode": "inqryDiv=1+first_only",
+                "ord_mismatch_warning": f"요청 ord={bid_ord} 미발견. 첫 항목(ord={first.get('bidNtceOrd')}) 반환.",
+                "summary": _normalize_award_row(first),
+                "raw": first,
+            }
+
         return {
             "found": False,
             "bid_notice_no": bid_notice_no,
             "bid_ord": bid_ord,
-            "note": "낙찰목록 4종 endpoint 모두 미발견. 공고번호·차수 확인 또는 개찰결과(list_bid_openings) 시도.",
+            "note": "낙찰 inqryDiv=4 + inqryDiv=1 폴백 모두 미발견. 공고번호·차수 확인 또는 개찰결과(list_bid_openings) 시도.",
         }
     finally:
         await client.aclose()
@@ -343,63 +409,74 @@ async def search_awards_by_vendor(
     target_biz_no = _normalize_biz_no(vendor_biz_no)
     biz_divs = _resolve_biz_divs(biz_type)
 
-    # 5/3 N40: G2B 낙찰정보서비스 numOfRows 최대 500 (999는 resultCode 07 입력범위초과).
-    # date range 1개월 제한. 응답 ~12초 목표.
+    # 5/3 N40: G2B 낙찰정보서비스 numOfRows 최대 500 (999는 resultCode 07).
+    # 5/3 N42: date range 1개월 초과 시 자동 chunking.
     page_size = 500
-    max_scan_per_biz = 1000  # 2페이지 = 1000건
+    max_scan_per_call = 1000  # 1 chunk * 1 biz_div 당 2페이지
 
+    chunks = chunk_date_range(date_from, date_to, max_days=31)
     matches: list[dict] = []
     total_count = 0
     scanned_total = 0
     used_endpoints: list[str] = []
+    seen_keys: set[tuple[str, str]] = set()
 
     client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
-        for biz_div in biz_divs:
+        for chunk_from, chunk_to in chunks:
             if len(matches) >= limit:
                 break
-            endpoint = _AWARD_ENDPOINTS[biz_div]
-            scanned = 0
-            page = 1
-            while scanned < max_scan_per_biz and len(matches) < limit:
-                params: dict = {
-                    "pageNo": page,
-                    "numOfRows": page_size,
-                    "inqryDiv": "1",
-                }
-                if date_from:
-                    params["inqryBgnDt"] = date_from + "0000"
-                if date_to:
-                    params["inqryEndDt"] = date_to + "2359"
-
-                try:
-                    body = await client.call(endpoint, settings.g2b_key_award, params)
-                except Exception:
+            for biz_div in biz_divs:
+                if len(matches) >= limit:
                     break
+                endpoint = _AWARD_ENDPOINTS[biz_div]
+                scanned_in_call = 0
+                page = 1
+                while scanned_in_call < max_scan_per_call and len(matches) < limit:
+                    params: dict = {
+                        "pageNo": page,
+                        "numOfRows": page_size,
+                        "inqryDiv": "1",
+                    }
+                    if chunk_from:
+                        params["inqryBgnDt"] = chunk_from + "0000"
+                    if chunk_to:
+                        params["inqryEndDt"] = chunk_to + "2359"
 
-                used_endpoints.append(endpoint)
-                total_count = max(total_count, int(body.get("totalCount", 0) or 0))
-                items_raw = _extract_items(body)
-                if not items_raw:
-                    break
+                    try:
+                        body = await client.call(endpoint, settings.g2b_key_award, params)
+                    except Exception:
+                        break
 
-                for raw in items_raw:
-                    scanned += 1
-                    norm = _normalize_award_row(raw)
-                    matched = False
-                    if target_biz_no and norm.get("winner_biz_no") == target_biz_no:
-                        matched = True
-                    elif vendor_name and vendor_name in (norm.get("winner_name") or ""):
-                        matched = True
-                    if matched:
+                    if endpoint not in used_endpoints:
+                        used_endpoints.append(endpoint)
+                    total_count = max(total_count, int(body.get("totalCount", 0) or 0))
+                    items_raw = _extract_items(body)
+                    if not items_raw:
+                        break
+
+                    for raw in items_raw:
+                        scanned_in_call += 1
+                        scanned_total += 1
+                        norm = _normalize_award_row(raw)
+                        matched = False
+                        if target_biz_no and norm.get("winner_biz_no") == target_biz_no:
+                            matched = True
+                        elif vendor_name and vendor_name in (norm.get("winner_name") or ""):
+                            matched = True
+                        if not matched:
+                            continue
+                        key = (str(norm.get("bid_notice_no") or ""), str(norm.get("bid_ord") or ""))
+                        if key in seen_keys:
+                            continue
+                        seen_keys.add(key)
                         matches.append(norm)
                         if len(matches) >= limit:
                             break
 
-                if len(items_raw) < page_size:
-                    break
-                page += 1
-            scanned_total += scanned
+                    if len(items_raw) < page_size:
+                        break
+                    page += 1
     finally:
         await client.aclose()
 
@@ -409,7 +486,8 @@ async def search_awards_by_vendor(
         "scanned": scanned_total,
         "returned_count": len(matches),
         "has_more": len(matches) >= limit,
-        "endpoints_used": list(set(used_endpoints)),
+        "endpoints_used": used_endpoints,
+        "chunks_used": len(chunks),
         "filter": {
             "vendor_biz_no": target_biz_no,
             "vendor_name": vendor_name,

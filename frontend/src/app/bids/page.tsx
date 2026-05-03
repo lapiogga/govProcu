@@ -23,17 +23,33 @@ function parseSort(raw: string | undefined): SortKey {
   return "publish_desc";
 }
 
-function sortItems(items: Bid[], key: SortKey): Bid[] {
+function sortItems(items: Bid[], key: SortKey, today: string): Bid[] {
   const out = [...items];
   switch (key) {
     case "publish_asc":
       return out.sort((a, b) =>
         (a.publish_date || "").localeCompare(b.publish_date || ""),
       );
-    case "deadline":
-      return out.sort((a, b) =>
-        (a.deadline_date || "9999").localeCompare(b.deadline_date || "9999"),
-      );
+    case "deadline": {
+      // 5/3 N42 fix: 미래 마감 가까운 순 → 과거 마감 → 빈 마감 (3-tier)
+      // deadline_date 는 보통 "YYYYMMDDHHMM" 또는 "YYYYMMDD HHMM". 앞 8자리만 비교.
+      const tier = (d?: string): number => {
+        if (!d) return 2; // 빈 값 → 마지막
+        const ymd = d.replace(/\D/g, "").slice(0, 8);
+        if (!ymd) return 2;
+        return ymd >= today ? 0 : 1; // 미래 0, 과거 1
+      };
+      return out.sort((a, b) => {
+        const ta = tier(a.deadline_date);
+        const tb = tier(b.deadline_date);
+        if (ta !== tb) return ta - tb;
+        const da = (a.deadline_date || "").replace(/\D/g, "").slice(0, 8);
+        const db = (b.deadline_date || "").replace(/\D/g, "").slice(0, 8);
+        // tier 0 (미래): 가까운 순 (asc), tier 1 (과거): 최근 순 (desc)
+        if (ta === 0) return da.localeCompare(db);
+        return db.localeCompare(da);
+      });
+    }
     case "amount_desc":
       return out.sort(
         (a, b) => (b.estimated_price ?? 0) - (a.estimated_price ?? 0),
@@ -47,6 +63,28 @@ function sortItems(items: Bid[], key: SortKey): Bid[] {
         (b.publish_date || "").localeCompare(a.publish_date || ""),
       );
   }
+}
+
+function todayYYYYMMDD(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${day}`;
+}
+
+function defaultBidsFrom(): string {
+  // /bids default = 오늘-30일 (라이브 측정 기반, P99 4.2초)
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return formatYYYYMMDD2(d);
+}
+
+function formatYYYYMMDD2(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${day}`;
 }
 
 interface Bid {
@@ -78,6 +116,9 @@ export default async function BidsPage(props: {
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
   // 5/3 N40: deep=1 → scan_pages=5 (LIKE 매칭률↑), default scan_pages=1
   const scanPages = sp.deep === "1" ? 5 : 1;
+  // 5/3 N42: 라이브 측정 기반 default 30일 (P99 4.2초). 사용자 미입력 시 자동 적용.
+  const dateFrom = sp.from || (hasQuery ? defaultBidsFrom() : undefined);
+  const dateTo = sp.to || (hasQuery ? todayYYYYMMDD() : undefined);
 
   return (
     <main className="space-y-4">
@@ -131,8 +172,8 @@ export default async function BidsPage(props: {
             keyword={sp.q}
             biz_type={sp.type}
             inst_name={sp.inst}
-            date_from={sp.from}
-            date_to={sp.to}
+            date_from={dateFrom}
+            date_to={dateTo}
             sort={sortKey}
             page={page}
             scanPages={scanPages}
@@ -148,7 +189,7 @@ export default async function BidsPage(props: {
   );
 }
 
-async function Results(params: {
+interface ResultsParams {
   keyword?: string;
   biz_type?: string;
   inst_name?: string;
@@ -158,7 +199,9 @@ async function Results(params: {
   page: number;
   scanPages: number;
   sp: Record<string, string | undefined>;
-}) {
+}
+
+async function Results(params: ResultsParams) {
   const { sort, page, scanPages, sp, ...searchParams } = params;
   const result = await searchBidNotices({ ...searchParams, page, scan_pages: scanPages });
   if (!result.ok) {
@@ -170,9 +213,10 @@ async function Results(params: {
   }
   const data = extractData(result.data);
   const rawItems: Bid[] = data?.items || [];
-  const items = sortItems(rawItems, sort);
+  const items = sortItems(rawItems, sort, todayYYYYMMDD());
   const totalCount = data?.total_count ?? 0;
   const hasMore = !!data?.has_more;
+  const isDeep = sp.deep === "1";
   const buildHref = (newPage: number) => {
     const qs = new URLSearchParams();
     if (sp.q) qs.set("q", sp.q);
@@ -186,11 +230,28 @@ async function Results(params: {
   };
 
   if (items.length === 0) {
+    // 5/3 N42 fix #6: total_count가 큰데 매칭 0이면 키워드 매칭률 문제 — 명확한 메시지
+    const isLikeZero = !!params.keyword && totalCount > 0;
     return (
       <div className="space-y-2">
         <p className="rounded border p-4 text-sm">
-          결과 없음 ({totalCount}건). 페이지 {page}.
-          {hasMore && " 다음 페이지를 시도하세요."}
+          {isLikeZero ? (
+            <>
+              <strong>이 페이지에서 키워드 &ldquo;{params.keyword}&rdquo; 매칭 0건</strong>
+              {" "}— 기간 내 총 {totalCount.toLocaleString()}건 공고가 있지만 본 페이지에서는 매칭이 없습니다.
+              {!isDeep && (
+                <>
+                  {" "}<strong>&ldquo;깊은 검색&rdquo; 체크박스</strong>를 켜면 5배 깊이 스캔하여 매칭률을 높입니다 (응답 시간 ~22초).
+                </>
+              )}
+              {hasMore && " 또는 다음 페이지로 이동해보세요."}
+            </>
+          ) : (
+            <>
+              결과 없음 (총 {totalCount.toLocaleString()}건). 페이지 {page}.
+              {hasMore && " 다음 페이지를 시도하세요."}
+            </>
+          )}
         </p>
         {(page > 1 || hasMore) && (
           <PageNav

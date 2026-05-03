@@ -307,7 +307,7 @@ function Skel({ h }: { h: number }) {
 }
 
 function defaultDateFrom(): string {
-  // 30일 전
+  // 5/3 N42: 라이브 측정 기반 default = 오늘-30일 (broad 키워드 케이스 19.7초 → D90이면 60초+ 위험).
   const d = new Date();
   d.setDate(d.getDate() - 30);
   return formatYYYYMMDD(d);

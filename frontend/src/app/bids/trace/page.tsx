@@ -13,8 +13,17 @@ export default async function TracePage(props: {
   searchParams: Promise<{ no?: string; ord?: string }>;
 }) {
   const sp = await props.searchParams;
-  const bidNo = sp.no;
-  const bidOrd = sp.ord ?? "00";
+  // 5/3 N42: "R26BK01435763-000" 처럼 suffix 통합된 입력 자동 split
+  let bidNo = sp.no;
+  let bidOrd = sp.ord ?? "00";
+  if (bidNo && bidNo.includes("-") && (!sp.ord || !sp.ord.replace(/0/g, ""))) {
+    const lastDash = bidNo.lastIndexOf("-");
+    const tail = bidNo.slice(lastDash + 1);
+    if (/^\d+$/.test(tail)) {
+      bidOrd = tail;
+      bidNo = bidNo.slice(0, lastDash);
+    }
+  }
 
   if (!bidNo) {
     return (
