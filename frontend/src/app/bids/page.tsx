@@ -240,6 +240,11 @@ async function Results(params: ResultsParams) {
   const totalCount = data?.total_count ?? 0;
   const hasMore = !!data?.has_more;
   const isDeep = sp.deep === "1";
+  // P30-R3 P1-01: scan coverage 메타 — false-negative 인지용
+  const scanCoveragePct = data?.scan_coverage_pct;
+  const chunksUsed = data?.chunks_used;
+  const endpointsUsed = data?.endpoints_used;
+  const scanned = data?.scanned;
   const buildHref = (newPage: number) => {
     const qs = new URLSearchParams();
     if (sp.q) qs.set("q", sp.q);
@@ -248,8 +253,35 @@ async function Results(params: ResultsParams) {
     if (sp.from) qs.set("from", sp.from);
     if (sp.to) qs.set("to", sp.to);
     if (sort) qs.set("sort", sort);
+    // P30-R3 P1-02: deep / sort 파라미터 페이지 이동 시 보존 — "깊은 검색" 풀림 방지
+    if (sp.deep) qs.set("deep", sp.deep);
     qs.set("page", String(newPage));
     return `/bids?${qs.toString()}`;
+  };
+
+  // P30-R3 P1-01: 빈 결과 + scan_coverage_pct < 100 시 강조 — F16 사용자 사례 직결
+  const isLowCoverage =
+    typeof scanCoveragePct === "number" && scanCoveragePct < 100;
+  const showCoverageWarning = items.length === 0 && isLowCoverage;
+  const renderCoverageBadge = () => {
+    if (typeof scanCoveragePct !== "number") return null;
+    const cls = showCoverageWarning
+      ? "rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] px-2 py-0.5 text-xs font-medium"
+      : "rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-0.5 text-xs text-[var(--color-fg-muted)]";
+    return (
+      <span className={cls}>
+        스캔 {scanCoveragePct}%
+        {(chunksUsed || endpointsUsed) && (
+          <>
+            {" "}({chunksUsed ?? "?"}개월 × {endpointsUsed ?? "?"} endpoint
+            {typeof scanned === "number" && typeof totalCount === "number" && (
+              <>, scanned {scanned} / total {totalCount.toLocaleString()}</>
+            )}
+            )
+          </>
+        )}
+      </span>
+    );
   };
 
   if (items.length === 0) {
@@ -261,6 +293,9 @@ async function Results(params: ResultsParams) {
     const isLikeZero = hasFilter && totalCount > 0;
     return (
       <div className="space-y-2">
+        {(typeof scanCoveragePct === "number") && (
+          <div className="flex items-center gap-2">{renderCoverageBadge()}</div>
+        )}
         <p className="rounded border p-4 text-sm">
           {isLikeZero ? (
             <>
@@ -282,6 +317,11 @@ async function Results(params: ResultsParams) {
             <>
               결과 없음 (총 {totalCount.toLocaleString()}건). 페이지 {page}.
               {hasMore && " 다음 페이지를 시도하세요."}
+              {showCoverageWarning && (
+                <>
+                  {" "}<strong>스캔 {scanCoveragePct}%</strong> — 기간 확장 또는 깊은 검색 권장.
+                </>
+              )}
             </>
           )}
         </p>
@@ -299,9 +339,12 @@ async function Results(params: ResultsParams) {
 
   return (
     <section className="rounded-lg border">
-      <div className="flex items-center justify-between border-b bg-[var(--color-bg-muted)] px-4 py-2 text-sm">
-        <span>
-          총 {totalCount}건 (반환 {items.length}, 페이지 {page})
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-[var(--color-bg-muted)] px-4 py-2 text-sm">
+        <span className="flex flex-wrap items-center gap-2">
+          <span>
+            총 {totalCount}건 (반환 {items.length}, 페이지 {page})
+          </span>
+          {renderCoverageBadge()}
         </span>
         <PageNav
           page={page}
