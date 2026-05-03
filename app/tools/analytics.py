@@ -427,12 +427,18 @@ async def analyze_agency_price_pattern(
         amount_buckets[_bucket_amt(amt)].append(r)
 
     if not rates:
+        # v24.2: 매칭 0건 시 G2B 응답에 본 inst 표기 샘플 첨부 (사용자 학습)
+        sample_insts = awards.get("sample_inst_names", [])
+        note = "낙찰률 데이터 없음. 발주기관명 확인 또는 기간 확장."
+        if sample_insts:
+            note += f" 같은 기간 응답된 발주기관 표기 샘플(상위 {len(sample_insts)}): {', '.join(sample_insts)}"
         return {
             "inst_name": inst_name,
             "biz_type": biz_type,
             "date_range": [date_from, date_to],
             "sample_count": 0,
-            "note": "낙찰률 데이터 없음. 발주기관명 확인 또는 기간 확장.",
+            "note": note,
+            "sample_inst_names": sample_insts,
         }
 
     rates_sorted = sorted(rates)

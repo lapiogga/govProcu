@@ -232,6 +232,8 @@ async def search_awards(
     matches: list[dict] = []
     total_count = 0
     used_endpoints: list[str] = []
+    # v24.2: 매칭 0건 시 사용자 학습용 inst 표기 샘플 (필터 통과 무관)
+    inst_sample_counts: dict[str, int] = {}
 
     client = G2BClient(base_url=settings.g2b_award_base_url)
 
@@ -267,6 +269,11 @@ async def search_awards(
                 used_endpoints.append(endpoint)
             total_count += count
             for raw in raw_items:
+                # v24.2: inst 표기 샘플 (필터 통과 무관)
+                sample_label = ((raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")).strip()
+                if sample_label:
+                    inst_sample_counts[sample_label] = inst_sample_counts.get(sample_label, 0) + 1
+
                 if needs_client_filter:
                     if keyword:
                         title = raw.get("bidNtceNm") or ""
@@ -290,6 +297,11 @@ async def search_awards(
     finally:
         await client.aclose()
 
+    # v24.2: 매칭 0건 시 사용자 학습용 inst 표기 샘플 상위 5개 (출현 빈도 순)
+    sample_inst_names = [
+        name for name, _ in sorted(inst_sample_counts.items(), key=lambda x: -x[1])[:5]
+    ]
+
     return {
         "items": matches,
         "total_count": total_count,
@@ -297,6 +309,7 @@ async def search_awards(
         "has_more": len(matches) >= limit,
         "endpoints_used": used_endpoints,
         "chunks_used": len(chunks),
+        "sample_inst_names": sample_inst_names,
     }
 
 
