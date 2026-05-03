@@ -17,11 +17,12 @@ function todayYYYYMMDD(): string {
 }
 
 function defaultAgencyFrom(): string {
-  // v23.1: 5초 SLA 달성 — 180일 → 30일 default.
-  // 사용자가 "발화 #6: 5초 이내" 강한 SLA. 30일 = chunks 1 × 4 endpoints ≈ 5~10초.
-  // 더 긴 기간이 필요하면 사용자가 from 입력 (큰 범위 경고 + estimated 표시 v22.4 적용됨).
+  // P30-R4 P1-10: 30일 → 365일 default 확장.
+  // 사유: F12(재정관리단)/F13(국방부) 큰 기관 30일 0건 false-negative 회피.
+  // 사용자가 form 입력 시 입력값이 우선 (sp.from || defaultAgencyFrom).
+  // 큰 범위 경고(isLargeRange >365일)는 form 입력 케이스에서만 trigger (default 1년은 경계).
   const d = new Date();
-  d.setDate(d.getDate() - 30);
+  d.setDate(d.getDate() - 365);
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
 }
 
@@ -147,6 +148,14 @@ async function PriceCard({
   to?: string;
 }) {
   const r = await getAgencyPricePattern(instName, bizType, from, to);
+  if (!r.ok) {
+    // P30-R4 P1-19: r.ok 분기 — backend 통신 오류 사용자 인지 (silent fail 회피)
+    return (
+      <div className="rounded border border-[var(--color-danger,#dc2626)] bg-[var(--color-danger-bg,#fee2e2)] p-3 text-sm">
+        <strong>사정률 패턴 분석 오류</strong> — {r.error || "backend 통신 실패"}
+      </div>
+    );
+  }
   const data = extractMcpData<any>(r.data);
   if (!data) return null;
   if (!data.sample_count) {
@@ -208,6 +217,14 @@ async function HistoryTable({
   to?: string;
 }) {
   const r = await getAgencyHistory(instName, from, to, bizType);
+  if (!r.ok) {
+    // P30-R4 P1-19: r.ok 분기 — backend 통신 오류 사용자 인지 (silent fail 회피)
+    return (
+      <div className="rounded border border-[var(--color-danger,#dc2626)] bg-[var(--color-danger-bg,#fee2e2)] p-3 text-sm">
+        <strong>발주 이력 조회 오류</strong> — {r.error || "backend 통신 실패"}
+      </div>
+    );
+  }
   const data = extractMcpData<any>(r.data);
   if (!data) return null;
   const items = data.items || [];
