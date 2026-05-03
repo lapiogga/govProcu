@@ -234,6 +234,18 @@ def main():
                 "trace_bid_lifecycle": {
                     "no": "bid_notice_no", "ord": "bid_ord",
                 },
+                "lookup_by_bid_no": {
+                    "bid_no": "bid_notice_no", "ord": "bid_ord",
+                },
+                "lookup_by_inst_code": {
+                    # fixture inst_code 그대로
+                },
+                "lookup_by_biz_no": {
+                    "biz_no": "vendor_biz_no",
+                },
+                "lookup_by_contract_no": {
+                    # fixture contract_no 그대로
+                },
                 "vendor_profile": {
                     "biz": "vendor_biz_no",
                 },
