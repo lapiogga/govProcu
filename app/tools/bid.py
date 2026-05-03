@@ -384,15 +384,19 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
                         "raw": raw,
                     }
 
-        # 3차 폴백: search_bid_notices(bid_notice_no=...) — 추정 기간 + 적당한 페이징
-        # 1년 chunks 12 × 3 endpoints × scan 10 = 360 호출은 60초+ → 단축
+        # 3차 폴백: search_bid_notices(bid_notice_no=...) — 최근 30일 우선 시도
+        # 1년 chunks 12 × 3 endpoints = 비효율 → 최근 30일로 우선, 추후 라운드에서 확장
+        from datetime import datetime, timedelta
+        today = datetime.now()
+        recent_from = (today - timedelta(days=30)).strftime("%Y%m%d")
+        recent_to = today.strftime("%Y%m%d")
         try:
             search_result = await search_bid_notices(
                 bid_notice_no=bid_notice_no,
                 limit=3,
-                scan_pages=2,  # 2 pages × 999 = 1998 row per endpoint
-                date_from=bgn_dt,
-                date_to=end_dt,
+                scan_pages=2,
+                date_from=recent_from,
+                date_to=recent_to,
             )
             for item in search_result.get("items", []):
                 if str(item.get("bid_no", "")) == bid_notice_no:
