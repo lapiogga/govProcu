@@ -175,7 +175,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenario", help="콤마 구분 시나리오 ID 필터 (예: S01,S02)")
     ap.add_argument("--limit", type=int, help="최대 케이스 수")
-    ap.add_argument("--priority", default="P0", help="P0/P1/P2 (default P0)")
+    ap.add_argument("--priority", default="P0", help="P0/P1/P2/ALL/P1+P2 (default P0)")
     ap.add_argument("--out", default="tests/p0_results.md", help="결과 보고 파일")
     args = ap.parse_args()
 
@@ -195,8 +195,13 @@ def main():
         if sc_filter and scenario["id"] not in sc_filter:
             continue
         scenario_tool = scenario.get("tool", "")
+        # priority 필터 — ALL/P1+P2 같은 다중값 지원
+        priority_set = (
+            {"P0", "P1", "P2"} if args.priority.upper() == "ALL"
+            else set(p.strip().upper() for p in args.priority.replace("+", ",").split(",") if p.strip())
+        )
         for case in scenario["cases"]:
-            if case.get("priority") != args.priority:
+            if (case.get("priority") or "").upper() not in priority_set:
                 continue
             cid = case["id"]
 

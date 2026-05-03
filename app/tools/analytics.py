@@ -453,6 +453,8 @@ async def analyze_agency_price_pattern(
         "biz_type": biz_type,
         "date_range": [date_from, date_to],
         "sample_count": n,
+        "endpoints_used": awards.get("endpoints_used", []),
+        "chunks_used": awards.get("chunks_used", 1),
         "summary_pct": {
             "mean": round(mean * 100, 3),
             "median": round(median * 100, 3),
