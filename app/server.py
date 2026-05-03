@@ -1,7 +1,7 @@
 """FastMCP 서버 진입점 (HTTP/SSE 모드).
 
 실행:
-    uvicorn app.server:app --host 0.0.0.0 --port 8080
+    uvicorn app.server:app --host 0.0.0.0 --port 8081
 또는:
     python -m app.server
 """

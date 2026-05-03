@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # 운영
     log_level: str = "INFO"
     server_host: str = "0.0.0.0"
-    server_port: int = 8080
+    server_port: int = 8081
 
     # G2B 공통 — 영역별 base URL 분기 (Research Team 결과 반영)
     # 입찰공고/사전규격: /ad (운영 검증)

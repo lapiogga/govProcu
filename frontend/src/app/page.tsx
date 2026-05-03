@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
       <footer className="border-t pt-4 text-xs text-[var(--color-fg-muted)]">
         v0.1 PoC · 데스크톱·태블릿 전용 · MCP{" "}
-        {process.env.GOVPROCU_MCP_URL || "localhost:8080"}
+        {process.env.GOVPROCU_MCP_URL || "localhost:8081"}
       </footer>
     </main>
   );
