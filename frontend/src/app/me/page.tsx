@@ -40,6 +40,21 @@ export default async function MePage() {
 
 async function Watchlist() {
   const r = await listMyWatchlist();
+  // P30-R5 P1-14: r.ok === false 분기 — 에러 사일런트 흡수 회피
+  if (!r.ok) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>즐겨찾기</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="rounded border border-[var(--color-danger)] p-3 text-sm">
+            오류: {r.error}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   const data = extractMcpData<{
     items?: WatchlistItem[];
     total_count?: number;
@@ -77,6 +92,21 @@ async function Watchlist() {
 
 async function Subscriptions() {
   const r = await listMySubscriptions();
+  // P30-R5 P1-14: r.ok === false 분기 — 에러 사일런트 흡수 회피
+  if (!r.ok) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>키워드 알림 구독</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="rounded border border-[var(--color-danger)] p-3 text-sm">
+            오류: {r.error}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   const data = extractMcpData<any>(r.data);
   const subs = data?.items || [];
 
