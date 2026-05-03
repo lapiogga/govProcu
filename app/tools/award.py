@@ -206,7 +206,7 @@ async def list_bid_openings(
 
 # === 2. search_awards ===
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="award_list")
+@cache_result(ttl=settings.cache_ttl_short, prefix="award_list_v24")
 async def search_awards(
     inst_name: str | None = None,
     date_from: str | None = None,
@@ -274,7 +274,9 @@ async def search_awards(
                             continue
                     if inst_name:
                         inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
-                        if inst_name not in inst:
+                        # v24.1: 토큰 기반 매칭 — "경찰청 경찰대학" 토큰 ["경찰청","경찰대학"]이 모두 포함되면 매칭
+                        inst_tokens = [t for t in inst_name.split() if t]
+                        if not all(t in inst for t in inst_tokens):
                             continue
                 key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
                 if key in seen_keys:

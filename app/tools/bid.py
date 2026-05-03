@@ -79,7 +79,7 @@ def _normalize_notice(raw: dict) -> BidNoticeSummary:
     )
 
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="bid")
+@cache_result(ttl=settings.cache_ttl_short, prefix="bid_v24")
 async def search_bid_notices(
     keyword: str | None = None,
     biz_type: str | None = None,
@@ -213,8 +213,11 @@ async def search_bid_notices(
                         continue
                     if inp.keyword and inp.keyword not in title:
                         continue
-                    if inp.inst_name and inp.inst_name not in inst:
-                        continue
+                    if inp.inst_name:
+                        # v24.1: 토큰 기반 매칭 (변형 표기 매칭률 ↑)
+                        inst_tokens = [t for t in inp.inst_name.split() if t]
+                        if not all(t in inst for t in inst_tokens):
+                            continue
                     if inp.region and inp.region not in region_v:
                         continue
                 key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
