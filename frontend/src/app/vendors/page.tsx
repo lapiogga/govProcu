@@ -307,9 +307,11 @@ function Skel({ h }: { h: number }) {
 }
 
 function defaultDateFrom(): string {
-  // 5/3 N42: 라이브 측정 기반 default = 오늘-30일 (broad 키워드 케이스 19.7초 → D90이면 60초+ 위험).
+  // v29.2: 30일 → 1년 (365일). v29.1.2 V4 병렬화 후 1년 36초.
+  // 사용자 보고 사례: 7028600866 1개월 0건이지만 1년 100% 커버 시 1건 발견.
+  // 짧은 default는 false-negative 유발 → 1년 default로 첫 조회 정확도 ↑.
   const d = new Date();
-  d.setDate(d.getDate() - 30);
+  d.setDate(d.getDate() - 365);
   return formatYYYYMMDD(d);
 }
 

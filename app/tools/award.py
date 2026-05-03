@@ -456,7 +456,7 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
 
 # === 4. search_awards_by_vendor (V4) ===
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="award_vendor_v29")
+@cache_result(ttl=settings.cache_ttl_short, empty_ttl=settings.cache_ttl_volatile, prefix="award_vendor_v29b")
 async def search_awards_by_vendor(
     vendor_name: str | None = None,
     vendor_biz_no: str | None = None,

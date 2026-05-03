@@ -116,7 +116,7 @@ async def trace_bid_lifecycle(bid_notice_no: str, bid_ord: str = "00") -> dict:
 
 # === W2: vendor_profile ===
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="vendor_profile_v29a")
+@cache_result(ttl=settings.cache_ttl_short, empty_ttl=settings.cache_ttl_volatile, prefix="vendor_profile_v29b")
 
 async def vendor_profile(
     vendor_biz_no: str,

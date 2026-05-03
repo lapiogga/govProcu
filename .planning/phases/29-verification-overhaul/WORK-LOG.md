@@ -21,3 +21,8 @@
 | 01:12 | lead | v29.1.2 적용 | (1) `search_awards_by_vendor` chunks×biz_divs `asyncio.gather` 병렬화 (search_awards/search_bid_notices와 동일 패턴). (2) page loop은 단일 조합 내부 sequential 유지. (3) has_more = `(matches >= limit) or (scanned < total)`, `scan_coverage_pct` 응답 추가. (4) cache prefix `award_vendor_v28` → `award_vendor_v29`. L1 import OK |
 | 01:14 | lead | backend 재기동 (`bsdlr2aiz` → `beqdtmz5n`) | uvicorn 8081 |
 | 01:18 | lead | **L3 timing 비교 PASS** | (1개월) 32s, total=11801, scanned=9067, coverage=76.8%, matched=0, has_more=True. (1년) 36s, total=17019, scanned=99605, coverage=100%, matched=**1**, has_more=False. **사용자 보고 "낙찰 건수 있다" 검증 완료** — 7028600866 1년 100% 커버에서 1건. P2 1년 timeout 60s+ → 36s 효과. P1 has_more / scan_coverage_pct 노출 효과 |
+| 01:25 | user | 발화 #34 ("진행") | v29.1.3 + v29.2 진행 |
+| 01:28 | lead | v29.1.3 적용 (P3 cache) | `app/core/cache.py`: `cache_result(empty_ttl=...)` 옵션 + `_is_empty_result` 헬퍼. workflow vendor_profile + award search_awards_by_vendor에 `empty_ttl=cache_ttl_volatile=300` 적용. cache prefix v29a→v29b. L2 unit test 8/8 PASS |
+| 01:30 | lead | v29.2 적용 (vendor default 1년) | `vendors/page.tsx` defaultDateFrom 30일→365일. `[bizNo]/page.tsx` from/to 미입력 시 1년 default 적용. 이전 30일 default가 false-negative 유발. 36초 timing은 cursor-wait spinner로 안내 (v22.4 패턴) |
+| 01:32 | lead | backend 재기동 (`beqdtmz5n` → `bd4xlhyam`) | uvicorn 8081 |
+| 01:34 | lead | **L3 cache TTL 검증 PASS** | `award_vendor_v29b: ttl=298s` (= empty_ttl=300 정상 적용). `vendor_profile_v29b: ttl=1798s` (NTS items 있어 non-empty 판정 — 정상). V4 빈응답은 5분 후 갱신 → 사용자 키발급/재시도 stale 회피 |

@@ -8,14 +8,27 @@ import { fmtWon, fmtRate, fmtBizNo, fmtDate } from "@/lib/format";
 import { VendorAwardChart } from "@/components/charts/VendorAwardChart";
 import { AgencyLink, BidLink } from "@/components/EntityLink";
 
+function defaultFromY(): string {
+  // v29.2: 1년 default — false-negative 회피. 36초 소요는 cursor-wait + spinner로 안내.
+  const d = new Date();
+  d.setDate(d.getDate() - 365);
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function defaultTo(): string {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default async function VendorPage(props: {
   params: Promise<{ bizNo: string }>;
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const { bizNo } = await props.params;
   const sp = await props.searchParams;
-  const from = sp.from;
-  const to = sp.to;
+  // v29.2: from/to 미입력 시 1년 default 적용 (NameSearchResults와 정합)
+  const from = sp.from || defaultFromY();
+  const to = sp.to || defaultTo();
 
   return (
     <main className="space-y-6">
