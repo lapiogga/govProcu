@@ -213,6 +213,9 @@ async def search_bid_notices(
         if (max_scan_pages == 1 and len(chunks) == 1)
         else (total_count > scanned_total and len(matches) >= inp.limit)
     )
+    # v22.2: 빈 매칭이면 다음 페이지에 데이터 있을 보장 없음 → has_more=False (사용자 모순 메시지 차단)
+    if not matches:
+        has_more = False
 
     return {
         **BidNoticeSearchResult(

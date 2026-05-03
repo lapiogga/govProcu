@@ -17,3 +17,5 @@
 | 20:52 | Agent B (F3) | 진단 보고 도착 | **P1(80%): `award.py:270` 부분일치 매칭 — 변형 표기와 미매칭**. P2(15%): award_rate NULL. P3(5%): 5년/52chunk timeout. 수정안: 정확 매칭 + 유사도 + 표기 학습 메시지. |
 | 20:52 | Agent C (F4·F5) | 진단 보고 도착 | **F4 P1(75%): `bid.py:211-215` has_more 단순 비교**. F5 **P1(70%): v21 fix가 이미 해결한 가능성** (8080 외부 서버 500). 수정안: F4=빈 matches 시 has_more=False. F5=사용자 환경 재현 우선. |
 | 20:55 | lead | ROOT-CAUSE.md 통합 갱신 | F1~F5 5건 root cause 정리. 종합 fix 순서 확정: v22.1(F1 commit) → v22.2(F4 has_more) → v22.3(F2 progressive) → v22.4(F3 별도 phase) → v22.5(chore) → v22.6(F5 검증) |
+| 20:58 | lead | v22.1 atomic commit (db7fb41) | F1 코드 5 파일 + .planning 메타 4 파일. logs/WORK-LOG.md(외부 sync hook 자동 추가)는 제외 |
+| 21:00 | lead | v22.2 F4 fix 적용 | `app/tools/bid.py:215+` `if not matches: has_more = False` 보수적 정정. 빈 매칭 시 다음 페이지 권유 차단 → 사용자 모순 메시지 ("결과 없음 (25966건). 다음 페이지를 시도하세요") 제거 |
