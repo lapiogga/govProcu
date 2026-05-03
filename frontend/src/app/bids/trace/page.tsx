@@ -1,11 +1,20 @@
 /**
- * 입찰 상세 추적 ★ — `trace_bid_lifecycle`
- * UI Phase B 핵심 화면. 6단계 Streaming Timeline.
+ * 입찰 상세 추적 ★ — v26.2 Suspense Streaming 모드.
+ *
+ * 1 Timeline 통합 await (이전) → 6 Suspense 분리 (현재).
+ * 각 stage별 server action이 자체 fetch → 도착 즉시 unsuspend → 사용자 체감 5초 SLA.
+ * backend 단건 도구 모두 @cache_result(30분) 적용 (v23.5).
  *
  * URL: /bids/trace?no=20240315678&ord=00
  */
 import { Suspense } from "react";
-import { traceBidLifecycle } from "@/lib/actions";
+import {
+  getPreSpecDetail,
+  getBidNoticeDetail,
+  listBidParticipants,
+  getAwardDetail,
+  checkBusinessStatus,
+} from "@/lib/actions";
 import { fmtWon, fmtRate, fmtDate, fmtBizNo } from "@/lib/format";
 import { VendorLink, AgencyLink } from "@/components/EntityLink";
 
@@ -50,8 +59,7 @@ export default async function TracePage(props: {
           </button>
         </form>
         <p className="text-sm text-[var(--color-fg-muted)]">
-          공고번호 1개로 사전규격 → 본 공고 → 개찰 → 낙찰 → 응찰업체 → 낙찰자
-          NTS 검증 6단계를 한 번에.
+          공고번호 1개로 사전규격 → 본 공고 → 개찰 → 낙찰 → 응찰업체 → 낙찰자 NTS 검증 6단계를 한 번에.
         </p>
       </main>
     );
@@ -64,138 +72,154 @@ export default async function TracePage(props: {
           입찰 추적: {bidNo}-{bidOrd}
         </h1>
         <p className="text-xs text-[var(--color-fg-muted)]">
-          MCP `trace_bid_lifecycle` 호출 중…
+          v26.2 Streaming — stage별 도착 즉시 표시
         </p>
       </header>
 
-      <Suspense fallback={<TimelineSkeleton />}>
-        <Timeline bidNo={bidNo} bidOrd={bidOrd} />
+      {/* Summary header (bid_notice 결과) */}
+      <Suspense fallback={<SummarySkeleton />}>
+        <SummarySection bidNo={bidNo} bidOrd={bidOrd} />
+      </Suspense>
+
+      {/* 6단계 타임라인 */}
+      <section className="space-y-2">
+        <Suspense fallback={<StageSkeleton n={1} label="사전규격" desc="등록 + 의견수렴" />}>
+          <StagePreSpec bidNo={bidNo} bidOrd={bidOrd} />
+        </Suspense>
+        <Suspense fallback={<StageSkeleton n={2} label="본 공고" desc="추정가" />}>
+          <StageNotice bidNo={bidNo} bidOrd={bidOrd} />
+        </Suspense>
+        <Suspense fallback={<StageSkeleton n={3} label="개찰 + 응찰업체" desc="응찰자" />}>
+          <StageParticipants bidNo={bidNo} bidOrd={bidOrd} />
+        </Suspense>
+        <Suspense fallback={<StageSkeleton n={4} label="낙찰" desc="결과" />}>
+          <StageAwardAndNts bidNo={bidNo} bidOrd={bidOrd} />
+        </Suspense>
+        <Stage n={6} label="계약" ok={false} desc="체결 후 추적 가능" inactive />
+      </section>
+
+      {/* 액션 링크 */}
+      <Suspense fallback={null}>
+        <ActionLinks bidNo={bidNo} bidOrd={bidOrd} />
       </Suspense>
     </main>
   );
 }
 
-async function Timeline({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
-  const result = await traceBidLifecycle(bidNo, bidOrd);
+// === Summary 섹션 (bid_notice 결과) ===
 
-  if (!result.ok) {
+async function SummarySection({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
+  const r = await getBidNoticeDetail(bidNo, bidOrd);
+  if (!r.ok) {
     return (
       <div className="rounded border border-[var(--color-danger)] p-4 text-sm">
-        오류: {result.error}
+        본 공고 조회 오류: {r.error}
       </div>
     );
   }
-
-  // MCP 응답 구조: {content: [{type:'text', text:'<JSON>'}]} or 직접 dict
-  const data = extractData(result.data);
-  if (!data) {
-    return (
-      <div className="rounded border p-4 text-sm">
-        응답 데이터 없음. MCP 서버 상태를 확인하세요.
-      </div>
-    );
-  }
-
-  const summary = data.summary || {};
-  const stages = data.stages || {};
-
+  const data = extractData(r.data);
+  const summary = data?.summary || data?.raw || {};
+  // 낙찰 정보는 stage4(award)에서 추가 — summary header는 공고 기본 + 낙찰자 placeholder
   return (
-    <div className="space-y-4">
-      {/* 요약 */}
-      <section className="rounded-lg border bg-[var(--color-bg-muted)] p-4">
-        <h2 className="text-lg font-medium">{summary.title || "(제목 없음)"}</h2>
-        <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 text-sm lg:grid-cols-4">
-          <div>
-            <dt className="text-[var(--color-fg-muted)]">발주기관</dt>
-            <dd className="font-medium">
-              <AgencyLink name={summary.inst_name} />
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[var(--color-fg-muted)]">업종</dt>
-            <dd>{summary.biz_type || "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-[var(--color-fg-muted)]">추정가</dt>
-            <dd className="tabular-nums font-medium">
-              {fmtWon(summary.estimated_price)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[var(--color-fg-muted)]">응찰자수</dt>
-            <dd className="tabular-nums">{summary.participant_count ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-[var(--color-fg-muted)]">공고일</dt>
-            <dd className="tabular-nums">{fmtDate(summary.publish_date)}</dd>
-          </div>
-          <div>
-            <dt className="text-[var(--color-fg-muted)]">개찰일</dt>
-            <dd className="tabular-nums">{fmtDate(summary.open_date)}</dd>
-          </div>
-          <div>
-            <dt className="text-[var(--color-fg-muted)]">낙찰자</dt>
-            <dd className="font-medium">
-              <VendorLink
-                bizNo={summary.winner_biz_no}
-                name={summary.winner_name}
-              />
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[var(--color-fg-muted)]">낙찰가/낙찰률</dt>
-            <dd className="tabular-nums font-medium">
-              {fmtWon(summary.award_amount)} / {fmtRate(summary.award_rate)}
-            </dd>
-          </div>
-        </dl>
-      </section>
+    <section className="rounded-lg border bg-[var(--color-bg-muted)] p-4">
+      <h2 className="text-lg font-medium">
+        {summary.title || summary.bidNtceNm || "(제목 없음)"}
+      </h2>
+      <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 text-sm lg:grid-cols-4">
+        <div>
+          <dt className="text-[var(--color-fg-muted)]">발주기관</dt>
+          <dd className="font-medium">
+            <AgencyLink name={summary.inst_name || summary.ntceInsttNm} />
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--color-fg-muted)]">업종</dt>
+          <dd>{summary.biz_type || summary.bsnsDivNm || "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--color-fg-muted)]">추정가</dt>
+          <dd className="tabular-nums font-medium">
+            {fmtWon(summary.estimated_price ?? summary.presmptPrce)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--color-fg-muted)]">공고일</dt>
+          <dd className="tabular-nums">{fmtDate(summary.publish_date ?? summary.bidNtceDt)}</dd>
+        </div>
+      </dl>
+      {/* 낙찰 정보는 Stage4 도착 후 별도 표시 */}
+      <Suspense fallback={<p className="mt-3 text-xs text-[var(--color-fg-muted)]">낙찰 정보 로딩 중…</p>}>
+        <AwardSummary bidNo={bidNo} bidOrd={bidOrd} />
+      </Suspense>
+    </section>
+  );
+}
 
-      {/* 6단계 타임라인 */}
-      <section className="space-y-2">
-        <Stage
-          n={1}
-          label="사전규격"
-          ok={stages.pre_specification?.found}
-          desc="등록 + 의견수렴"
-        />
-        <Stage
-          n={2}
-          label="본 공고"
-          ok={stages.bid_notice?.found}
-          desc={`추정가 ${fmtWon(summary.estimated_price)}`}
-        />
-        <Stage
-          n={3}
-          label="개찰 + 응찰업체"
-          ok={(stages.participants?.items?.length ?? 0) > 0}
-          desc={`응찰자 ${stages.participants?.participant_count ?? 0}개사`}
-        />
-        <Stage
-          n={4}
-          label="낙찰"
-          ok={stages.award?.found}
-          desc={
-            stages.award?.summary?.winner_name
-              ? `${stages.award.summary.winner_name} (${fmtRate(stages.award.summary.award_rate)})`
-              : "미낙찰/유찰"
-          }
-        />
-        <Stage
-          n={5}
-          label="낙찰자 NTS 검증"
-          ok={!!stages.winner_nts_status?.items?.length}
-          desc={ntsLabel(stages.winner_nts_status)}
-        />
-        <Stage n={6} label="계약" ok={false} desc="체결 후 추적 가능" inactive />
-      </section>
+async function AwardSummary({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
+  const r = await getAwardDetail(bidNo, bidOrd);
+  if (!r.ok) return null;
+  const data = extractData(r.data);
+  const aw = data?.summary || {};
+  if (!aw.winner_name && !aw.award_amount) return null;
+  return (
+    <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 border-t pt-3 text-sm lg:grid-cols-3">
+      <div>
+        <dt className="text-[var(--color-fg-muted)]">낙찰자</dt>
+        <dd className="font-medium">
+          <VendorLink bizNo={aw.winner_biz_no} name={aw.winner_name} />
+        </dd>
+      </div>
+      <div>
+        <dt className="text-[var(--color-fg-muted)]">낙찰가/낙찰률</dt>
+        <dd className="tabular-nums font-medium">
+          {fmtWon(aw.award_amount)} / {fmtRate(aw.award_rate)}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-[var(--color-fg-muted)]">개찰일</dt>
+        <dd className="tabular-nums">{fmtDate(aw.open_date)}</dd>
+      </div>
+    </dl>
+  );
+}
 
-      {/* 응찰업체 표 */}
-      {stages.participants?.items?.length > 0 && (
+// === Stage 컴포넌트들 ===
+
+async function StagePreSpec({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
+  const r = await getPreSpecDetail(bidNo, bidOrd);
+  const data = extractData(r.data);
+  return <Stage n={1} label="사전규격" ok={data?.found} desc="등록 + 의견수렴" />;
+}
+
+async function StageNotice({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
+  const r = await getBidNoticeDetail(bidNo, bidOrd);
+  const data = extractData(r.data);
+  const summary = data?.summary || {};
+  return (
+    <Stage
+      n={2}
+      label="본 공고"
+      ok={data?.found}
+      desc={`추정가 ${fmtWon(summary.estimated_price ?? summary.presmptPrce)}`}
+    />
+  );
+}
+
+async function StageParticipants({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
+  const r = await listBidParticipants(bidNo, bidOrd);
+  const data = extractData(r.data);
+  const items: ParticipantRow[] = data?.items || [];
+  return (
+    <>
+      <Stage
+        n={3}
+        label="개찰 + 응찰업체"
+        ok={items.length > 0}
+        desc={`응찰자 ${data?.participant_count ?? items.length}개사`}
+      />
+      {items.length > 0 && (
         <section className="rounded-lg border">
-          <h3 className="border-b px-4 py-2 text-sm font-medium">
-            응찰업체 {stages.participants.items.length}개사
-          </h3>
+          <h3 className="border-b px-4 py-2 text-sm font-medium">응찰업체 {items.length}개사</h3>
           <table className="w-full text-sm">
             <thead className="bg-[var(--color-bg-muted)]">
               <tr>
@@ -207,58 +231,93 @@ async function Timeline({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
               </tr>
             </thead>
             <tbody>
-              {stages.participants.items.map((p: ParticipantRow, i: number) => (
+              {items.map((p, i) => (
                 <tr key={i} className="border-t">
-                  <td className="px-3 py-2 tabular-nums">
-                    {p.opening_rank ?? "—"}
-                  </td>
+                  <td className="px-3 py-2 tabular-nums">{p.opening_rank ?? "—"}</td>
                   <td className="px-3 py-2">
-                    <VendorLink
-                      bizNo={p.participant_biz_no}
-                      name={p.participant_name}
-                    />
+                    <VendorLink bizNo={p.participant_biz_no} name={p.participant_name} />
                   </td>
                   <td className="px-3 py-2 tabular-nums">
-                    <VendorLink
-                      bizNo={p.participant_biz_no}
-                      name={fmtBizNo(p.participant_biz_no)}
-                    />
+                    <VendorLink bizNo={p.participant_biz_no} name={fmtBizNo(p.participant_biz_no)} />
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {fmtWon(p.participant_bid_amount)}
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    {p.is_winner ? "🏆" : ""}
-                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtWon(p.participant_bid_amount)}</td>
+                  <td className="px-3 py-2 text-center">{p.is_winner ? "🏆" : ""}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </section>
       )}
-
-      {/* 액션 */}
-      <section className="flex gap-2 text-sm">
-        {summary.winner_biz_no && (
-          <a
-            href={`/vendors/${summary.winner_biz_no}`}
-            className="rounded border px-3 py-2 hover:bg-[var(--color-bg-muted)]"
-          >
-            🔗 낙찰업체 프로필
-          </a>
-        )}
-        {summary.inst_name && (
-          <a
-            href={`/agencies?name=${encodeURIComponent(summary.inst_name)}`}
-            className="rounded border px-3 py-2 hover:bg-[var(--color-bg-muted)]"
-          >
-            🏛 발주기관 분석
-          </a>
-        )}
-      </section>
-    </div>
+    </>
   );
 }
+
+async function StageAwardAndNts({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
+  const r = await getAwardDetail(bidNo, bidOrd);
+  const data = extractData(r.data);
+  const aw = data?.summary || {};
+  const winnerBizNo = aw.winner_biz_no;
+  const stage4Desc = aw.winner_name
+    ? `${aw.winner_name} (${fmtRate(aw.award_rate)})`
+    : "미낙찰/유찰";
+
+  return (
+    <>
+      <Stage n={4} label="낙찰" ok={data?.found} desc={stage4Desc} />
+      {/* Stage 5: NTS — winner_biz_no 의존 (자식 Suspense로 streaming) */}
+      <Suspense fallback={<StageSkeleton n={5} label="낙찰자 NTS 검증" desc="—" />}>
+        <StageNts winnerBizNo={winnerBizNo} />
+      </Suspense>
+    </>
+  );
+}
+
+async function StageNts({ winnerBizNo }: { winnerBizNo?: string }) {
+  if (!winnerBizNo) {
+    return <Stage n={5} label="낙찰자 NTS 검증" ok={false} desc="—" inactive />;
+  }
+  const r = await checkBusinessStatus([winnerBizNo]);
+  const data = extractData(r.data);
+  const items = data?.items || [];
+  return (
+    <Stage n={5} label="낙찰자 NTS 검증" ok={items.length > 0} desc={ntsLabel(data)} />
+  );
+}
+
+async function ActionLinks({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
+  // 낙찰자 사업자번호와 발주기관명을 위한 두 도구 호출 (cache hit 0.5초)
+  const [awardR, noticeR] = await Promise.all([
+    getAwardDetail(bidNo, bidOrd),
+    getBidNoticeDetail(bidNo, bidOrd),
+  ]);
+  const aw = extractData(awardR.data)?.summary || {};
+  const nt = extractData(noticeR.data)?.summary || extractData(noticeR.data)?.raw || {};
+  const winnerBizNo = aw.winner_biz_no;
+  const instName = nt.inst_name || nt.ntceInsttNm;
+  if (!winnerBizNo && !instName) return null;
+  return (
+    <section className="flex gap-2 text-sm">
+      {winnerBizNo && (
+        <a
+          href={`/vendors/${winnerBizNo}`}
+          className="rounded border px-3 py-2 hover:bg-[var(--color-bg-muted)]"
+        >
+          🔗 낙찰업체 프로필
+        </a>
+      )}
+      {instName && (
+        <a
+          href={`/agencies?name=${encodeURIComponent(instName)}`}
+          className="rounded border px-3 py-2 hover:bg-[var(--color-bg-muted)]"
+        >
+          🏛 발주기관 분석
+        </a>
+      )}
+    </section>
+  );
+}
+
+// === Stage / Skeleton 헬퍼 ===
 
 function Stage({
   n,
@@ -288,30 +347,31 @@ function Stage({
   );
 }
 
-function TimelineSkeleton() {
-  // v22.4 (F6): 사용자 인지 강화 — cursor-wait + 큰 spinner + 진행 메시지
+function StageSkeleton({ n, label, desc }: { n: number; label: string; desc?: string }) {
+  // v22.4 패턴: cursor-wait + spin spinner + 단계 라벨
   return (
-    <div className="cursor-wait space-y-4">
-      <div className="flex items-center gap-3 rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-4">
-        <span className="inline-block h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-[var(--color-warning,#f59e0b)] border-t-transparent" />
-        <span className="text-sm font-medium text-[var(--color-fg)]">
-          조회 중 — G2B API 6단계 병렬 호출. R 형식 채번은 연도 범위 폴백(12 chunks)으로 30~90초 소요 가능.
-        </span>
-      </div>
-      <div className="space-y-2">
-        {[1, 2, 3, 4, 5, 6].map((n) => (
-          <div
-            key={n}
-            className="flex h-12 animate-pulse items-center gap-3 rounded border bg-[var(--color-bg-muted)] px-4"
-          >
-            <span className="font-mono text-xs">{n}</span>
-            <span>⏳</span>
-          </div>
-        ))}
-      </div>
+    <div className="flex cursor-wait items-center gap-3 rounded border bg-[var(--color-bg-muted)] px-4 py-2">
+      <span className="font-mono text-xs">{n}</span>
+      <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--color-fg-muted)] border-t-transparent" />
+      <span className="font-medium">{label}</span>
+      <span className="text-sm text-[var(--color-fg-muted)]">{desc} · 조회 중…</span>
     </div>
   );
 }
+
+function SummarySkeleton() {
+  return (
+    <div className="cursor-wait space-y-3 rounded-lg border bg-[var(--color-bg-muted)] p-4">
+      <div className="flex items-center gap-3">
+        <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-fg-muted)] border-t-transparent" />
+        <span className="text-sm font-medium">요약 로딩 중 — 본 공고 단건 조회 (cache hit 시 0.5초)</span>
+      </div>
+      <div className="h-12 animate-pulse rounded bg-[var(--color-bg)]" />
+    </div>
+  );
+}
+
+// === 타입 + 유틸 ===
 
 interface ParticipantRow {
   opening_rank?: number;
@@ -321,26 +381,8 @@ interface ParticipantRow {
   is_winner?: boolean;
 }
 
-interface TraceData {
-  summary?: Record<string, unknown> & {
-    title?: string;
-    inst_name?: string;
-    biz_type?: string;
-    estimated_price?: number;
-    participant_count?: number;
-    publish_date?: string;
-    open_date?: string;
-    winner_name?: string;
-    winner_biz_no?: string;
-    award_amount?: number;
-    award_rate?: string;
-  };
-  stages?: Record<string, any>;
-}
-
-function extractData(raw: unknown): TraceData | null {
+function extractData(raw: unknown): Record<string, any> | null {
   if (!raw) return null;
-  // MCP는 {content: [{type:'text', text: JSON.stringify(...)}]} 또는 직접 dict
   if (typeof raw === "object" && raw !== null) {
     const obj = raw as Record<string, unknown>;
     if (obj.content && Array.isArray(obj.content)) {
@@ -353,7 +395,7 @@ function extractData(raw: unknown): TraceData | null {
         }
       }
     }
-    return obj as TraceData;
+    return obj as Record<string, any>;
   }
   return null;
 }
