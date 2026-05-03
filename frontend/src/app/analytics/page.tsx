@@ -188,7 +188,7 @@ async function MarketShareSection({
                 <VendorLink bizNo={v.biz_no} name={v.name} />
               </td>
               <td className="px-3 py-2 tabular-nums">
-                <VendorLink bizNo={v.biz_no} name={v.biz_no} />
+                <VendorLink bizNo={v.biz_no} formatBizNo />
               </td>
               <td className="px-3 py-2 text-right tabular-nums">
                 {fmtWon(v.award_total)}

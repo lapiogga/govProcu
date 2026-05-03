@@ -180,11 +180,12 @@ async function PriceCard({
       <p className="mt-1 text-xs text-[var(--color-fg-muted)]">
         {data.interpretation}
       </p>
-      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-6">
         <Stat label="평균" v={`${s.mean?.toFixed(2)}%`} />
         <Stat label="중앙값" v={`${s.median?.toFixed(2)}%`} />
         <Stat label="p10" v={`${s.p10?.toFixed(2)}%`} />
         <Stat label="p25" v={`${s.p25?.toFixed(2)}%`} />
+        <Stat label="p75" v={`${s.p75?.toFixed(2)}%`} />
         <Stat label="p90" v={`${s.p90?.toFixed(2)}%`} />
       </div>
 

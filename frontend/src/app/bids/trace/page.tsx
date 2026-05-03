@@ -403,9 +403,10 @@ function extractData(raw: unknown): Record<string, any> | null {
 function ntsLabel(stat: any): string {
   if (!stat?.items?.length) return "—";
   const first = stat.items[0];
-  const code = first.b_stt_cd;
+  // P0-A (Phase 30): backend `check_business_status` 정규화 키 우선, raw 폴백
+  const code = first.status_code || first.b_stt_cd || first.raw?.b_stt_cd;
   if (code === "01") return "계속사업자 (정상)";
   if (code === "02") return "휴업";
   if (code === "03") return "폐업";
-  return first.b_stt || "—";
+  return first.status || first.b_stt || first.raw?.b_stt || "—";
 }
