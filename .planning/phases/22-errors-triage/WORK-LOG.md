@@ -29,3 +29,7 @@
 | 21:32 | Agent F8 | 진단 보고 도착 | **HIGH**: G2B keyword 파라미터 미지원 → 클라이언트 999건 필터. **HIGH**: v22.2 fix 부작용 (정상 케이스에서도 has_more=False 차단). MEDIUM: 30일 default 너무 좁음. → v22.6 정정안 |
 | 21:32 | Agent F7 | 진단 보고 도착 | **1순위(90%)**: V1~V3 도구 스텁 + NTS 키 미설정으로 backend가 빈 sections 응답. frontend 조건부 렌더링이 모두 스킵 → 빈 화면 인식. → v22.5 frontend 명시 안내 fix |
 | 21:34 | lead | ROOT-CAUSE.md F6/F7/F8/F9 섹션 신규 + 종합 fix 순서 갱신 | v22.4 (F6 commit 대기) → v22.5 (F7) → v22.6 (F8) → v22.7 (chore) → Phase 23 (F9) → Phase X (F3, F5) |
+| 21:38 | user | 발화 #6 "5초 이내 SLA" | F9에 5초 SLA 명시. Phase 23 design proposal 재정의 (Streaming 1st-byte + default 기간 대폭 단축 + R 폴백 lighter + 호출 병렬화 + 사전 ETL cache) |
+| 21:42 | lead | v22.4 commit (e66f1b7) | atomic — frontend UX 2 파일 + ROOT-CAUSE/WORK-LOG/PROMPTS-LOG |
+| 21:50 | user | 발화 #7 "1" | 옵션 1 선택 — Phase 22 잔여 마무리 후 Phase 23 가동 |
+| 21:52 | lead | v22.5 F7 fix 적용 | `frontend/src/app/vendors/[bizNo]/page.tsx`: data null 분기 강화 (응답 파싱 실패 명시). `hasAnyData` 검증 + 빈 응답 시 명시 안내 panel (가능 원인 4종 + implementation_status). NTS 섹션에 키 미설정 안내. backend는 변경 없음 — frontend 분기만 강화 |

@@ -56,14 +56,51 @@ async function Profile({
 
   const data = extractData(result.data);
   if (!data) {
-    return <div className="rounded border p-4 text-sm">응답 없음</div>;
+    return (
+      <div className="rounded-lg border border-[var(--color-danger)] p-4 text-sm">
+        <p className="font-medium">응답 파싱 실패</p>
+        <p className="mt-1 text-[var(--color-fg-muted)]">
+          backend가 응답을 보냈으나 frontend가 파싱하지 못했습니다.
+          MCP 응답 구조 확인 또는 backend 로그 점검.
+        </p>
+      </div>
+    );
   }
 
   const summary = data.summary || {};
   const sections = data.sections || {};
 
+  // v22.5 (F7): 모든 영역이 비어있는지 검증 — backend는 정상 응답이지만 NTS 키/EVAL 키 미설정으로 sections 빈 응답 케이스
+  const hasAnyData =
+    (sections.awards?.items?.length ?? 0) > 0 ||
+    (sections.participations?.items?.length ?? 0) > 0 ||
+    (sections.openings?.items?.length ?? 0) > 0 ||
+    (sections.bids?.items?.length ?? 0) > 0 ||
+    !!summary.nts_status_code;
+
   return (
     <div className="space-y-4">
+      {/* v22.5 (F7): 빈 응답 명시 안내 (사용자 "전혀 표시가 안됨" 인식 차단) */}
+      {!hasAnyData && (
+        <div className="rounded-lg border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-4 text-sm">
+          <p className="font-medium">데이터 없음</p>
+          <p className="mt-1 text-[var(--color-fg-muted)]">
+            이 사업자번호로 NTS·낙찰·응찰·개찰·입찰 어느 영역에서도 데이터가 조회되지 않았습니다.
+          </p>
+          <p className="mt-2 text-xs font-medium">가능 원인</p>
+          <ul className="ml-4 list-disc text-xs text-[var(--color-fg-muted)]">
+            <li>사업자번호 잘못 입력 (10자리 숫자 정확 확인)</li>
+            <li>지정 기간 내 활동 없음 — 기간을 확장하거나 default 사용</li>
+            <li>NTS 진위확인 API 키 미설정 (`.env` 의 `NTS_API_KEY`)</li>
+            <li>V1·V2·V3 도구는 EVAL 키 발급 후 활성화 — 현재는 V4(awards) 영역만 작동</li>
+          </ul>
+          <p className="mt-2 text-xs">
+            구현 상태:{" "}
+            <span className="font-mono">{summary.implementation_status || "—"}</span>
+          </p>
+        </div>
+      )}
+
       {/* NTS 검증 */}
       <section className="rounded-lg border bg-[var(--color-bg-muted)] p-4">
         <h2 className="mb-2 text-sm font-medium">NTS 검증</h2>
@@ -71,6 +108,9 @@ async function Profile({
           상태 코드: <span className="font-mono">{summary.nts_status_code || "—"}</span>{" "}
           {summary.nts_status_code === "01" && (
             <span className="text-[var(--color-success)]">✅ 계속사업자</span>
+          )}
+          {!summary.nts_status_code && (
+            <span className="text-[var(--color-fg-muted)]">— (NTS 키 미설정 또는 응답 없음)</span>
           )}
         </p>
       </section>
