@@ -253,14 +253,23 @@ async function Results(params: ResultsParams) {
   };
 
   if (items.length === 0) {
-    // 5/3 N42 fix #6: total_count가 큰데 매칭 0이면 키워드 매칭률 문제 — 명확한 메시지
-    const isLikeZero = !!params.keyword && totalCount > 0;
+    // 5/3 N42 fix #6 + v22.6: total_count가 큰데 매칭 0이면 키워드 매칭률 문제 — 명확한 메시지
+    // trim() 추가: 공백만 입력된 케이스 정합화
+    const trimmedKeyword = params.keyword?.trim() || "";
+    const trimmedInst = params.inst_name?.trim() || "";
+    const hasFilter = !!(trimmedKeyword || trimmedInst);
+    const isLikeZero = hasFilter && totalCount > 0;
     return (
       <div className="space-y-2">
         <p className="rounded border p-4 text-sm">
           {isLikeZero ? (
             <>
-              <strong>이 페이지에서 키워드 &ldquo;{params.keyword}&rdquo; 매칭 0건</strong>
+              <strong>
+                이 페이지에서 {trimmedKeyword && `키워드 "${trimmedKeyword}"`}
+                {trimmedKeyword && trimmedInst && " + "}
+                {trimmedInst && `발주기관 "${trimmedInst}"`}
+                {" "}매칭 0건
+              </strong>
               {" "}— 기간 내 총 {totalCount.toLocaleString()}건 공고가 있지만 본 페이지에서는 매칭이 없습니다.
               {!isDeep && (
                 <>

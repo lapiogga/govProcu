@@ -33,3 +33,5 @@
 | 21:42 | lead | v22.4 commit (e66f1b7) | atomic — frontend UX 2 파일 + ROOT-CAUSE/WORK-LOG/PROMPTS-LOG |
 | 21:50 | user | 발화 #7 "1" | 옵션 1 선택 — Phase 22 잔여 마무리 후 Phase 23 가동 |
 | 21:52 | lead | v22.5 F7 fix 적용 | `frontend/src/app/vendors/[bizNo]/page.tsx`: data null 분기 강화 (응답 파싱 실패 명시). `hasAnyData` 검증 + 빈 응답 시 명시 안내 panel (가능 원인 4종 + implementation_status). NTS 섹션에 키 미설정 안내. backend는 변경 없음 — frontend 분기만 강화 |
+| 21:55 | lead | v22.5 commit (e2762d7) | atomic — vendors/[bizNo]/page.tsx + WORK-LOG + PROMPTS-LOG |
+| 22:00 | lead | v22.6 F8 fix 적용 | (1) `app/tools/bid.py:215+` `if not matches: has_more = False` (v22.2) → `if scanned_total == 0: has_more = False` 정정. G2B 데이터 받았으나 keyword/inst 필터로 매칭 0건이면 다음 페이지에 매칭 가능성 → has_more 유지 (사용자 검색 차단 해제). (2) `frontend/src/app/bids/page.tsx`: `params.keyword?.trim()` 추가 + `trimmedInst` 동시 분기 + 메시지에 inst_name 동시 표시. import sanity check OK |
