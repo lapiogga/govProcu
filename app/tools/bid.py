@@ -1,5 +1,6 @@
 """입찰공고 영역 MCP 도구."""
 from __future__ import annotations
+import asyncio
 import structlog
 from app.clients.g2b import G2BClient
 from app.config import settings
@@ -145,69 +146,86 @@ async def search_bid_notices(
     endpoints_used: list[str] = []
 
     client = G2BClient()
-    try:
-        for chunk_from, chunk_to in chunks:
-            if len(matches) >= inp.limit:
+
+    # v23.6: chunks × endpoints 직렬 → asyncio.gather 병렬.
+    # page loop(while)는 한 (chunk, endpoint) 조합 내부에서 sequential 유지
+    # (다음 page 호출은 직전 응답 items 길이에 의존).
+    async def _fetch_combo(
+        chunk_from: str | None,
+        chunk_to: str | None,
+        endpoint: str,
+    ):
+        local_total = 0
+        local_scanned = 0
+        local_raw_items: list = []
+        cur_page = inp.page
+        scanned_in_call = 0
+        while scanned_in_call < max_scan_per_call:
+            params: dict = {
+                "pageNo": cur_page,
+                "numOfRows": page_size,
+                "inqryDiv": "1",  # 등록일 기준
+            }
+            if chunk_from:
+                params["inqryBgnDt"] = chunk_from + "0000"
+            if chunk_to:
+                params["inqryEndDt"] = chunk_to + "2359"
+            try:
+                body = await client.call(endpoint, settings.g2b_key_bid, params)
+            except Exception:  # noqa: BLE001
                 break
-            for biz_label, endpoint in endpoints:
+            local_total += int(body.get("totalCount", 0) or 0)
+            items_raw = body.get("items", [])
+            if isinstance(items_raw, dict):
+                items_raw = items_raw.get("item", [])
+            if not isinstance(items_raw, list):
+                items_raw = [items_raw] if items_raw else []
+            if not items_raw:
+                break
+            for raw in items_raw:
+                scanned_in_call += 1
+                local_scanned += 1
+                local_raw_items.append(raw)
+            if len(items_raw) < page_size:
+                break
+            cur_page += 1
+        return endpoint, local_total, local_scanned, local_raw_items
+
+    try:
+        tasks = [
+            _fetch_combo(cf, ct, ep)
+            for cf, ct in chunks
+            for _, ep in endpoints
+        ]
+        results = await asyncio.gather(*tasks)
+
+        for endpoint, local_total, local_scanned, raw_items in results:
+            if endpoint not in endpoints_used:
+                endpoints_used.append(endpoint)
+            total_count += local_total
+            scanned_total += local_scanned
+            for raw in raw_items:
+                if needs_client_filter:
+                    title = raw.get("bidNtceNm") or ""
+                    inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
+                    region_v = raw.get("rgnLmtBidLocplcNm") or ""
+                    if inp.bid_notice_no and str(raw.get("bidNtceNo", "")) != inp.bid_notice_no:
+                        continue
+                    if inp.keyword and inp.keyword not in title:
+                        continue
+                    if inp.inst_name and inp.inst_name not in inst:
+                        continue
+                    if inp.region and inp.region not in region_v:
+                        continue
+                key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                matches.append(_normalize_notice(raw).model_dump())
                 if len(matches) >= inp.limit:
                     break
-                cur_page = inp.page
-                scanned_in_call = 0
-                while scanned_in_call < max_scan_per_call and len(matches) < inp.limit:
-                    params: dict = {
-                        "pageNo": cur_page,
-                        "numOfRows": page_size,
-                        "inqryDiv": "1",  # 등록일 기준
-                    }
-                    if chunk_from:
-                        params["inqryBgnDt"] = chunk_from + "0000"
-                    if chunk_to:
-                        params["inqryEndDt"] = chunk_to + "2359"
-
-                    try:
-                        body = await client.call(endpoint, settings.g2b_key_bid, params)
-                    except Exception:  # noqa: BLE001
-                        break
-
-                    if endpoint not in endpoints_used:
-                        endpoints_used.append(endpoint)
-                    total_count += int(body.get("totalCount", 0) or 0)
-
-                    items_raw = body.get("items", [])
-                    if isinstance(items_raw, dict):
-                        items_raw = items_raw.get("item", [])
-                    if not isinstance(items_raw, list):
-                        items_raw = [items_raw] if items_raw else []
-                    if not items_raw:
-                        break
-
-                    for raw in items_raw:
-                        scanned_in_call += 1
-                        scanned_total += 1
-                        if needs_client_filter:
-                            title = raw.get("bidNtceNm") or ""
-                            inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
-                            region_v = raw.get("rgnLmtBidLocplcNm") or ""
-                            if inp.bid_notice_no and str(raw.get("bidNtceNo", "")) != inp.bid_notice_no:
-                                continue
-                            if inp.keyword and inp.keyword not in title:
-                                continue
-                            if inp.inst_name and inp.inst_name not in inst:
-                                continue
-                            if inp.region and inp.region not in region_v:
-                                continue
-                        key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
-                        if key in seen_keys:
-                            continue
-                        seen_keys.add(key)
-                        matches.append(_normalize_notice(raw).model_dump())
-                        if len(matches) >= inp.limit:
-                            break
-
-                    if len(items_raw) < page_size:
-                        break
-                    cur_page += 1
+            if len(matches) >= inp.limit:
+                break
     finally:
         await client.aclose()
 
