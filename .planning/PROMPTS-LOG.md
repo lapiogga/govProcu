@@ -24,3 +24,4 @@
 | 23:05 | 15 | "continue" | 운영지시 (재촉 ×3) | v25 자동 진행 — 본 응답에선 v24.4 (keyword 토큰 매칭)으로 Phase 24 안에서 확장. inst와 동일 패턴 |
 | 23:25 | 16 | "3" | 선택 | "옵션 3 = continue 자동 진행 모드 유지" 해석. v26 (trace Suspense Streaming) 시작 — 큰 변경이라 분할 (v26.1 actions, v26.2 page.tsx 리팩토링) |
 | 23:35 | 17 | "continue" | 운영지시 (재촉 ×4) | v26.2 즉시 진행 — page.tsx 1 Timeline → 6 Suspense 리팩토링 |
+| 23:50 | 18 | "continue" | 운영지시 (재촉 ×5) | v27 (사전 ETL warmup) 진행 — cache.py가 이미 Redis라 backend 변경 없음. scripts/etl_warmup.py 신설 |
