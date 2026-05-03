@@ -125,6 +125,7 @@ async def lookup_by_inst_code(
     )
 
     award_items = awards.get("items", [])
+    notice_items = notices.get("items", [])
 
     # 낙찰업체 분포
     winner_counter: Counter[str] = Counter()
@@ -152,18 +153,56 @@ async def lookup_by_inst_code(
         for bn, cnt in winner_counter.most_common(10)
     ]
 
+    # P30-R2: keys 7-key 표준화 — 대표값 채움
+    # bid_notice_no/bid_ord: notices 첫 row, 없으면 awards 첫 row
+    rep_bid_notice_no: str | None = None
+    rep_bid_ord: str | None = None
+    if notice_items:
+        rep_bid_notice_no = notice_items[0].get("bid_notice_no") or notice_items[0].get("bid_no")
+        rep_bid_ord = notice_items[0].get("bid_ord")
+    if not rep_bid_notice_no and award_items:
+        rep_bid_notice_no = award_items[0].get("bid_notice_no") or award_items[0].get("bid_no")
+        rep_bid_ord = rep_bid_ord or award_items[0].get("bid_ord")
+
+    # vendor_biz_no/vendor_name: awards 첫 row 대표값
+    rep_vendor_biz_no: str | None = None
+    rep_vendor_name: str | None = None
+    if award_items:
+        rep_vendor_biz_no = award_items[0].get("winner_biz_no")
+        rep_vendor_name = award_items[0].get("winner_name")
+
+    # inst_code 폴백: awards/notices 첫 row의 inst_code (있을 수도 없을 수도)
+    rep_inst_code = inst_code
+    if not rep_inst_code:
+        if award_items:
+            rep_inst_code = award_items[0].get("inst_code") or award_items[0].get("dminsttCd") or award_items[0].get("ntceInsttCd")
+        if not rep_inst_code and notice_items:
+            rep_inst_code = notice_items[0].get("inst_code") or notice_items[0].get("dminsttCd") or notice_items[0].get("ntceInsttCd")
+
+    rep_inst_name = inst_name
+    if not rep_inst_name:
+        if award_items:
+            rep_inst_name = award_items[0].get("inst_name")
+        if not rep_inst_name and notice_items:
+            rep_inst_name = notice_items[0].get("inst_name")
+
     return {
         "starting_key": "inst_code",
         "keys": {
-            "inst_code": inst_code,
-            "inst_name": inst_name,
+            "bid_notice_no": rep_bid_notice_no,
+            "bid_ord": rep_bid_ord,
+            "inst_code": rep_inst_code,
+            "inst_name": rep_inst_name,
+            "vendor_biz_no": rep_vendor_biz_no,
+            "vendor_name": rep_vendor_name,
+            "contract_no": None,
         },
         "sections": {
             "notices": notices,
             "awards": awards,
         },
         "summary": {
-            "notice_count": len(notices.get("items", [])),
+            "notice_count": len(notice_items),
             "award_count": len(award_items),
             "unique_winners": len(winner_counter),
             "top_winners": top_winners,
@@ -204,7 +243,8 @@ async def lookup_by_biz_no(
     inst_counter: Counter[str] = Counter()
     inst_amounts: dict[str, int] = {}
     bid_no_list: list[str] = []
-    for row in awards.get("items", []):
+    award_items = awards.get("items", [])
+    for row in award_items:
         bn = row.get("bid_notice_no")
         if bn:
             bid_no_list.append(bn)
@@ -231,13 +271,43 @@ async def lookup_by_biz_no(
         or _safe_get(sections, "nts_status", "items", 0, "b_stt")
     )
 
+    # P30-R2: keys 7-key 표준화 — 대표값 채움
+    # bid_notice_no/bid_ord: awards 첫 row 대표값 (bid_notice_no_list[0]와 동등)
+    rep_bid_notice_no: str | None = None
+    rep_bid_ord: str | None = None
+    rep_inst_code: str | None = None
+    rep_inst_name: str | None = None
+    rep_vendor_name: str | None = None
+    if award_items:
+        first_row = award_items[0]
+        rep_bid_notice_no = first_row.get("bid_notice_no") or first_row.get("bid_no")
+        rep_bid_ord = first_row.get("bid_ord")
+        rep_inst_code = first_row.get("inst_code") or first_row.get("dminsttCd") or first_row.get("ntceInsttCd")
+        rep_inst_name = first_row.get("inst_name")
+        rep_vendor_name = first_row.get("winner_name")
+
+    # NTS 응답에서 vendor_name 폴백
+    if not rep_vendor_name:
+        rep_vendor_name = (
+            _safe_get(sections, "nts_status", "items", 0, "tax_type_nm")
+            or _safe_get(sections, "nts_status", "items", 0, "vendor_name")
+        )
+
     return {
         "starting_key": "vendor_biz_no",
-        "keys": {"vendor_biz_no": vendor_biz_no},
+        "keys": {
+            "bid_notice_no": rep_bid_notice_no,
+            "bid_ord": rep_bid_ord,
+            "inst_code": rep_inst_code,
+            "inst_name": rep_inst_name,
+            "vendor_biz_no": vendor_biz_no,
+            "vendor_name": rep_vendor_name,
+            "contract_no": None,
+        },
         "sections": sections,
         "summary": {
             "nts_status_code": nts_status_code,
-            "award_count": len(awards.get("items", [])),
+            "award_count": len(award_items),
             "bid_notice_no_list": bid_no_list[:20],
             "top_agencies": top_insts,
             "date_range": [date_from, date_to],
@@ -253,9 +323,18 @@ async def lookup_by_contract_no(contract_no: str) -> dict:
     별개 서비스 "계약정보서비스(15129427)" 키 필요.
     현재 G2B_KEY_CONTRACT는 계약과정통합공개용이라 계약번호 단독 조회 불가.
     """
+    # P30-R2: keys 7-key 표준화 (stub — contract_no만 채우고 나머지 None)
     return {
         "starting_key": "contract_no",
-        "keys": {"contract_no": contract_no},
+        "keys": {
+            "bid_notice_no": None,
+            "bid_ord": None,
+            "inst_code": None,
+            "inst_name": None,
+            "vendor_biz_no": None,
+            "vendor_name": None,
+            "contract_no": contract_no,
+        },
         "status": "not_implemented",
         "note": "계약정보서비스(15129427) 키 신청 후 구현 예정. 현재 G2B_KEY_CONTRACT는 계약과정통합공개용.",
     }
