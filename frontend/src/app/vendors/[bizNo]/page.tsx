@@ -7,6 +7,8 @@ import { getVendorProfile } from "@/lib/actions";
 import { fmtWon, fmtRate, fmtBizNo, fmtDate } from "@/lib/format";
 import { VendorAwardChart } from "@/components/charts/VendorAwardChart";
 import { AgencyLink, BidLink } from "@/components/EntityLink";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 function defaultFromY(): string {
   // v29.2: 1년 default — false-negative 회피. 36초 소요는 cursor-wait + spinner로 안내.
@@ -32,13 +34,43 @@ export default async function VendorPage(props: {
 
   return (
     <main className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">
-          업체 프로필: {fmtBizNo(bizNo)}
-        </h1>
-        <p className="text-xs text-[var(--color-fg-muted)]">
-          NTS 진위 + 입찰/응찰/개찰/낙찰 통합 (vendor_profile)
-        </p>
+      <header className="space-y-3">
+        <div>
+          <h1 className="text-2xl font-semibold">
+            업체 프로필: {fmtBizNo(bizNo)}
+          </h1>
+          <p className="text-xs text-[var(--color-fg-muted)]">
+            NTS 진위 + 입찰/응찰/개찰/낙찰 통합 (vendor_profile)
+          </p>
+        </div>
+        {/* P30-R5 P1-08: 기간 변경 form — URL 수동 편집 회피 */}
+        <form
+          action={`/vendors/${bizNo}`}
+          className="flex flex-wrap items-center gap-2 rounded border bg-[var(--color-bg-muted)] p-3"
+        >
+          <label className="text-xs text-[var(--color-fg-muted)]">조회 기간</label>
+          <Input
+            name="from"
+            defaultValue={from}
+            placeholder="from YYYYMMDD"
+            pattern="\d{8}"
+            className="max-w-[140px]"
+          />
+          <span className="text-xs text-[var(--color-fg-muted)]">~</span>
+          <Input
+            name="to"
+            defaultValue={to}
+            placeholder="to YYYYMMDD"
+            pattern="\d{8}"
+            className="max-w-[140px]"
+          />
+          <Button type="submit" variant="outline" size="sm">
+            재조회
+          </Button>
+          <span className="ml-auto text-xs text-[var(--color-fg-muted)]">
+            현재: {from} ~ {to} (1년 default)
+          </span>
+        </form>
       </header>
 
       <Suspense fallback={<ProfileSkeleton />}>
@@ -253,8 +285,38 @@ function Stat({
 }
 
 function ProfileSkeleton() {
+  // P30-R5 P1-07: 36초 대기 loading UX 강화 — spinner + 진행 메시지 + cursor-wait
   return (
-    <div className="space-y-3">
+    <div className="cursor-wait space-y-3">
+      <div className="flex items-center gap-3 rounded border bg-[var(--color-bg-muted)] p-4">
+        <svg
+          className="h-5 w-5 animate-spin text-[var(--color-primary)]"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8 8 8 0 008 8v-4l-3 3 3 3v-4a8 8 0 008-8h-4z"
+          />
+        </svg>
+        <div>
+          <p className="text-sm font-medium">검색 중 (최대 1분 소요)</p>
+          <p className="text-xs text-[var(--color-fg-muted)]">
+            G2B 1년 데이터 12회 chunk × 4 endpoint 병렬 — 페이지를 닫지 마세요.
+          </p>
+        </div>
+      </div>
       <div className="h-20 animate-pulse rounded bg-[var(--color-bg-muted)]" />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {[1, 2, 3, 4, 5].map((n) => (
