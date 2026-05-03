@@ -24,6 +24,8 @@ export default async function QuickSearchPage(props: {
     redirect(`/bids/trace?no=${cleaned}`);
   }
 
-  // 그 외 키워드 검색
-  redirect(`/bids?q=${encodeURIComponent(q)}`);
+  // 그 외 키워드 검색 — P30-R3 P1-05 (F16):
+  // /search 진입은 사용자가 키워드만 빠르게 시도하는 경로 → deep=1 자동 부여로
+  // scan_pages=5 매칭률 ↑ ("정보체계" / "아이웨이브" 0건 false-negative 회피).
+  redirect(`/bids?q=${encodeURIComponent(q)}&deep=1`);
 }
