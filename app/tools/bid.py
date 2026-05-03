@@ -1,11 +1,14 @@
 """입찰공고 영역 MCP 도구."""
 from __future__ import annotations
+import structlog
 from app.clients.g2b import G2BClient
 from app.config import settings
 from app.core.cache import cache_result
 from app.core.daterange import chunk_date_range
 from app.core.rate_limit import check_rate
 from app.schemas.bid import BidNoticeSearchInput, BidNoticeSearchResult, BidNoticeSummary
+
+log = structlog.get_logger(__name__)
 
 
 _BIZ_DIV_MAP = {"공사": "1", "용역": "2", "물품": "3"}
@@ -387,46 +390,65 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
                         "raw": raw,
                     }
 
-        # 3차 폴백: search_bid_notices(bid_notice_no=...) — 최근 30일 우선 시도
-        # 1년 chunks 12 × 3 endpoints = 비효율 → 최근 30일로 우선, 추후 라운드에서 확장
+        # 3차 폴백: search_bid_notices — v22.3 (F2 fix):
+        # R26.../20260101... 등 채번에 연도 인코딩되면 추정 연도 범위 1회 시도 (비용 ↑, 정확).
+        # 형식 불명일 때만 30→90일 progressive (v15.1의 30일 단축이 R 형식 미커버한 trade-off 보정).
         from datetime import datetime, timedelta
         today = datetime.now()
-        recent_from = (today - timedelta(days=30)).strftime("%Y%m%d")
-        recent_to = today.strftime("%Y%m%d")
-        try:
-            search_result = await search_bid_notices(
-                bid_notice_no=bid_notice_no,
-                limit=3,
-                scan_pages=2,
-                date_from=recent_from,
-                date_to=recent_to,
-            )
-            for item in search_result.get("items", []):
-                if str(item.get("bid_no", "")) == bid_notice_no:
-                    item_ord = str(item.get("bid_ord") or "")
-                    item_ord_norm = item_ord.lstrip("0") or "0"
-                    if item_ord_norm == norm_ord or item_ord == bid_ord:
-                        return {
-                            "found": True,
-                            "lookup_mode": "search_bid_notices+ord_match",
-                            "summary": item,
-                            "raw": item.get("raw", item),
-                        }
-            # ord 다른 차수라도 first match
-            first_match = next(
-                (it for it in search_result.get("items", []) if str(it.get("bid_no", "")) == bid_notice_no),
-                None,
-            )
-            if first_match:
-                return {
-                    "found": True,
-                    "lookup_mode": "search_bid_notices+no_only",
-                    "ord_mismatch_warning": f"요청 ord={bid_ord} 미발견. 다른 차수(ord={first_match.get('bid_ord')}) 반환.",
-                    "summary": first_match,
-                    "raw": first_match.get("raw", first_match),
-                }
-        except Exception:  # noqa: BLE001
-            pass
+        inferred_from, inferred_to = _infer_period_from_bid_no(bid_notice_no)
+        if inferred_from and inferred_to:
+            fallback_ranges = [(inferred_from, inferred_to)]
+        else:
+            fallback_ranges = [
+                ((today - timedelta(days=30)).strftime("%Y%m%d"), today.strftime("%Y%m%d")),
+                ((today - timedelta(days=90)).strftime("%Y%m%d"), today.strftime("%Y%m%d")),
+            ]
+
+        for fb_from, fb_to in fallback_ranges:
+            try:
+                search_result = await search_bid_notices(
+                    bid_notice_no=bid_notice_no,
+                    limit=3,
+                    scan_pages=2,
+                    date_from=fb_from,
+                    date_to=fb_to,
+                )
+                for item in search_result.get("items", []):
+                    if str(item.get("bid_no", "")) == bid_notice_no:
+                        item_ord = str(item.get("bid_ord") or "")
+                        item_ord_norm = item_ord.lstrip("0") or "0"
+                        if item_ord_norm == norm_ord or item_ord == bid_ord:
+                            return {
+                                "found": True,
+                                "lookup_mode": "search_bid_notices+ord_match",
+                                "fallback_range": f"{fb_from}~{fb_to}",
+                                "summary": item,
+                                "raw": item.get("raw", item),
+                            }
+                # ord 다른 차수라도 first match
+                first_match = next(
+                    (it for it in search_result.get("items", []) if str(it.get("bid_no", "")) == bid_notice_no),
+                    None,
+                )
+                if first_match:
+                    return {
+                        "found": True,
+                        "lookup_mode": "search_bid_notices+no_only",
+                        "fallback_range": f"{fb_from}~{fb_to}",
+                        "ord_mismatch_warning": f"요청 ord={bid_ord} 미발견. 다른 차수(ord={first_match.get('bid_ord')}) 반환.",
+                        "summary": first_match,
+                        "raw": first_match.get("raw", first_match),
+                    }
+            except Exception as exc:  # noqa: BLE001
+                # v22.3: 기존 silent pass → 가시화 (root cause 추적)
+                log.warning(
+                    "trace_search_fallback_failed",
+                    bid_notice_no=bid_notice_no,
+                    date_from=fb_from,
+                    date_to=fb_to,
+                    error=str(exc)[:200],
+                )
+                continue
 
         return {
             "found": False,

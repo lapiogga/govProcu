@@ -19,3 +19,5 @@
 | 20:55 | lead | ROOT-CAUSE.md 통합 갱신 | F1~F5 5건 root cause 정리. 종합 fix 순서 확정: v22.1(F1 commit) → v22.2(F4 has_more) → v22.3(F2 progressive) → v22.4(F3 별도 phase) → v22.5(chore) → v22.6(F5 검증) |
 | 20:58 | lead | v22.1 atomic commit (db7fb41) | F1 코드 5 파일 + .planning 메타 4 파일. logs/WORK-LOG.md(외부 sync hook 자동 추가)는 제외 |
 | 21:00 | lead | v22.2 F4 fix 적용 | `app/tools/bid.py:215+` `if not matches: has_more = False` 보수적 정정. 빈 매칭 시 다음 페이지 권유 차단 → 사용자 모순 메시지 ("결과 없음 (25966건). 다음 페이지를 시도하세요") 제거 |
+| 21:02 | lead | v22.2 commit (9729f72) | atomic — bid.py + WORK-LOG |
+| 21:05 | lead | v22.3 F2 fix 적용 | `app/tools/bid.py` 모듈 상단 `structlog` import + `log` 글로벌. `get_bid_notice_detail` 3차 폴백을 R/숫자 형식이면 `_infer_period_from_bid_no` 연도 범위 1회 시도, 형식 불명이면 30→90일 progressive로 변경. `except Exception: pass` → `log.warning(...) + continue`로 가시화. `fallback_range` 필드 추가로 어느 범위에서 매칭됐는지 응답 동봉. import sanity check OK |
