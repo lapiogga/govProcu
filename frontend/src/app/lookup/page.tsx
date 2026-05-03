@@ -19,12 +19,33 @@ import { VendorLink, AgencyLink } from "@/components/EntityLink";
 
 type Mode = "bid" | "biz" | "inst" | "contract";
 
+// P30-R5 P1-18: 기간 default — biz/inst lookup용 1년 default (timeout 위험 회피)
+function defaultDateFrom(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 365);
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function defaultDateTo(): string {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default async function LookupPage(props: {
-  searchParams: Promise<{ mode?: Mode; q?: string; ord?: string }>;
+  searchParams: Promise<{
+    mode?: Mode;
+    q?: string;
+    ord?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
   const sp = await props.searchParams;
   const mode = sp.mode || "bid";
   const q = sp.q;
+  // P30-R5 P1-18: 기간 form — biz/inst mode에서만 의미. bid mode는 단건 조회라 무관.
+  const from = sp.from || defaultDateFrom();
+  const to = sp.to || defaultDateTo();
 
   return (
     <main className="space-y-6">
@@ -58,13 +79,13 @@ export default async function LookupPage(props: {
 
       <Card>
         <CardContent className="p-4">
-          <form action="/lookup" className="flex gap-2">
+          <form action="/lookup" className="flex flex-wrap gap-2">
             <input type="hidden" name="mode" value={mode} />
             <Input
               name="q"
               defaultValue={q}
               placeholder={placeholderFor(mode)}
-              className="flex-1"
+              className="flex-1 min-w-[200px]"
               required
             />
             {mode === "bid" && (
@@ -75,14 +96,47 @@ export default async function LookupPage(props: {
                 className="w-20"
               />
             )}
+            {/* P30-R5 P1-18: biz/inst mode에 기간 input 추가 — backend timeout 위험 회피 */}
+            {(mode === "biz" || mode === "inst") && (
+              <>
+                <Input
+                  name="from"
+                  defaultValue={from}
+                  placeholder="from YYYYMMDD"
+                  pattern="\d{8}"
+                  className="max-w-[140px]"
+                />
+                <span className="self-center text-xs text-[var(--color-fg-muted)]">
+                  ~
+                </span>
+                <Input
+                  name="to"
+                  defaultValue={to}
+                  placeholder="to YYYYMMDD"
+                  pattern="\d{8}"
+                  className="max-w-[140px]"
+                />
+              </>
+            )}
             <Button type="submit">추적</Button>
           </form>
+          {(mode === "biz" || mode === "inst") && (
+            <p className="mt-2 text-xs text-[var(--color-fg-muted)]">
+              기간 미입력 시 1년 default 적용 (G2B 1개월 chunk 자동 — timeout 위험 회피).
+            </p>
+          )}
         </CardContent>
       </Card>
 
       {q ? (
         <Suspense fallback={<Skel h={32} />}>
-          <Result mode={mode} q={q} ord={sp.ord || "00"} />
+          <Result
+            mode={mode}
+            q={q}
+            ord={sp.ord || "00"}
+            from={from}
+            to={to}
+          />
         </Suspense>
       ) : (
         <p className="text-sm text-[var(--color-fg-muted)]">
@@ -100,7 +154,19 @@ function placeholderFor(mode: Mode): string {
   return "계약번호 (별도 키 필요)";
 }
 
-async function Result({ mode, q, ord }: { mode: Mode; q: string; ord: string }) {
+async function Result({
+  mode,
+  q,
+  ord,
+  from,
+  to,
+}: {
+  mode: Mode;
+  q: string;
+  ord: string;
+  from: string;
+  to: string;
+}) {
   if (mode === "contract") {
     return (
       <div className="rounded border p-4 text-sm text-[var(--color-fg-muted)]">
@@ -111,9 +177,10 @@ async function Result({ mode, q, ord }: { mode: Mode; q: string; ord: string }) 
   }
 
   let r;
+  // P30-R5 P1-18: biz/inst mode에 기간 인자 전달 — backend 무기간 호출 timeout 위험 회피
   if (mode === "bid") r = await lookupByBidNo(q, ord);
-  else if (mode === "biz") r = await lookupByBizNo(q);
-  else r = await lookupByInstCode(q);
+  else if (mode === "biz") r = await lookupByBizNo(q, from, to);
+  else r = await lookupByInstCode(q, from, to);
 
   if (!r.ok) {
     return (
@@ -222,6 +289,55 @@ async function Result({ mode, q, ord }: { mode: Mode; q: string; ord: string }) 
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {/* P30-R5 P1-17: bid_notice_no_list 표시 (mode=biz) — 이 업체가 받은 공고 목록 */}
+      {mode === "biz" && summary?.bid_notice_no_list?.length > 0 && (
+        <section className="rounded-lg border">
+          <header className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm font-medium">
+            <span>이 업체가 받은 공고 목록</span>
+            <span className="text-xs font-normal text-[var(--color-fg-muted)]">
+              (낙찰 {summary.award_count ?? 0}건 · 첫{" "}
+              {summary.bid_notice_no_list.length}건)
+            </span>
+          </header>
+          <table className="w-full text-sm">
+            <thead className="bg-[var(--color-bg-muted)]">
+              <tr>
+                <th className="px-3 py-2 text-left">#</th>
+                <th className="px-3 py-2 text-left">공고번호</th>
+                <th className="px-3 py-2 text-right">바로가기</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.bid_notice_no_list.map(
+                (bidNo: string, i: number) => (
+                  <tr key={i} className="border-t">
+                    <td className="px-3 py-2 tabular-nums text-[var(--color-fg-muted)]">
+                      {i + 1}
+                    </td>
+                    <td className="px-3 py-2 font-mono">
+                      <Link
+                        href={`/bids/trace?no=${bidNo}&ord=00`}
+                        className="entity-link"
+                      >
+                        {bidNo}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2 text-right text-xs">
+                      <Link
+                        href={`/bids/trace?no=${bidNo}&ord=00`}
+                        className="entity-link"
+                      >
+                        추적 →
+                      </Link>
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         </section>
