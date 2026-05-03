@@ -1,38 +1,38 @@
 # P0 자동 실행 결과 (2)
 
-- 실행: 2026-05-03 13:29 KST
-- API 호출: 69건 (49 PASS / 20 FAIL)
-- SKIP (UI): 51건
-- 전체 소요: 673.6초
+- 실행: 2026-05-03 13:54 KST
+- API 호출: 74건 (64 PASS / 10 FAIL)
+- SKIP (UI): 46건
+- 전체 소요: 743.5초
 
 ## 결과 표
 
 | ID | 도구 | 상태 | ms | 메시지 |
 |---|---|---|---|---|
-| S01-C3 | search_bid_notices | FAIL | 6790 | ✗ min_items=1 actual=0 |
-| S01-C4 | search_bid_notices | PASS | 5065 | ✓ min_items=1 actual=10 |
-| S01-C5 | search_bid_notices | PASS | 10034 | ✓ min_items=3 actual=3 |
-| S01-C6 | search_bid_notices | PASS | 8773 | ✓ min_items=3 actual=10 |
-| S01-C7 | search_bid_notices | PASS | 13644 | ✓ min_items=5 actual=6 |
-| S01-C8 | search_bid_notices | PASS | 10401 | ✓ min_items=5 actual=7 |
-| S01-C9 | search_bid_notices | PASS | 13428 | ✓ min_items=5 actual=6 |
-| S01-C10 | search_bid_notices | PASS | 21844 | ✓ chunks=3 actual=3 |
-| S02-C1 | search_bid_notices | FAIL | 3178 | ✗ endpoints contains ['getBidPblancListInfoServc']: False |
-| S02-C2 | search_bid_notices | FAIL | 3273 | ✗ endpoints contains ['getBidPblancListInfoCnstwk']: False |
-| S02-C3 | search_bid_notices | FAIL | 2986 | ✗ endpoints contains ['getBidPblancListInfoThng']: False |
-| S02-C4 | search_bid_notices | FAIL | 2399 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts="1 validation error for BidNoticeS |
-| S02-C5 | search_bid_notices | PASS | 3355 | tool call ok (items=0) |
-| S02-C6 | search_bid_notices | PASS | 2904 | tool call ok (items=0) |
-| S02-C8 | search_bid_notices | PASS | 3113 | tool call ok (items=0) |
-| S02-C9 | search_bid_notices | PASS | 3114 | tool call ok (items=0) |
-| S03-C3 | search_bid_notices | PASS | 4831 | ✓ min_items=1 actual=1 |
-| S03-C4 | search_bid_notices | PASS | 2377 | ✓ min_items=1 actual=10 |
-| S03-C5 | search_bid_notices | PASS | 3273 | tool call ok (items=10) |
-| S03-C6 | search_bid_notices | PASS | 5145 | tool call ok (items=10) |
-| S03-C7 | search_bid_notices | PASS | 13106 | tool call ok (items=1) |
-| S03-C8 | search_bid_notices | PASS | 13828 | tool call ok (items=1) |
-| S03-C9 | search_bid_notices | PASS | 10872 | tool call ok (items=10) |
-| S03-C10 | search_bid_notices | PASS | 4169 | ✓ chunks=12 actual=12 |
+| S01-C3 | search_bid_notices | FAIL | 4584 | ✗ min_items=1 actual=0 |
+| S01-C4 | search_bid_notices | PASS | 5431 | ✓ min_items=1 actual=10 |
+| S01-C5 | search_bid_notices | PASS | 10509 | ✓ min_items=3 actual=3 |
+| S01-C6 | search_bid_notices | PASS | 7606 | ✓ min_items=3 actual=10 |
+| S01-C7 | search_bid_notices | PASS | 11894 | ✓ min_items=5 actual=6 |
+| S01-C8 | search_bid_notices | PASS | 10583 | ✓ min_items=5 actual=7 |
+| S01-C9 | search_bid_notices | PASS | 13975 | ✓ min_items=5 actual=6 |
+| S01-C10 | search_bid_notices | PASS | 21814 | ✓ chunks=3 actual=3 |
+| S02-C1 | search_bid_notices | PASS | 3820 | ✓ endpoints contains ['getBidPblancListInfoServc']: True |
+| S02-C2 | search_bid_notices | PASS | 3955 | ✓ endpoints contains ['getBidPblancListInfoCnstwk']: True |
+| S02-C3 | search_bid_notices | PASS | 3519 | ✓ endpoints contains ['getBidPblancListInfoThng']: True |
+| S02-C4 | search_bid_notices | FAIL | 4464 | ✗ endpoints_count=3 actual=1 |
+| S02-C5 | search_bid_notices | PASS | 10179 | tool call ok (items=1) |
+| S02-C6 | search_bid_notices | PASS | 9495 | tool call ok (items=1) |
+| S02-C8 | search_bid_notices | PASS | 11014 | tool call ok (items=1) |
+| S02-C9 | search_bid_notices | PASS | 5499 | tool call ok (items=2) |
+| S03-C3 | search_bid_notices | PASS | 5104 | ✓ min_items=1 actual=1 |
+| S03-C4 | search_bid_notices | PASS | 2371 | ✓ min_items=1 actual=10 |
+| S03-C5 | search_bid_notices | PASS | 3413 | tool call ok (items=10) |
+| S03-C6 | search_bid_notices | PASS | 5038 | tool call ok (items=10) |
+| S03-C7 | search_bid_notices | PASS | 10598 | tool call ok (items=1) |
+| S03-C8 | search_bid_notices | PASS | 9852 | tool call ok (items=1) |
+| S03-C9 | search_bid_notices | PASS | 11734 | tool call ok (items=10) |
+| S03-C10 | search_bid_notices | PASS | 5792 | ✓ chunks=12 actual=12 |
 | S04-C1 |  | SKIP | 0 | UI/action only |
 | S04-C2 |  | SKIP | 0 | UI/action only |
 | S04-C3 |  | SKIP | 0 | UI/action only |
@@ -52,44 +52,44 @@
 | S06-C6 |  | SKIP | 0 | UI/action only |
 | S06-C7 |  | SKIP | 0 | UI/action only |
 | S06-C10 |  | SKIP | 0 | UI/action only |
-| S07-C1 | search_awards_by_vendor | PASS | 19013 | ✓ min_candidates=5 actual=9 |
-| S07-C2 | search_awards_by_vendor | PASS | 52413 | ✓ must_contain_any=['디지털'] → True; ✓ min_candidates=1 actual=2 |
-| S07-C3 | search_awards_by_vendor | FAIL | 3227 | ✗ min_candidates=1 actual=0 |
-| S07-C4 | search_awards_by_vendor | FAIL | 3263 | ✗ min_candidates=1 actual=0 |
-| S07-C5 | search_awards_by_vendor | PASS | 21785 | tool call ok (items=10) |
-| S07-C9 | search_awards_by_vendor | PASS | 8791 | ✓ chunks=4 actual=4 |
-| S08-C1 | vendor_profile | PASS | 6652 | tool call ok (items=0) |
-| S08-C2 | vendor_profile | PASS | 6744 | tool call ok (items=0) |
-| S08-C3 | vendor_profile | PASS | 3781 | tool call ok (items=0) |
-| S08-C10 | vendor_profile | PASS | 3984 | tool call ok (items=0) |
-| S09-C1 | agency_procurement_history | PASS | 3300 | tool call ok (items=0) |
-| S09-C2 | agency_procurement_history | PASS | 3084 | tool call ok (items=0) |
-| S09-C3 | agency_procurement_history | PASS | 2957 | tool call ok (items=0) |
-| S09-C4 | agency_procurement_history | PASS | 3843 | tool call ok (items=0) |
-| S09-C5 | agency_procurement_history | PASS | 3754 | tool call ok (items=0) |
-| S09-C6 | agency_procurement_history | PASS | 2722 | tool call ok (items=0) |
-| S09-C7 | agency_procurement_history | FAIL | 2677 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts="1 validation error for BidNoticeS |
-| S09-C10 | agency_procurement_history | PASS | 2948 | tool call ok (items=0) |
-| S10-C1 | analyze_agency_price_pattern | PASS | 3788 | tool call ok (items=0) |
-| S10-C2 | analyze_agency_price_pattern | PASS | 3124 | tool call ok (items=0) |
-| S10-C3 | analyze_agency_price_pattern | PASS | 3976 | tool call ok (items=0) |
+| S07-C1 | search_awards_by_vendor | PASS | 16689 | ✓ min_candidates=5 actual=9 |
+| S07-C2 | search_awards_by_vendor | PASS | 44829 | ✓ must_contain_any=['디지털'] → True; ✓ min_candidates=1 actual=2 |
+| S07-C3 | search_awards_by_vendor | FAIL | 3278 | ✗ min_candidates=1 actual=0 |
+| S07-C4 | search_awards_by_vendor | FAIL | 4218 | ✗ min_candidates=1 actual=0 |
+| S07-C5 | search_awards_by_vendor | PASS | 18450 | tool call ok (items=10) |
+| S07-C9 | search_awards_by_vendor | PASS | 7490 | ✓ chunks=4 actual=4 |
+| S08-C1 | vendor_profile | PASS | 4338 | tool call ok (items=0) |
+| S08-C2 | vendor_profile | PASS | 3741 | tool call ok (items=0) |
+| S08-C3 | vendor_profile | PASS | 4526 | tool call ok (items=0) |
+| S08-C10 | vendor_profile | PASS | 4087 | tool call ok (items=0) |
+| S09-C1 | agency_procurement_history | PASS | 3081 | tool call ok (items=0) |
+| S09-C2 | agency_procurement_history | PASS | 3204 | tool call ok (items=0) |
+| S09-C3 | agency_procurement_history | PASS | 3816 | tool call ok (items=0) |
+| S09-C4 | agency_procurement_history | PASS | 3050 | tool call ok (items=0) |
+| S09-C5 | agency_procurement_history | PASS | 3511 | tool call ok (items=0) |
+| S09-C6 | agency_procurement_history | PASS | 4225 | tool call ok (items=0) |
+| S09-C7 | agency_procurement_history | FAIL | 19142 | ✗ endpoints_min=3 actual=0 |
+| S09-C10 | agency_procurement_history | PASS | 3122 | tool call ok (items=0) |
+| S10-C1 | analyze_agency_price_pattern | PASS | 3483 | tool call ok (items=0) |
+| S10-C2 | analyze_agency_price_pattern | PASS | 4226 | tool call ok (items=0) |
+| S10-C3 | analyze_agency_price_pattern | PASS | 4097 | tool call ok (items=0) |
 | S10-C7 |  | SKIP | 0 | UI/action only |
-| S11-C1 | trace_bid_lifecycle | PASS | 35549 | tool call ok (items=0) |
-| S11-C2 | trace_bid_lifecycle | PASS | 35310 | tool call ok (items=0) |
-| S11-C3 | trace_bid_lifecycle | PASS | 37966 | tool call ok (items=0) |
-| S11-C4 | trace_bid_lifecycle | PASS | 37182 | tool call ok (items=0) |
+| S11-C1 | trace_bid_lifecycle | PASS | 40904 | tool call ok (items=0) |
+| S11-C2 | trace_bid_lifecycle | PASS | 44269 | tool call ok (items=0) |
+| S11-C3 | trace_bid_lifecycle | PASS | 36386 | tool call ok (items=0) |
+| S11-C4 | trace_bid_lifecycle | PASS | 38333 | tool call ok (items=0) |
 | S11-C7 |  | SKIP | 0 | UI/action only |
-| S11-C8 | trace_bid_lifecycle | PASS | 17039 | tool call ok (items=0) |
-| S12-C1 | trace_bid_lifecycle | PASS | 34069 | tool call ok (items=0) |
-| S12-C2 | trace_bid_lifecycle | PASS | 15701 | tool call ok (items=0) |
-| S12-C3 | trace_bid_lifecycle | PASS | 35137 | tool call ok (items=0) |
-| S12-C4 | trace_bid_lifecycle | FAIL | 3273 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='2 validation errors for call[trac |
-| S12-C5 | trace_bid_lifecycle | PASS | 38535 | tool call ok (items=0) |
-| S13-C1 | search_kwater_contracts | FAIL | 4034 | ✗ items_eq=5 actual=20; ✓ must_contain_any=['광주시 노후 상수관로'] → True |
-| S13-C2 | search_kwater_contracts | FAIL | 3351 | ✗ items_eq=5 actual=20 |
-| S13-C3 | search_kwater_contracts | FAIL | 9561 | ✗ items_in_range=[1,5] actual=20 |
-| S13-C8 | search_kwater_contracts | PASS | 4199 | tool call ok (items=20) |
-| S13-C9 | search_kwater_contracts | PASS | 3373 | tool call ok (items=20) |
+| S11-C8 | trace_bid_lifecycle | PASS | 18645 | tool call ok (items=0) |
+| S12-C1 | trace_bid_lifecycle | PASS | 36726 | tool call ok (items=0) |
+| S12-C2 | trace_bid_lifecycle | PASS | 18449 | tool call ok (items=0) |
+| S12-C3 | trace_bid_lifecycle | PASS | 39955 | tool call ok (items=0) |
+| S12-C4 | trace_bid_lifecycle | FAIL | 2585 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='2 validation errors for call[trac |
+| S12-C5 | trace_bid_lifecycle | PASS | 39608 | tool call ok (items=0) |
+| S13-C1 | search_kwater_contracts | PASS | 7843 | ✓ items_eq=5 actual=5; ✓ must_contain_any=['광주시 노후 상수관로'] → True |
+| S13-C2 | search_kwater_contracts | PASS | 4296 | ✓ items_eq=5 actual=5 |
+| S13-C3 | search_kwater_contracts | PASS | 3875 | ✓ items_in_range=[1,5] actual=5 |
+| S13-C8 | search_kwater_contracts | PASS | 4207 | tool call ok (items=20) |
+| S13-C9 | search_kwater_contracts | PASS | 3763 | tool call ok (items=20) |
 | S14-C1 |  | SKIP | 0 | UI/action only |
 | S14-C2 |  | SKIP | 0 | UI/action only |
 | S14-C6 |  | SKIP | 0 | UI/action only |
@@ -106,21 +106,21 @@
 | S16-C4 |  | SKIP | 0 | UI/action only |
 | S16-C5 |  | SKIP | 0 | UI/action only |
 | S16-C6 |  | SKIP | 0 | UI/action only |
-| S17-C1 | calc_qualification_score | FAIL | 2341 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='1 validation error for call[calc_ |
-| S17-C2 | calc_qualification_score | FAIL | 2414 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='1 validation error for call[calc_ |
-| S17-C3 | calc_qualification_score | FAIL | 2416 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='1 validation error for call[calc_ |
-| S17-C6 | calc_qualification_score | FAIL | 2413 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='6 validation errors for call[calc |
-| S18-C1 | predict_bid_price | FAIL | 2342 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='1 validation error for call[predi |
-| S18-C2 | predict_bid_price | FAIL | 2405 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='1 validation error for call[predi |
-| S18-C3 | predict_bid_price | FAIL | 2510 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='1 validation error for call[predi |
-| S18-C5 | predict_bid_price | FAIL | 2389 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='1 validation error for call[predi |
-| S18-C6 | predict_bid_price | PASS | 2358 | tool call ok (items=0) |
+| S17-C1 | calc_qualification_score | PASS | 2699 | tool call ok (items=0) |
+| S17-C2 | calc_qualification_score | PASS | 2521 | tool call ok (items=0) |
+| S17-C3 | calc_qualification_score | PASS | 2565 | tool call ok (items=0) |
+| S17-C6 | calc_qualification_score | PASS | 2450 | tool call ok (items=0) |
+| S18-C1 | predict_bid_price | PASS | 3434 | tool call ok (items=0) |
+| S18-C2 | predict_bid_price | PASS | 4221 | tool call ok (items=0) |
+| S18-C3 | predict_bid_price | PASS | 4041 | tool call ok (items=0) |
+| S18-C5 | compare_bid_strategies | PASS | 3727 | tool call ok (items=0) |
+| S18-C6 | estimate_winning_threshold | PASS | 2517 | tool call ok (items=0) |
 | S18-C10 |  | SKIP | 0 | UI/action only |
-| S19-C1 |  | SKIP | 0 | UI/action only |
-| S19-C2 |  | SKIP | 0 | UI/action only |
-| S19-C3 |  | SKIP | 0 | UI/action only |
-| S19-C5 |  | SKIP | 0 | UI/action only |
-| S19-C6 |  | SKIP | 0 | UI/action only |
+| S19-C1 | lookup_by_bid_no | FAIL | 2576 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='3 validation errors for call[look |
+| S19-C2 | lookup_by_bid_no | FAIL | 2588 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='3 validation errors for call[look |
+| S19-C3 | lookup_by_inst_code | PASS | 6450 | tool call ok (items=0) |
+| S19-C5 | lookup_by_biz_no | FAIL | 2559 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='2 validation errors for call[look |
+| S19-C6 | lookup_by_biz_no | FAIL | 2463 | unexpected error: inner parse fail: Extra data: line 1 column 3 (char 2); body_starts='2 validation errors for call[look |
 | S19-C10 |  | SKIP | 0 | UI/action only |
 | S20-C1 |  | SKIP | 0 | UI/action only |
 | S20-C2 |  | SKIP | 0 | UI/action only |

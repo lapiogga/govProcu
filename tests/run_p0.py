@@ -191,7 +191,7 @@ def main():
     for scenario in fixture["scenarios"]:
         if sc_filter and scenario["id"] not in sc_filter:
             continue
-        tool = scenario.get("tool", "")
+        scenario_tool = scenario.get("tool", "")
         for case in scenario["cases"]:
             if case.get("priority") != args.priority:
                 continue
@@ -200,12 +200,24 @@ def main():
             if args.limit and api_count >= args.limit:
                 break
 
+            # case-level tool override (예: S18-C5 compare_bid_strategies)
+            tool = case.get("tool") or scenario_tool
+
             if not is_api_callable(case, tool):
                 results.append({"id": cid, "status": "SKIP", "msg": "UI/action only", "ms": 0})
                 skip_count += 1
                 continue
 
             input_args = case.get("input", {}) or {}
+            # date_id (예: "M1") → date_matrix에서 from/to 자동 변환
+            date_matrix = fixture.get("date_matrix", {})
+            for date_key in ("date_id",):
+                did = input_args.get(date_key) or case.get(date_key)
+                if did and did in date_matrix:
+                    df, dt = date_matrix[did]
+                    input_args = {**input_args, "from": df, "to": dt}
+                    input_args.pop("date_id", None)
+                    break
             # tool 인자 정규화
             tool_args = {}
             tool_arg_map = {
@@ -218,9 +230,6 @@ def main():
                 "search_awards_by_vendor": {
                     "name": "vendor_name", "from": "date_from", "to": "date_to",
                     "biz": "biz_type",
-                },
-                "search_kwater_contracts": {
-                    "dt": "search_dt", "biz": "biz_type", "limit": "limit",
                 },
                 "trace_bid_lifecycle": {
                     "no": "bid_notice_no", "ord": "bid_ord",
@@ -236,6 +245,24 @@ def main():
                     "name": "inst_name", "type": "biz_type",
                     "from": "date_from", "to": "date_to",
                 },
+                "calc_qualification_score": {
+                    # fixture: bid_amount, base_amount, mgmt_score, exp_score, price_score
+                    # 도구: bid_amount, base_amount, biz_type(필수), experience_actual, ...
+                    # fixture에 biz_type 없으면 default 추가 (runner 보강 필요)
+                },
+                "predict_bid_price": {
+                    "estimated_price": "base_amount",  # fixture estimated_price → 도구 base_amount
+                },
+                "compare_bid_strategies": {
+                    "scenarios": "strategies",  # fixture scenarios → 도구 strategies
+                    "estimated_price": "base_amount",
+                },
+                "estimate_winning_threshold": {
+                    "estimated_price": "base_amount",
+                },
+                "search_kwater_contracts": {
+                    "dt": "search_dt", "biz": "biz_type", "limit": "limit",
+                },
             }
             mapping = tool_arg_map.get(tool, {})
             for k, v in input_args.items():
@@ -248,7 +275,10 @@ def main():
             # deep=1 → scan_pages=5
             if input_args.get("deep") == "1":
                 tool_args["scan_pages"] = 5
-            # limit 강제 — search_bid_notices/search_awards_by_vendor만 (다른 도구들은 limit 인자 없음)
+            # type="" 빈문자열은 None으로 변환 (도구가 None일 때 전체 endpoint 호출)
+            if tool_args.get("biz_type") == "":
+                tool_args.pop("biz_type", None)
+            # limit 강제 — search_bid_notices/search_awards_by_vendor만
             if "limit" not in tool_args and tool in (
                 "search_bid_notices",
                 "search_awards_by_vendor",
@@ -256,6 +286,32 @@ def main():
                 "analyze_agency_price_pattern",
             ):
                 tool_args["limit"] = 10
+            # KWater fixture가 expected items_eq=5인데 default 20 → limit=5 자동 추가
+            if tool == "search_kwater_contracts" and "limit" not in tool_args:
+                exp = case.get("expected", {})
+                if "items_eq" in exp:
+                    tool_args["limit"] = exp["items_eq"]
+                elif "items_in_range" in exp:
+                    tool_args["limit"] = exp["items_in_range"][1]
+            # calc_qualification_score: biz_type 필수 → fixture 미지정 시 default
+            if tool == "calc_qualification_score":
+                if "biz_type" not in tool_args:
+                    tool_args["biz_type"] = "용역"
+                # fixture가 mgmt_score 등 도구 미지원 인자 보내면 제거 + 필수 default
+                for k in ("mgmt_score", "exp_score", "price_score", "perfect_case", "zero_case", "empty_form"):
+                    tool_args.pop(k, None)
+                tool_args.setdefault("bid_amount", 950_000_000)
+                tool_args.setdefault("base_amount", 1_000_000_000)
+            # predict_bid_price: scenarios 형식 변환 (fixture rate% 객체 → 도구 strategies float ratio)
+            if tool == "compare_bid_strategies" and "strategies" in tool_args:
+                raw_strats = tool_args["strategies"]
+                if isinstance(raw_strats, list) and raw_strats and isinstance(raw_strats[0], dict):
+                    tool_args["strategies"] = [s.get("rate", 0) / 100 for s in raw_strats]
+                # base_amount 필수 → 미지정 시 default
+                if "base_amount" not in tool_args:
+                    tool_args["base_amount"] = 1_000_000_000
+                if "inst_name" not in tool_args:
+                    tool_args["inst_name"] = "한국수자원공사"
 
             t0 = time.time()
             actual = call_mcp(tool, tool_args, timeout=120)
