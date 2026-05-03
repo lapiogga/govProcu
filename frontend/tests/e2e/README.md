@@ -16,7 +16,7 @@ npm install
 npx playwright install  # 첫 1회
 
 # 백그라운드: MCP 서버 + frontend dev
-# (다른 터미널) cd .. && uvicorn app.server:app --port 8080
+# (다른 터미널) cd .. && uvicorn app.server:app --port 8081
 # (다른 터미널) npm run dev
 
 # E2E 실행

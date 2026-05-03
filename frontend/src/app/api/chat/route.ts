@@ -6,7 +6,7 @@
  *
  * 환경변수:
  *   ANTHROPIC_API_KEY: Claude 호출
- *   GOVPROCU_MCP_URL: MCP 서버 (기본 localhost:8080)
+ *   GOVPROCU_MCP_URL: MCP 서버 (기본 localhost:8081)
  */
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, tool } from "ai";

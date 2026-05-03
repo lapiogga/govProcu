@@ -32,7 +32,7 @@ verify는 `tsc --noEmit && next build`. 자주 깨지는 곳:
 ### 1.3 `npm run dev` 후 화면 빈 페이지
 
 - 브라우저 콘솔에 `Hydration mismatch` → 시간 표시 등 클라이언트/서버 불일치. 해당 컴포넌트 `suppressHydrationWarning` 또는 `'use client'` 강제
-- API 라우트 500 → MCP 서버 (`localhost:8080`) 미기동. `uvicorn app.server:app --port 8080` 먼저 띄우고 reload
+- API 라우트 500 → MCP 서버 (`localhost:8081`) 미기동. `uvicorn app.server:app --port 8081` 먼저 띄우고 reload
 - `ANTHROPIC_API_KEY` 미설정 → `/console` 만 깨짐. `frontend/.env.local` 추가
 
 ---
@@ -160,7 +160,7 @@ KORAIL_API_KEY=
 `frontend/.env.local`:
 ```
 ANTHROPIC_API_KEY=
-MCP_BASE_URL=http://localhost:8080
+MCP_BASE_URL=http://localhost:8081
 MCP_API_TOKEN=devtoken1
 ```
 

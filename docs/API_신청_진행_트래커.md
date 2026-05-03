@@ -66,10 +66,10 @@ cd C:\Users\User\GovProcu
 pip install -e .
 
 # 3. 서버 기동 (개발 모드)
-uvicorn app.server:app --port 8080 --reload
+uvicorn app.server:app --port 8081 --reload
 
 # 4. 다른 PowerShell에서 동작 확인
-curl http://localhost:8080/health
+curl http://localhost:8081/health
 ```
 
 또는 Docker로:

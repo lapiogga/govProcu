@@ -34,7 +34,7 @@ http://localhost:3000
 
 ```env
 ANTHROPIC_API_KEY=sk-ant-...
-GOVPROCU_MCP_URL=http://localhost:8080
+GOVPROCU_MCP_URL=http://localhost:8081
 ```
 
 ## 기술 스택

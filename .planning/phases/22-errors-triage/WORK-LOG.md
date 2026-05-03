@@ -35,3 +35,9 @@
 | 21:52 | lead | v22.5 F7 fix 적용 | `frontend/src/app/vendors/[bizNo]/page.tsx`: data null 분기 강화 (응답 파싱 실패 명시). `hasAnyData` 검증 + 빈 응답 시 명시 안내 panel (가능 원인 4종 + implementation_status). NTS 섹션에 키 미설정 안내. backend는 변경 없음 — frontend 분기만 강화 |
 | 21:55 | lead | v22.5 commit (e2762d7) | atomic — vendors/[bizNo]/page.tsx + WORK-LOG + PROMPTS-LOG |
 | 22:00 | lead | v22.6 F8 fix 적용 | (1) `app/tools/bid.py:215+` `if not matches: has_more = False` (v22.2) → `if scanned_total == 0: has_more = False` 정정. G2B 데이터 받았으나 keyword/inst 필터로 매칭 0건이면 다음 페이지에 매칭 가능성 → has_more 유지 (사용자 검색 차단 해제). (2) `frontend/src/app/bids/page.tsx`: `params.keyword?.trim()` 추가 + `trimmedInst` 동시 분기 + 메시지에 inst_name 동시 표시. import sanity check OK |
+| 22:02 | lead | v22.6 commit (08025c6) | atomic — bid.py + bids/page.tsx + WORK-LOG |
+| 21:55 | user | 발화 #8 (글로벌 규칙: 별도 관리 Agent + 주기적 작성) | 운영 규칙 변경. cron 1시간 + sub-agent 위임 plan |
+| 21:59 | user | 발화 #9 ("자동 진행") | 컨펌 면제 — 일괄 자동 진행 |
+| 22:05 | lead | v22.7 chore sed 변환 | 9 파일 (README × 3, docs × 5, route.ts) 8080 → 8081 일괄 변환. `for f in ...; do sed -i 's/8080/8081/g' $f; done` 모두 success. verify grep: 잔재는 docker-compose 2종 + e2e.yml CI + historical records (.planning, SESSION-SUMMARY, logs)만 — 의도 보류 |
+| 22:08 | lead | 글로벌 규칙 갱신 | `~/.claude/rules/prompts-log.md` 섹션 8 추가 — 별도 관리 Agent + cron 1시간 + sub-agent 위임 |
+| 22:08 | lead | CronCreate | `7 * * * *` recurring durable=true. trigger prompt: 1시간마다 3종 로그 점검·보충 |

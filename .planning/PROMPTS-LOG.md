@@ -14,3 +14,5 @@
 | 21:30 | 5 | "전체적으로 조회하는 속도가 많이 느림.. 속도를 당길 방안이 필요함." | 핵심지시 | 신규 결함 **F9 성능 개선** 등록. R 형식 폴백 12 chunks·1개월 청킹·6단계 await 직렬·default 기간 길이가 누적된 비용. 별도 Phase 23으로 분리 권장 (trace Suspense streaming, cache 강화, default 기간 단축 등 큰 변경) |
 | 21:38 | 6 | "통상 5초 이내에 조회가 되어야 함," | 핵심지시 | **F9에 SLA = 5초** 명시. Phase 23 설계가 단순 최적화 ↔ 아키텍처 변경(Streaming 1st-byte + 사전 ETL 캐싱 + default 기간 대폭 단축)으로 격상. 사용자 컨펌 후 Phase 23 가동 |
 | 21:50 | 7 | "1" | 선택 | Phase 22 잔여(v22.5/22.6/22.7) 먼저 마무리 → Phase 23 가동 옵션 선택. v22.5 (F7 vendor 빈 응답 명시) 즉시 시작 |
+| 21:55 | 8 | "글로벌 규칙으로 프롬프트로그, 워크로그, 터미널로그 작성은 별도의 관리Agent를 두어 주기적으로 20분간격 또는 1시간 간격으로 작성하게 하고" | 운영지시 (글로벌) | **글로벌 규칙 변경**: 메인 agent가 직접 로그 작성 → 별도 관리 Agent + cron 주기. 구현: (A) `~/.claude/rules/prompts-log.md` 갱신, (B) CronCreate(durable=true) 1시간 간격, (C) fire 시 sub-agent 위임 |
+| 21:59 | 9 | "수정 및 verify는 자동으로 진행해 줘" | 운영지시 | 컨펌 면제. 본 phase 잔여(글로벌 규칙 갱신 + cron 등록 + v22.7 verify+commit) 일괄 자동 진행 |

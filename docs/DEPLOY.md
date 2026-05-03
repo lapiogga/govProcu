@@ -11,7 +11,7 @@
 [브라우저]  ──HTTPS──▶  [Next.js frontend (3000)]
                                  │
                                  ▼  Server Actions
-                       [GovProcu MCP (8080)]
+                       [GovProcu MCP (8081)]
                           ├─▶ G2B OpenAPI (apis.data.go.kr)
                           ├─▶ NTS OpenAPI (api.odcloud.kr)
                           ├─▶ SQLite (govprocu.db)  ← 알림·즐겨찾기·ETL state
@@ -40,13 +40,13 @@
   REDIS_URL=redis://redis:6379/0
   LOG_LEVEL=INFO
   SERVER_HOST=0.0.0.0
-  SERVER_PORT=8080
+  SERVER_PORT=8081
   ```
 
 ### 2.2 frontend `.env.local`
 ```env
 ANTHROPIC_API_KEY=sk-ant-...
-GOVPROCU_MCP_URL=http://localhost:8080
+GOVPROCU_MCP_URL=http://localhost:8081
 ```
 
 ---
@@ -57,7 +57,7 @@ GOVPROCU_MCP_URL=http://localhost:8080
 ```powershell
 cd C:\Users\User\GovProcu
 pip install -e .
-uvicorn app.server:app --host 0.0.0.0 --port 8080 --workers 2
+uvicorn app.server:app --host 0.0.0.0 --port 8081 --workers 2
 ```
 
 ### 3.2 Frontend

@@ -40,12 +40,12 @@ cp .env.example .env
 
 # 2. MCP 서버 (65 도구)
 pip install -e .
-uvicorn app.server:app --port 8080
+uvicorn app.server:app --port 8081
 
 # 3. Frontend
 cd frontend
 cp .env.example .env.local
-# ANTHROPIC_API_KEY (자연어 콘솔용) + MCP_BASE_URL=http://localhost:8080
+# ANTHROPIC_API_KEY (자연어 콘솔용) + MCP_BASE_URL=http://localhost:8081
 npm install
 npm run dev
 ```
@@ -116,7 +116,7 @@ docker compose -f deploy/docker-compose.full.yml up -d
 {
   "mcpServers": {
     "govprocu": {
-      "url": "http://your-server:8080/mcp",
+      "url": "http://your-server:8081/mcp",
       "transport": "http",
       "headers": { "Authorization": "Bearer <MCP_API_TOKEN>" }
     }

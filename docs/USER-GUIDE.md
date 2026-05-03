@@ -136,7 +136,7 @@ MCP_API_TOKENS=alice-2026,bob-2026
 
 # Frontend (.env.local)
 ANTHROPIC_API_KEY=sk-ant-...
-GOVPROCU_MCP_URL=http://localhost:8080
+GOVPROCU_MCP_URL=http://localhost:8081
 ```
 
 ### 자주 쓰는 단축

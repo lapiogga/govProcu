@@ -18,7 +18,7 @@ ls -lh runtime/govprocu.db
 ls -lh backup/
 
 # 3. MCP 서버 헬스체크
-curl -s http://localhost:8080/  # 응답 확인
+curl -s http://localhost:8081/  # 응답 확인
 
 # 4. 자동 push 결과 (git log)
 git log --oneline -3
