@@ -289,17 +289,26 @@ function Stage({
 }
 
 function TimelineSkeleton() {
+  // v22.4 (F6): 사용자 인지 강화 — cursor-wait + 큰 spinner + 진행 메시지
   return (
-    <div className="space-y-2">
-      {[1, 2, 3, 4, 5, 6].map((n) => (
-        <div
-          key={n}
-          className="flex h-12 animate-pulse items-center gap-3 rounded border bg-[var(--color-bg-muted)] px-4"
-        >
-          <span className="font-mono text-xs">{n}</span>
-          <span>⏳</span>
-        </div>
-      ))}
+    <div className="cursor-wait space-y-4">
+      <div className="flex items-center gap-3 rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-4">
+        <span className="inline-block h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-[var(--color-warning,#f59e0b)] border-t-transparent" />
+        <span className="text-sm font-medium text-[var(--color-fg)]">
+          조회 중 — G2B API 6단계 병렬 호출. R 형식 채번은 연도 범위 폴백(12 chunks)으로 30~90초 소요 가능.
+        </span>
+      </div>
+      <div className="space-y-2">
+        {[1, 2, 3, 4, 5, 6].map((n) => (
+          <div
+            key={n}
+            className="flex h-12 animate-pulse items-center gap-3 rounded border bg-[var(--color-bg-muted)] px-4"
+          >
+            <span className="font-mono text-xs">{n}</span>
+            <span>⏳</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

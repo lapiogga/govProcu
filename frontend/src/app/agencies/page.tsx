@@ -95,7 +95,14 @@ export default async function AgenciesPage(props: {
               빠른 분석은 from/to 단축 권장.
             </div>
           )}
-          <Suspense fallback={<Skel h={32} />}>
+          <Suspense
+            fallback={
+              <Skel
+                h={32}
+                label={`사정률 패턴 분석 중 — 1개월 청크 ${Math.ceil(rangeDays / 31)}회 × 4 endpoint (약 ${estimatedSec}초 예상)`}
+              />
+            }
+          >
             <PriceCard
               instName={sp.name}
               bizType={sp.type}
@@ -103,7 +110,14 @@ export default async function AgenciesPage(props: {
               to={dateTo}
             />
           </Suspense>
-          <Suspense fallback={<Skel h={48} />}>
+          <Suspense
+            fallback={
+              <Skel
+                h={48}
+                label={`발주 이력 + 낙찰업체 매칭 중 — 공고/낙찰 cross-join`}
+              />
+            }
+          >
             <HistoryTable
               instName={sp.name}
               bizType={sp.type}
@@ -250,11 +264,20 @@ function Stat({ label, v }: { label: string; v: string }) {
   );
 }
 
-function Skel({ h }: { h: number }) {
+function Skel({ h, label }: { h: number; label?: string }) {
+  // v22.4 (F6): 사용자 인지 강화 — cursor-wait + 명확 spinner + 진행 메시지
   return (
-    <div
-      className="animate-pulse rounded bg-[var(--color-bg-muted)]"
-      style={{ height: `${h * 4}px` }}
-    />
+    <div className="cursor-wait space-y-2">
+      {label && (
+        <div className="flex items-center gap-3 rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-3 text-sm">
+          <span className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[var(--color-warning,#f59e0b)] border-t-transparent" />
+          <span className="font-medium">{label}</span>
+        </div>
+      )}
+      <div
+        className="animate-pulse rounded bg-[var(--color-bg-muted)]"
+        style={{ height: `${h * 4}px` }}
+      />
+    </div>
   );
 }

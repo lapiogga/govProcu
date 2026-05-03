@@ -21,3 +21,11 @@
 | 21:00 | lead | v22.2 F4 fix 적용 | `app/tools/bid.py:215+` `if not matches: has_more = False` 보수적 정정. 빈 매칭 시 다음 페이지 권유 차단 → 사용자 모순 메시지 ("결과 없음 (25966건). 다음 페이지를 시도하세요") 제거 |
 | 21:02 | lead | v22.2 commit (9729f72) | atomic — bid.py + WORK-LOG |
 | 21:05 | lead | v22.3 F2 fix 적용 | `app/tools/bid.py` 모듈 상단 `structlog` import + `log` 글로벌. `get_bid_notice_detail` 3차 폴백을 R/숫자 형식이면 `_infer_period_from_bid_no` 연도 범위 1회 시도, 형식 불명이면 30→90일 progressive로 변경. `except Exception: pass` → `log.warning(...) + continue`로 가시화. `fallback_range` 필드 추가로 어느 범위에서 매칭됐는지 응답 동봉. import sanity check OK |
+| 21:08 | lead | v22.3 commit (b71f4d2) | atomic |
+| 21:18 | user | 화면 검증 결과 보고 (발화 #4) | 신규 결함 3건 (F6/F7/F8) 보고. F1 포트 fix 효과 OK (다른 화면 작동), F2 trace 작동하나 느림, F3 발주기관 작동하나 느림, F7 업체 프로필 빈 화면, F8 입찰검색 매칭 실패 |
+| 21:20 | lead | sub-agent 2개 spawn (F7, F8 진단) + UX fix(F6) 코드 분석 병렬 | TaskCreate #7~9 |
+| 21:25 | lead | F6 코드 적용 (UX) | `bids/trace/page.tsx` TimelineSkeleton + `agencies/page.tsx` Skel + Suspense fallback label에 cursor-wait + spinner + 진행 메시지 추가 |
+| 21:30 | user | 발화 #5 "전체적으로 조회하는 속도가 많이 느림" | F9 신규 결함 (성능). Phase 23 신설 권장 |
+| 21:32 | Agent F8 | 진단 보고 도착 | **HIGH**: G2B keyword 파라미터 미지원 → 클라이언트 999건 필터. **HIGH**: v22.2 fix 부작용 (정상 케이스에서도 has_more=False 차단). MEDIUM: 30일 default 너무 좁음. → v22.6 정정안 |
+| 21:32 | Agent F7 | 진단 보고 도착 | **1순위(90%)**: V1~V3 도구 스텁 + NTS 키 미설정으로 backend가 빈 sections 응답. frontend 조건부 렌더링이 모두 스킵 → 빈 화면 인식. → v22.5 frontend 명시 안내 fix |
+| 21:34 | lead | ROOT-CAUSE.md F6/F7/F8/F9 섹션 신규 + 종합 fix 순서 갱신 | v22.4 (F6 commit 대기) → v22.5 (F7) → v22.6 (F8) → v22.7 (chore) → Phase 23 (F9) → Phase X (F3, F5) |

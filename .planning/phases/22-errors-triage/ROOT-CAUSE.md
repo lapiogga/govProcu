@@ -145,3 +145,108 @@ v22.6  verify(deep): F5 v21 fix 효과 검증 (사용자 화면)        ← F5
 - [ ] frontend rebuild & 재기동 (v21 변경 반영): `cd frontend && npm run build && npm run start`
 - [ ] err-01 화면 (localhost:8081) 정상 접속 확인
 - [ ] err-05 (구축사업 + deep) 재시도 → 500 재현 여부 확인
+
+---
+
+## 사용자 화면 검증 결과 — 신규 결함 4건 (발화 #4·#5)
+
+### F6 — UX loading 안내 부재 (입찰추적·발주기관 공통)
+
+**증상**: G2B chunking으로 응답 10~90초 소요. 사용자가 "응답 멎었나" 인지 어려움. err-02에 "MCP 호출 중..." 텍스트는 있으나 작고 색이 약함.
+
+**Root cause**: TimelineSkeleton/Skel이 `animate-pulse + ⏳`만 표시. cursor 변화 없음. 진행 메시지 없음.
+
+**수정 (v22.4 코드 적용 — commit 대기)**:
+- `bids/trace/page.tsx` TimelineSkeleton: `cursor-wait` + 큰 spinner + 명시 메시지("R 형식 채번은 30~90초 소요 가능")
+- `agencies/page.tsx` Skel: `cursor-wait` + spinner + 청크 수·예상 초 안내
+
+---
+
+### F7 — 업체 프로필 페이지 전체 미표시 (Agent F7)
+
+**Root Cause** (1순위, 90%):
+- `app/tools/workflow.py:122-218` `vendor_profile`이 정상 작동하지만 **V1·V2·V3 도구가 스텁** (EVAL 키 미발급) + NTS 키 미설정 → 모든 section 빈 배열
+- frontend `/vendors/[bizNo]/page.tsx`가 모든 sub-section을 조건부 렌더링 (`sections.awards?.items?.length > 0`) → **전부 스킵 → 빈 화면 인식**
+- p0 자동테스트 S08-C1~C10이 `items=0`로 PASS = 도구는 OK이나 응답이 비어있음을 의미
+
+**수정 (v22.5)**:
+- frontend가 빈 응답 시 명시적 안내 표시: "NTS 진위확인 키 미설정 / V1·V2·V3 EVAL 키 발급 후 활성화 — 현재는 awards만 작동"
+- backend `vendor_profile`에 `implementation_status` 필드는 이미 있음 → frontend가 이걸 노출
+
+---
+
+### F8 — 입찰검색 매칭 실패 (Agent F8)
+
+**Root Cause** (1순위, HIGH):
+- G2B `getBidPblancListInfo*` API는 **keyword 파라미터 미지원** → 클라이언트 1개월 999건 받아 로컬 `if keyword not in title: continue` 필터
+- `scan_pages=1` (기본) → **첫 999건만 스캔**. 1개월에 더 많은 공고가 있으면 키워드 매칭 누락
+- **v22.2 fix 부작용**: `if not matches: has_more = False`가 정상 케이스(=다음 페이지 시도 가능)에서도 차단. err-04에서 page 2 빈 응답이지만 페이지 3에 매칭 있을 가능성 차단
+
+**수정 (v22.6)**:
+- v22.2 정정: `if scanned_total == 0: has_more = False` (G2B 빈 응답 한정)
+- 매칭 0건이지만 G2B는 데이터 줌 → has_more 유지 (frontend 권유 가능)
+- `bids/page.tsx`의 isLikeZero 분기 검증 (사용자 화면에 "결과 없음 (25966건)" 표시된 = isLikeZero=False였음 → 분기 버그 추가 진단)
+
+---
+
+### F9 — 전체 응답 속도 느림 (사용자 발화 #5)
+
+**증상**: 입찰추적·발주기관·검색 모든 화면이 느림 (기본 30~60초).
+
+**누적 비용 분석**:
+- trace: 6단계 `asyncio.gather` 모았지만 frontend는 1 await로 다 기다림 (Streaming 미활용)
+- v22.3 R 형식 폴백: 추정 연도(12 chunks) × 3 endpoints × scan_pages=2 = 최대 72 G2B 호출
+- agencies: 1개월 × 4 biz × 6 chunks (180일 default) ≈ 24+ 호출
+- bids deep: 5 pages × 3 endpoints × 1 chunk = 15 호출
+- cache hit률 미측정 — 동일 요청 반복 시 cache_result decorator 효과는 있을 듯
+
+**SLA (사용자 발화 #6)**: **통상 5초 이내**.
+현재 측정치 (체감):
+- trace 단일 채번 (R 형식): 30~90초 (12 chunks × 3 endpoints 폴백)
+- agencies 6개월 default: 30~60초 (6 chunks × 4 biz)
+- bids deep: 20~50초 (5 pages × 3 endpoints)
+
+**Phase 23 design proposal (5초 SLA 달성 — 사용자 승인 후 가동)**:
+
+A) **Streaming 1st-byte (가장 큰 효과)**
+   - trace: backend가 6단계 `asyncio.gather`를 한꺼번에 await → JSON으로 한 번에 반환. frontend는 한 번에 다 기다림
+   - 변경: 6단계를 SSE 스트림으로 분리 (또는 frontend 6 Suspense로 단계별 호출). 첫 단계 1-2초 내 화면 도착 → 사용자 체감 5초 이내
+
+B) **default 기간 대폭 단축**
+   - agencies: 180일 → 30일 (사용자가 명시 시 확장 알림)
+   - bids: 30일 그대로 OK
+   - trace 폴백: R 형식이지만 첫 시도는 30일 → 못 찾으면 90 → 365 progressive (현재 v22.3은 R이면 처음부터 12 chunks)
+
+C) **R 형식 폴백 lighter**
+   - v22.3: 추정 연도(12 chunks) × 3 endpoints × scan=2 = 72 G2B 호출
+   - 정정: 사용자 입력 biz_type 우선 endpoint 1개 + 30일/90일 progressive → 못 찾으면 그제서야 연도 범위. 보통 케이스는 1-2초 OK
+
+D) **G2B 호출 병렬화 극단**
+   - 현재 chunk 직렬 → asyncio.gather로 chunk 모두 동시
+   - rate-limit 주의 (`app/core/rate_limit.py`)
+
+E) **사전 ETL 캐싱 (별도 sprint)**
+   - 인기 키워드/발주기관/최근 30일 데이터를 background job이 미리 G2B에서 fetch → Redis 캐싱
+   - 사용자 검색 = 거의 cache hit → 0.5초 이내
+
+F) **G2B keyword 미지원 우회**: backend가 "최근 30일 1개월 청크" 데이터를 cache로 보관 → 키워드 client filter는 cache에서 즉시
+
+**우선 적용 (5초 SLA 임박 효과)**: A + B + C. D는 rate-limit risk 검증 필요. E는 별도 sprint.
+
+---
+
+## 종합 Fix 순서 (갱신)
+
+```
+v22.1 ✅ commit db7fb41   F1 포트 정합
+v22.2 ✅ commit 9729f72   F4 has_more 보정 (※ v22.6에서 정정 예정)
+v22.3 ✅ commit b71f4d2   F2 trace 폴백 R형식 + progressive
+v22.4 🟡 코드적용·commit대기   F6 UX (trace + agencies fallback 강화)
+v22.5 ⏳ next                 F7 vendor 빈 응답 명시 안내
+v22.6 ⏳ next                 F8 has_more 정정 + isLikeZero 분기 검증
+v22.7 ⏳ chore                docs/docker/CI 8081 정합
+─────────────────────────────────────────────────────
+Phase 23 (별도, 사용자 승인 후)  F9 성능 개선 (Streaming + cache + 기본값)
+Phase X (별도)                   F3 발주기관 매칭 강화 + F5 deep 재현 시 진단
+```
+
