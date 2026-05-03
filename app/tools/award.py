@@ -18,11 +18,50 @@ G2B `ScsbidInfoService` (낙찰정보서비스) — base `/1230000/as/ScsbidInfo
 """
 from __future__ import annotations
 import asyncio
+import re
 from app.clients.g2b import G2BClient
 from app.config import settings
 from app.core.cache import cache_result
 from app.core.daterange import chunk_date_range
 from app.core.rate_limit import check_rate
+
+
+# v28.1: 업체명 LIKE 매칭 정규화 — 공백/(주)/주식회사/㈜ 등 제거 후 비교
+_VENDOR_NORMALIZE_PATTERN = re.compile(
+    r"\s+|\(주\)|\(유\)|\(사\)|㈜|주식회사|유한회사|사단법인|재단법인|협동조합|합자회사|합명회사"
+)
+
+
+def _normalize_vendor_name(name: str | None) -> str:
+    """업체명 매칭용 정규화 — 변형 표기 통일.
+
+    예시:
+    - "아이웨이브" → "아이웨이브"
+    - "(주)아이웨이브" → "아이웨이브"
+    - "주식회사아이웨이브" → "아이웨이브"
+    - "아이 웨이브 주식회사" → "아이웨이브"
+    """
+    if not name:
+        return ""
+    return _VENDOR_NORMALIZE_PATTERN.sub("", name).lower()
+
+
+def _vendor_name_match(query: str, target: str) -> bool:
+    """LIKE 매칭 — 정규화 후 부분일치 + 토큰 매칭.
+
+    질의 토큰이 모두 정규화된 target에 포함되면 매칭.
+    """
+    if not query or not target:
+        return False
+    norm_target = _normalize_vendor_name(target)
+    if not norm_target:
+        return False
+    # 질의 정규화 (공백 보존 — 토큰 분리용)
+    query_clean = _VENDOR_NORMALIZE_PATTERN.sub(" ", query).strip().lower()
+    tokens = [t for t in query_clean.split() if t]
+    if not tokens:
+        return False
+    return all(t in norm_target for t in tokens)
 
 
 _BIZ_DIV_MAP = {"공사": "Cnstwk", "용역": "Servc", "물품": "Thng", "외자": "Frgcpt"}
@@ -417,7 +456,7 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
 
 # === 4. search_awards_by_vendor (V4) ===
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="award_vendor")
+@cache_result(ttl=settings.cache_ttl_short, prefix="award_vendor_v28")
 async def search_awards_by_vendor(
     vendor_name: str | None = None,
     vendor_biz_no: str | None = None,
@@ -442,8 +481,9 @@ async def search_awards_by_vendor(
 
     # 5/3 N40: G2B 낙찰정보서비스 numOfRows 최대 500 (999는 resultCode 07).
     # 5/3 N42: date range 1개월 초과 시 자동 chunking.
+    # v28.1: 1000 → 3000 (1 chunk × 1 biz_div × 6페이지) — vendor 매칭률 ↑
     page_size = 500
-    max_scan_per_call = 1000  # 1 chunk * 1 biz_div 당 2페이지
+    max_scan_per_call = 3000
 
     chunks = chunk_date_range(date_from, date_to, max_days=31)
     matches: list[dict] = []
@@ -493,7 +533,8 @@ async def search_awards_by_vendor(
                         matched = False
                         if target_biz_no and norm.get("winner_biz_no") == target_biz_no:
                             matched = True
-                        elif vendor_name and vendor_name in (norm.get("winner_name") or ""):
+                        elif vendor_name and _vendor_name_match(vendor_name, norm.get("winner_name") or ""):
+                            # v28.1: 정규화(공백/(주)/주식회사 제거) + 토큰 매칭
                             matched = True
                         if not matched:
                             continue
