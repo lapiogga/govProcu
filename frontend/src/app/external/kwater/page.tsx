@@ -61,12 +61,14 @@ const SELECT_CLASS =
   "flex h-9 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]";
 
 export default async function KwaterContractsPage(props: {
-  searchParams: Promise<{ dt?: string; biz?: string; limit?: string }>;
+  searchParams: Promise<{ dt?: string; biz?: string; limit?: string; page?: string }>;
 }) {
   const sp = await props.searchParams;
   const searchDt = sp.dt || defaultMonth();
   const bizType = sp.biz === "공사" ? "공사" : "용역"; // 정보화 영역 default
-  const limit = parseInt(sp.limit || "30", 10) || 30;
+  const pageSize = parseInt(sp.limit || "30", 10) || 30;
+  // P30-R5 P1-16: 페이지네이션 — backend pageNo 미지원 → client-side slice로 시뮬
+  const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
 
   return (
     <main className="space-y-4">
@@ -99,22 +101,28 @@ export default async function KwaterContractsPage(props: {
             </select>
             <Input
               name="limit"
-              defaultValue={String(limit)}
+              defaultValue={String(pageSize)}
               type="number"
               min="1"
               max="1000"
               className="max-w-[100px]"
+              placeholder="페이지당"
             />
             <Button type="submit">검색</Button>
             <span className="ml-auto text-xs text-[var(--color-fg-muted)]">
-              현재: {searchDt} · {bizType} · 행 {limit}
+              현재: {searchDt} · {bizType} · 페이지당 {pageSize} · 페이지 {page}
             </span>
           </form>
         </CardContent>
       </Card>
 
       <Suspense fallback={<TableSkeleton />}>
-        <Results searchDt={searchDt} bizType={bizType} limit={limit} />
+        <Results
+          searchDt={searchDt}
+          bizType={bizType}
+          pageSize={pageSize}
+          page={page}
+        />
       </Suspense>
     </main>
   );
@@ -123,13 +131,19 @@ export default async function KwaterContractsPage(props: {
 async function Results({
   searchDt,
   bizType,
-  limit,
+  pageSize,
+  page,
 }: {
   searchDt: string;
   bizType: string;
-  limit: number;
+  pageSize: number;
+  page: number;
 }) {
-  const r = await searchKwaterContracts(searchDt, bizType, limit);
+  // P30-R5 P1-16: client-side 페이지네이션 — backend `searchKwaterContracts(limit)` 시그니처 변경 0
+  // page * pageSize 만큼 fetch 후 [(page-1)*pageSize : page*pageSize] slice
+  // backend pageNo 미지원 한계 우회. limit max=1000 (KWater API 한계)
+  const fetchLimit = Math.min(pageSize * page, 1000);
+  const r = await searchKwaterContracts(searchDt, bizType, fetchLimit);
   if (!r.ok) {
     return (
       <div className="rounded border border-[var(--color-danger)] p-4 text-sm">
@@ -143,23 +157,56 @@ async function Results({
     raw_count?: number;
     status?: string;
     endpoint?: string;
+    note?: string;
   }>(r.data);
-  const items = data?.items || [];
+  const allItems = data?.items || [];
+  // P30-R5 P1-16: client-side slice
+  const startIdx = (page - 1) * pageSize;
+  const items = allItems.slice(startIdx, startIdx + pageSize);
+  const totalCount = data?.total_count ?? allItems.length;
+  const hasMore = totalCount > page * pageSize;
+
+  // P30-R5 P1-15: status === "pending_key" 안내 — KWATER_API_KEY 미설정 명시
+  if (data?.status === "pending_key") {
+    return (
+      <div className="rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-4 text-sm">
+        <p className="font-medium">외부 API 키 미설정</p>
+        <p className="mt-1 text-[var(--color-fg-muted)]">
+          {data?.note ||
+            "KWATER_API_KEY 환경변수 미설정 — 운영자에게 문의 또는 .env 확인."}
+        </p>
+        <p className="mt-2 text-xs">
+          status: <span className="font-mono">{data.status}</span>
+        </p>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
       <p className="rounded border p-4 text-sm">
-        결과 없음 ({data?.total_count ?? 0}건). status: {data?.status || "—"}
+        결과 없음 ({totalCount}건). status: {data?.status || "—"}
+        {page > 1 && " — 마지막 페이지 도달 (이전 페이지로 이동)"}
       </p>
     );
   }
+
+  // P30-R5 P1-16: 페이지네이션 nav buildHref
+  const buildPageHref = (newPage: number): string => {
+    const qs = new URLSearchParams();
+    qs.set("dt", searchDt);
+    qs.set("biz", bizType);
+    qs.set("limit", String(pageSize));
+    if (newPage > 1) qs.set("page", String(newPage));
+    return `/external/kwater?${qs.toString()}`;
+  };
 
   return (
     <section className="rounded-lg border">
       <div className="flex items-center justify-between border-b bg-[var(--color-bg-muted)] px-4 py-2 text-sm">
         <span>
-          {searchDt}월 · {bizType} · 총 {data?.total_count ?? items.length}건 (반환{" "}
-          {items.length})
+          {searchDt}월 · {bizType} · 총 {totalCount}건 (페이지 {page} · 표시{" "}
+          {items.length}건 / 페이지당 {pageSize})
         </span>
         <span className="text-xs text-[var(--color-fg-muted)]">
           {data?.endpoint || "—"}
@@ -262,6 +309,33 @@ async function Results({
           })}
         </tbody>
       </table>
+      {/* P30-R5 P1-16: 페이지네이션 nav */}
+      {(hasMore || page > 1) && (
+        <nav className="flex items-center justify-end gap-2 border-t px-4 py-2 text-xs">
+          {page > 1 && (
+            <a
+              href={buildPageHref(page - 1)}
+              className="rounded border border-[var(--color-border)] px-2 py-1 hover:bg-[var(--color-bg)]"
+            >
+              ← 이전
+            </a>
+          )}
+          <span className="text-[var(--color-fg-muted)]">페이지 {page}</span>
+          {hasMore && fetchLimit < 1000 && (
+            <a
+              href={buildPageHref(page + 1)}
+              className="rounded border border-[var(--color-border)] px-2 py-1 hover:bg-[var(--color-bg)]"
+            >
+              다음 →
+            </a>
+          )}
+          {fetchLimit >= 1000 && hasMore && (
+            <span className="text-[var(--color-warning,#f59e0b)]">
+              (KWater API 한계 1000건 도달 — searchDt 변경 권장)
+            </span>
+          )}
+        </nav>
+      )}
     </section>
   );
 }
