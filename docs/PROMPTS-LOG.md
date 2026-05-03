@@ -103,3 +103,7 @@
 | 02:00 | 67 | **"ok"** | 선택 | 측정 기반 default 결정 동의 → fix v10 라운드 진입. |
 | 02:30 | 68 | **"commit 진행"** | 운영지시 | fix v10 일괄 commit (e9c8387) — chunking + 3종 endpoint merge + R 형식 폴백 + 측정 기반 default + Full Test Plan v2 + JSON fixture. 13 파일 +1682 -175. |
 | 02:45 | 69 | **"continue"** | 선택 | 자율 v11 — fix v10 라이브 추가 검증. ① 결함 #4 R26BK01439997 trace 폴백 — G2B 한계로 found=false (별도 라운드) ② 결함 #6 LIKE 0건 메시지 정상 표시 OK ③ 결함 #5 /agencies 1년 60.7초 → 6개월(180일) default 조정. fix v10.2 commit (2863528) — _infer_period_from_bid_no 헬퍼 + numOfRows 50→999 + bid_no 매칭 + agencies 6개월. |
+| 03:00 | 70 | **"continue"** (자율 v12) | 선택 | search_bid_notices에 bid_notice_no 정확 매칭 인자 추가 + /bids·/agencies 큰범위 timeout 안내 박스. R26BK01439997 24.6초 found=true 확인. commit f0fef7f. |
+| 03:30 | 71 | **"continue"** (자율 v13~v14) | 선택 | e2e 36 회귀 검증 — turbopack dev RSC manifest 에러로 31 fail → standalone build로 환경 fix → 30/36 → CSS 정적자산 누락 발견 → cp -r .next/static .next/standalone/.next/ → **36/36 PASS**. fix v9~v12 회귀 0건 확인. |
+| 04:00 | 72 | **"continue"** (자율 v15) | 선택 | trace_bid_lifecycle 라이브 풀스택 검증. 폴백 1년 chunking 60+ 호출 114초 → 추정기간 30일 단축 → 44초 + bid_notice stage found=true (mode=search_bid_notices+ord_match). commit c18d63b. |
+| 04:30 | 73 | **"시나리오 P0 110건 자동실행"** | 핵심지시 | tests/run_p0.py 작성 — fixture 200건 중 P0 120건(11.2분) 자동 실행. API 호출 69 (PASS 49 / FAIL 20) + UI SKIP 51. 유효 PASS 율 81% (API 49 + e2e 36 = 85/105). FAIL 20건 카테고리: fixture-도구 시그니처 불일치 11건, expected 자동검증 범위 외 3건, KWater default mismatch 3건, vendor LIKE 데이터 한계 2건, 기타 1건. 도구 자체 결함 없음 — fixture 정밀도 문제. |
