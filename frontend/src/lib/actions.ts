@@ -13,6 +13,44 @@ export async function traceBidLifecycle(bidNoticeNo: string, bidOrd = "00") {
   });
 }
 
+// v26.1: trace Streaming 분리 호출용 5 stage actions
+// 각 도구는 backend에서 @cache_result(30분) 적용됨 (v23.5).
+// page.tsx에서 6 Suspense로 분리하면 stage별 도착 즉시 화면.
+
+export async function getPreSpecDetail(bidNoticeNo: string, bidOrd = "00") {
+  return callMcpTool("get_pre_specification_detail", {
+    bid_notice_no: bidNoticeNo,
+    bid_ord: bidOrd,
+  });
+}
+
+export async function getBidNoticeDetail(bidNoticeNo: string, bidOrd = "00") {
+  return callMcpTool("get_bid_notice_detail", {
+    bid_notice_no: bidNoticeNo,
+    bid_ord: bidOrd,
+  });
+}
+
+export async function listBidParticipants(bidNoticeNo: string, bidOrd = "00") {
+  return callMcpTool("list_bid_participants", {
+    bid_notice_no: bidNoticeNo,
+    bid_ord: bidOrd,
+  });
+}
+
+export async function getAwardDetail(bidNoticeNo: string, bidOrd = "00") {
+  return callMcpTool("get_award_detail", {
+    bid_notice_no: bidNoticeNo,
+    bid_ord: bidOrd,
+  });
+}
+
+export async function checkBusinessStatus(bizNos: string[]) {
+  return callMcpTool("check_business_status", {
+    biz_nos: bizNos,
+  });
+}
+
 export async function getVendorProfile(
   vendorBizNo: string,
   dateFrom?: string,
