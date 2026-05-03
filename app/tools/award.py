@@ -456,7 +456,7 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
 
 # === 4. search_awards_by_vendor (V4) ===
 
-@cache_result(ttl=settings.cache_ttl_short, empty_ttl=settings.cache_ttl_volatile, prefix="award_vendor_v29b")
+@cache_result(ttl=settings.cache_ttl_short, empty_ttl=settings.cache_ttl_volatile, prefix="award_vendor_v30")
 async def search_awards_by_vendor(
     vendor_name: str | None = None,
     vendor_biz_no: str | None = None,
@@ -464,6 +464,7 @@ async def search_awards_by_vendor(
     date_to: str | None = None,
     biz_type: str | None = None,
     limit: int = 20,
+    page: int = 1,
 ) -> dict:
     """업체명/사업자번호로 기간 내 낙찰 내역 조회.
 
@@ -478,6 +479,12 @@ async def search_awards_by_vendor(
 
     target_biz_no = _normalize_biz_no(vendor_biz_no)
     biz_divs = _resolve_biz_divs(biz_type)
+
+    # P30-R3.5: page 인자 도입 — 1-based. offset = (page-1)*limit.
+    # 누적 matches에서 page slice 적용 (동일 검색 결과 set의 다른 페이지).
+    page = max(1, int(page or 1))
+    offset = (page - 1) * limit
+    needed = offset + limit
 
     # 5/3 N40: G2B 낙찰정보서비스 numOfRows 최대 500 (999는 resultCode 07).
     # 5/3 N42: date range 1개월 초과 시 자동 chunking.
@@ -507,10 +514,10 @@ async def search_awards_by_vendor(
         local_scanned = 0
         local_raw: list = []
         scanned_in_call = 0
-        page = 1
+        page_no = 1  # P30-R3.5: 외부 인자 `page`와 충돌 회피 — G2B pageNo 변수 분리
         while scanned_in_call < max_scan_per_call:
             params: dict = {
-                "pageNo": page,
+                "pageNo": page_no,
                 "numOfRows": page_size,
                 "inqryDiv": "1",
             }
@@ -532,7 +539,7 @@ async def search_awards_by_vendor(
                 local_raw.append(raw)
             if len(items_raw) < page_size:
                 break
-            page += 1
+            page_no += 1
         return endpoint, local_total, local_scanned, local_raw
 
     try:
@@ -563,9 +570,9 @@ async def search_awards_by_vendor(
                     continue
                 seen_keys.add(key)
                 matches.append(norm)
-                if len(matches) >= limit:
+                if len(matches) >= needed:
                     break
-            if len(matches) >= limit:
+            if len(matches) >= needed:
                 break
     finally:
         await client.aclose()
@@ -573,15 +580,21 @@ async def search_awards_by_vendor(
     # v29.1.2 (F11 P1): has_more 정확화 — 매칭 한도 또는 스캔 미커버리지 명시.
     # scanned_total < total_count면 false-negative 가능성 (모집단 미스캔).
     # frontend가 사용자에게 "추가 검색 권장" 안내 가능.
-    has_more_flag = (len(matches) >= limit) or (scanned_total < total_count)
+    # P30-R3.5: page slice 적용 — 누적 matches에서 [offset : offset+limit] 반환.
+    matched_total = len(matches)
+    page_items = matches[offset : offset + limit]
+    has_more_flag = (matched_total > offset + len(page_items)) or (scanned_total < total_count)
     scan_coverage_pct = round(min(100.0, (scanned_total / total_count * 100.0) if total_count else 100.0), 1)
 
     return {
-        "items": matches,
+        "items": page_items,
         "total_count": total_count,
         "scanned": scanned_total,
         "scan_coverage_pct": scan_coverage_pct,
-        "returned_count": len(matches),
+        "returned_count": len(page_items),
+        "matched_total": matched_total,
+        "page": page,
+        "limit": limit,
         "has_more": has_more_flag,
         "endpoints_used": used_endpoints,
         "chunks_used": len(chunks),
