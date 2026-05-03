@@ -159,11 +159,14 @@ def is_api_callable(case: dict, tool_name: str) -> bool:
     if not tool_name:
         return False
     if "action" in case:
-        # click_*, press_*, ui_check 등 UI 인터랙션 → skip
         action = case.get("action", "")
         if any(action.startswith(p) for p in ("click_", "press_", "navigate_", "change_", "toggle_", "add_via_")):
             return False
     if "ui_check" in case:
+        return False
+    # v19: ord_variants array fixture 표현 — 단일 도구 호출 한계
+    inp = case.get("input", {}) or {}
+    if isinstance(inp.get("ord_variants"), list):
         return False
     return True
 

@@ -366,6 +366,8 @@ async def agency_procurement_history(
         "date_range": [date_from, date_to],
         "biz_type": biz_type,
         "items": enriched,
+        "endpoints_used": notices.get("endpoints_used", []),
+        "chunks_used": notices.get("chunks_used", 1),
         "summary": {
             "notice_count": len(enriched),
             "award_matched_count": matched_count,
