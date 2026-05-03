@@ -91,3 +91,15 @@
 | 00:?? | 56 | **"계속 진횅"** | 선택 | 자율 v8 진입 — 다른 페이지 라이브 검증 + cursor 페이징 |
 | 00:?? | 56-A | **"진행"** | 선택 | v8 진행 |
 | 00:?? | 57 | **"전체 구현단계까지 모두 만들어 줘"** | 핵심지시 | 자율 v8 끝까지: ① /vendors/[bizNo] 라이브 (1058705373 → NTS '계속사업자, 부가가치세 일반과세자' 정상) ② /agencies?name=조달청 라이브 (200 OK, 데이터 매칭 부족 — 정상 응답) ③ search_bid_notices에 page 인자 cursor 페이징 추가 (BidNoticeSearchInput/Result + bid.py + actions.ts) ④ /bids 페이지에 PageNav UI(이전/다음 + 현재/총페이지) ⑤ 페이지네이션 라이브 검증 (page=1 9124/2건 + page=2 0건 결과없음 + 다음→ 표시) ⑥ e2e 36/36 PASS |
+| 00:30 | 58 | **"/gsd-verify-work"** (skill 호출) | 운영지시 | UAT 워크플로 진입. 01-UAT.md 신규 + Test 1 (Cold Start Smoke) 시작. |
+| 00:35 | 59 | **(스크린샷) err-01.png ERR_CONNECTION_REFUSED** | 통찰 | Test 1 fail. MCP 8081/frontend 3020 미가동 — 직전 라이브 검증 후 종료된 채로 사용자가 cold start 시도. 4 서비스 재가동 → MCP 405/frontend 200/Redis Up/Neo4j Up 정상 확인. |
+| 00:50 | 60 | **"'업체분석'에서 업체명으로 조회 + '입찰 검색'에서 like 검색 + KWater 계약공개 클릭 시 화면 이동"** | 핵심지시 | 자율 v9 사용자 후속 결함 3건 fix: ① searchVendorsByName + /vendors LIKE 결과 페이지 ② search_bid_notices scan_pages 인자 + /bids deep checkbox + SSE keepalive ping 파싱 ③ /external/kwater/contract 단건 페이지 + 표 컬럼 클릭 라우팅. commit 5d0097c. |
+| 00:55 | 61 | **"MOCK MODE 해제" + "실제 데이터로 테스트되어야 함"** | 운영지시 | UAT를 라이브 G2B/NTS API로 실행 (MCP_MOCK_MODE=false). |
+| 00:58 | 62 | **"YES"** | 선택 | Test 2 (DropdownMenu 정렬) 진행 동의. |
+| 01:10 | 63 | **"4개월 조회 안됨 + 업종 전체 안됨 + 마감일임박 안됨 + R26BK01435763-000 추적 안됨 (err-02) + 발주기관 분석 안됨 (err-03) + 페이징 결과없음 25966건 (err-04)"** | 핵심지시 | UAT 결함 6건 일괄 보고. 결함 #1 (date 4개월) #2 (업종 전체 1종만) #3 (마감 임박 정렬) #4 (R 형식 trace) #5 (발주기관 5년 0건) #6 (LIKE 25966건 0건 메시지 혼란). |
+| 01:25 | 64 | **"시나리오 20개 × 케이스 10개 = 200, 입력값/예상결과 문서 먼저 보여줘"** | 핵심지시 | Full Test Plan 작성 — .planning/phases/01-autonomous-v3-v8/02-FULL-TEST-PLAN.md + tests/full-test-cases.json. 4지선다 결정: 페이지별 차등 default / 라이브+Playwright 혼합 / 단일 md+JSON / 운영 핵심 위주. |
+| 01:50 | 65 | **"S01: 날짜 다양한 범위 + 클릭 검증 / S03 동일 / S05 다양한 단어 / S06 다양한 사업자 / S07 다양한 업체명 / 모든 시나리오 풍부한 입력값"** | 정정 | Full Test Plan v2 — 날짜 매트릭스 11종, 키워드 풀 20, 업체명 풀 16, 사업자 풀 10, 발주기관 풀 15, 공고번호 풀 10, KWater 월 풀 10, 클릭 검증 18건 곳곳 분산. 모든 케이스 distinct 입력. |
+| 01:55 | 66 | **"각 화면별 날짜 기본 설정 시 조회 건수/성능/소요시간 측정 후 적정 범위 결정"** | 핵심지시 | 라이브 측정 진행 — Redis FLUSHALL 후 cold 1차 호출. /bids D7~D60, /vendors LIKE D30~D180, /vendors/{biz} Y1, /agencies D90~D365, /kwater. 결과: /bids 1개월 4.2초 OK, /vendors LIKE D30 broad 키워드(디지털) 19.7초, /agencies D365 측정 1.7초 (첫 호출 캐싱 영향), /kwater 직전월 1.9초. /vendors LIKE default 90→30일 단축 결정. |
+| 02:00 | 67 | **"ok"** | 선택 | 측정 기반 default 결정 동의 → fix v10 라운드 진입. |
+| 02:30 | 68 | **"commit 진행"** | 운영지시 | fix v10 일괄 commit (e9c8387) — chunking + 3종 endpoint merge + R 형식 폴백 + 측정 기반 default + Full Test Plan v2 + JSON fixture. 13 파일 +1682 -175. |
+| 02:45 | 69 | **"continue"** | 선택 | 자율 v11 — fix v10 라이브 추가 검증. ① 결함 #4 R26BK01439997 trace 폴백 — G2B 한계로 found=false (별도 라운드) ② 결함 #6 LIKE 0건 메시지 정상 표시 OK ③ 결함 #5 /agencies 1년 60.7초 → 6개월(180일) default 조정. fix v10.2 commit (2863528) — _infer_period_from_bid_no 헬퍼 + numOfRows 50→999 + bid_no 매칭 + agencies 6개월. |
