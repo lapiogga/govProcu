@@ -13,6 +13,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from app.config import settings
+from app.core.cache import cache_result
 from app.tools import bid as bid_tools
 from app.tools import award as award_tools
 from app.tools import vendor as vendor_tools
@@ -50,6 +52,7 @@ def _safe_get(d: dict, *keys, default=None):
 
 # === W1: trace_bid_lifecycle ===
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="trace_lifecycle")
 async def trace_bid_lifecycle(bid_notice_no: str, bid_ord: str = "00") -> dict:
     """한 입찰의 전 생애주기 통합 추적.
 

@@ -263,6 +263,7 @@ def _pick_first_item(body: dict) -> dict | None:
     return items[0] if items else None
 
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="bid_detail")
 async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
     """공고번호+차수로 입찰공고 단건 상세를 조회합니다.
 
@@ -564,6 +565,7 @@ async def list_pre_specifications(
     }
 
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="prespec_detail")
 async def get_pre_specification_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
     """공고번호+차수로 사전규격 단건 상세를 조회합니다.
 

@@ -300,6 +300,7 @@ async def search_awards(
 
 # === 3. get_award_detail ===
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="award_detail")
 async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
     """공고번호+차수로 낙찰 단건 상세 조회.
 
@@ -512,6 +513,7 @@ async def search_awards_by_vendor(
 
 # === 5. list_bid_participants ===
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="participants")
 async def list_bid_participants(
     bid_notice_no: str,
     bid_ord: str = "00",

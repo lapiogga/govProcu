@@ -15,3 +15,5 @@
 | 22:20 | cron `6cc910e8` | 자동 갱신 trigger fire (1h 간격) | 점검: PROMPTS-LOG #6~#11 / phase-22 v22.4~v22.7 / phase-23 v23.1~v23.3 모두 기록 정합. logs/WORK-LOG.md는 외부 sync hook 영역 미간섭. **no-op** |
 | 22:25 | user | 발화 #12 ("자동 진행?") | cron 응답 후 v23.4 진행 안 됐다는 지적 — 즉시 재개 |
 | 22:27 | lead | v23.4 적용 | `app/tools/award.py` `import asyncio` 추가. `search_awards` 외부 chunks loop + 내부 biz_divs loop 직렬 → `asyncio.gather`로 모든 (chunk, biz_div) 조합 병렬. 효과: chunks=1 × biz_divs=4 (agencies 30일 default) = **4× 빠름**. 큰 범위는 더 큰 효과. 클라이언트 필터(keyword/inst_name) + dedup(seen_keys) 로직은 results 통합 단계에서 그대로 적용. import sanity check OK |
+| 22:30 | lead | v23.4 commit (da0e4a2) | atomic |
+| 22:32 | lead | v23.5 적용 (cache_result 5개 도구 추가) | (1) `workflow.py` import settings + cache_result 추가 + `trace_bid_lifecycle`에 `@cache_result(ttl=cache_ttl_short, prefix="trace_lifecycle")`. (2) `bid.py` `get_bid_notice_detail` + `get_pre_specification_detail`. (3) `award.py` `get_award_detail` + `list_bid_participants`. 모두 30분 cache. sanity check: 5개 함수 `__wrapped__=True`. 효과: trace 반복 추적 0.5초, 단건 조회 반복 빠름. 단 trace_bid_lifecycle 자체에 cache 추가 = 가장 큰 누락 보완 |
