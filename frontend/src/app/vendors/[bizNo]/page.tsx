@@ -165,8 +165,27 @@ async function Profile({
       {/* 최근 낙찰 5건 */}
       {sections.awards?.items?.length > 0 && (
         <section className="rounded-lg border">
-          <h3 className="border-b px-4 py-2 text-sm font-medium">
-            최근 낙찰 {sections.awards.items.length}건
+          <h3 className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm font-medium">
+            <span>최근 낙찰 {sections.awards.items.length}건</span>
+            {/* P30-R3 P1-06: has_more / scan_coverage_pct 노출 — Phase 29 backend fix 사용자 도달 */}
+            {typeof sections.awards.scan_coverage_pct === "number" && (
+              <span
+                className={
+                  sections.awards.has_more || sections.awards.scan_coverage_pct < 100
+                    ? "rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] px-2 py-0.5 text-xs font-medium"
+                    : "rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-0.5 text-xs text-[var(--color-fg-muted)]"
+                }
+              >
+                스캔 {sections.awards.scan_coverage_pct}%
+                {sections.awards.has_more && " — 추가 검색 권장"}
+              </span>
+            )}
+            {sections.awards.has_more &&
+              typeof sections.awards.scan_coverage_pct !== "number" && (
+                <span className="rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] px-2 py-0.5 text-xs font-medium">
+                  추가 결과 있음 — 기간 분할 권장
+                </span>
+              )}
           </h3>
           <table className="w-full text-sm">
             <thead className="bg-[var(--color-bg-muted)]">

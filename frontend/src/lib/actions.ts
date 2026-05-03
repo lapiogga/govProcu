@@ -266,17 +266,20 @@ export async function lookupByInstCode(
 }
 
 // 업체명 LIKE 검색 (5/3 N41) — search_awards_by_vendor 활용
+// P30-R3 P1-09: page 파라미터 추가 — 페이지네이션 지원 ("더 보기" 링크)
 export async function searchVendorsByName(
   vendorName: string,
   dateFrom?: string,
   dateTo?: string,
   limit = 30,
+  page = 1,
 ) {
   return callMcpTool("search_awards_by_vendor", {
     vendor_name: vendorName,
     date_from: dateFrom,
     date_to: dateTo,
     limit,
+    page,
   });
 }
 

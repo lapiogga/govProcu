@@ -20,9 +20,10 @@ import { Input } from "@/components/ui/input";
 import { VendorLink } from "@/components/EntityLink";
 
 export default async function VendorsIndexPage(props: {
-  searchParams: Promise<{ biz?: string; name?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ biz?: string; name?: string; from?: string; to?: string; page?: string }>;
 }) {
-  const { biz, name, from, to } = await props.searchParams;
+  const { biz, name, from, to, page } = await props.searchParams;
+  const pageNum = Math.max(1, parseInt(page || "1", 10) || 1);
 
   // 사업자번호 입력 시 즉시 redirect
   if (biz) {
@@ -97,6 +98,7 @@ export default async function VendorsIndexPage(props: {
             name={trimmedName}
             dateFrom={from}
             dateTo={to}
+            page={pageNum}
           />
         </Suspense>
       )}
@@ -112,12 +114,14 @@ async function NameSearchResults({
   name,
   dateFrom,
   dateTo,
+  page = 1,
 }: {
   name: string;
   dateFrom?: string;
   dateTo?: string;
+  page?: number;
 }) {
-  const r = await searchVendorsByName(name, dateFrom, dateTo, 30);
+  const r = await searchVendorsByName(name, dateFrom, dateTo, 30, page);
   if (!r.ok) {
     return (
       <Card>
@@ -142,9 +146,23 @@ async function NameSearchResults({
     total_count?: number;
     scanned?: number;
     returned_count?: number;
+    has_more?: boolean;
+    scan_coverage_pct?: number;
   }>(r.data);
 
   const rawItems = data?.items || [];
+  // P30-R3 P1-06: has_more / scan_coverage_pct 노출 — Phase 29 backend fix 사용자 도달
+  const hasMore = !!data?.has_more;
+  const scanCoveragePct = data?.scan_coverage_pct;
+  // P30-R3 P1-09: 페이지네이션 — "더 보기" 링크용 buildHref
+  const buildPageHref = (newPage: number) => {
+    const qs = new URLSearchParams();
+    qs.set("name", name);
+    if (dateFrom) qs.set("from", dateFrom);
+    if (dateTo) qs.set("to", dateTo);
+    if (newPage > 1) qs.set("page", String(newPage));
+    return `/vendors?${qs.toString()}`;
+  };
 
   // 업체명별 그룹화 (winner_biz_no 기준)
   const groups = new Map<
@@ -185,14 +203,40 @@ async function NameSearchResults({
     (a, b) => b.total_amount - a.total_amount,
   );
 
+  // P30-R3 P1-06: scan_coverage_pct < 100 시 warning, has_more 시 "추가 검색 권장"
+  const isLowCoverage =
+    typeof scanCoveragePct === "number" && scanCoveragePct < 100;
+  const showWarn = hasMore || isLowCoverage;
+
   return (
     <Card>
       <CardContent className="p-0">
-        <header className="border-b px-4 py-2 text-sm font-medium">
-          업체명 검색: &ldquo;{name}&rdquo; → 후보 업체 {sorted.length}개
-          <span className="ml-2 text-xs text-[var(--color-fg-muted)]">
-            (낙찰 row {data?.returned_count ?? 0}건 · 스캔 {data?.scanned ?? 0})
+        <header className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm font-medium">
+          <span>
+            업체명 검색: &ldquo;{name}&rdquo; → 후보 업체 {sorted.length}개
           </span>
+          <span className="text-xs font-normal text-[var(--color-fg-muted)]">
+            (낙찰 row {data?.returned_count ?? 0}건 · 스캔 {data?.scanned ?? 0}
+            {page > 1 && ` · 페이지 ${page}`})
+          </span>
+          {/* P30-R3 P1-06: has_more / scan_coverage_pct 노출 */}
+          {typeof scanCoveragePct === "number" && (
+            <span
+              className={
+                showWarn
+                  ? "rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] px-2 py-0.5 text-xs font-medium"
+                  : "rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-0.5 text-xs text-[var(--color-fg-muted)]"
+              }
+            >
+              스캔 {scanCoveragePct}%
+              {hasMore && " — 추가 검색 권장"}
+            </span>
+          )}
+          {hasMore && typeof scanCoveragePct !== "number" && (
+            <span className="rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] px-2 py-0.5 text-xs font-medium">
+              추가 결과 있음 — 다음 페이지 권장
+            </span>
+          )}
         </header>
         {sorted.length === 0 ? (
           <p className="p-4 text-sm text-[var(--color-fg-muted)]">
@@ -230,6 +274,28 @@ async function NameSearchResults({
               ))}
             </tbody>
           </table>
+        )}
+        {/* P30-R3 P1-09: 페이지네이션 — has_more 시 "더 보기" 링크 + 이전 페이지 */}
+        {(hasMore || page > 1) && (
+          <nav className="flex items-center justify-end gap-2 border-t px-4 py-2 text-xs">
+            {page > 1 && (
+              <a
+                href={buildPageHref(page - 1)}
+                className="rounded border border-[var(--color-border)] px-2 py-1 hover:bg-[var(--color-bg)]"
+              >
+                ← 이전
+              </a>
+            )}
+            <span className="text-[var(--color-fg-muted)]">페이지 {page}</span>
+            {hasMore && (
+              <a
+                href={buildPageHref(page + 1)}
+                className="rounded border border-[var(--color-border)] px-2 py-1 hover:bg-[var(--color-bg)]"
+              >
+                더 보기 →
+              </a>
+            )}
+          </nav>
         )}
       </CardContent>
     </Card>
