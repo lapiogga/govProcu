@@ -16,3 +16,8 @@
 | 01:00 | lead | v29.1.1 v2 fix | nts_items 직접 추출 (`isinstance(nts_items, list) and nts_items` 체크). cache prefix `_v29` → `_v29a`. L2 unit test PASS |
 | 01:02 | lead | backend 재기동 (`bo9uxr7h2` → `bsdlr2aiz`) | uvicorn 8081 |
 | 01:04 | lead | **L3-T2 + L4-T1 PASS** | (T1) vendor_profile 7028600866: summary.nts_status_code='01' / sections.nts_status[0].status_code='01' / awards_count=0. (T2) vendor_profile 2391602024: 동일 PASS. **P0 fix 검증 완료** |
+| 01:06 | lead | v29.1.1 commit (f4e7a8d) | atomic + raw 검증 데이터 commit message 포함 |
+| 01:10 | user | 발화 #33 ("진행") | v29.1.2 (P2 V4 병렬화 + P1 has_more) 진행 |
+| 01:12 | lead | v29.1.2 적용 | (1) `search_awards_by_vendor` chunks×biz_divs `asyncio.gather` 병렬화 (search_awards/search_bid_notices와 동일 패턴). (2) page loop은 단일 조합 내부 sequential 유지. (3) has_more = `(matches >= limit) or (scanned < total)`, `scan_coverage_pct` 응답 추가. (4) cache prefix `award_vendor_v28` → `award_vendor_v29`. L1 import OK |
+| 01:14 | lead | backend 재기동 (`bsdlr2aiz` → `beqdtmz5n`) | uvicorn 8081 |
+| 01:18 | lead | **L3 timing 비교 PASS** | (1개월) 32s, total=11801, scanned=9067, coverage=76.8%, matched=0, has_more=True. (1년) 36s, total=17019, scanned=99605, coverage=100%, matched=**1**, has_more=False. **사용자 보고 "낙찰 건수 있다" 검증 완료** — 7028600866 1년 100% 커버에서 1건. P2 1년 timeout 60s+ → 36s 효과. P1 has_more / scan_coverage_pct 노출 효과 |

@@ -456,7 +456,7 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
 
 # === 4. search_awards_by_vendor (V4) ===
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="award_vendor_v28")
+@cache_result(ttl=settings.cache_ttl_short, prefix="award_vendor_v29")
 async def search_awards_by_vendor(
     vendor_name: str | None = None,
     vendor_biz_no: str | None = None,
@@ -493,71 +493,96 @@ async def search_awards_by_vendor(
     seen_keys: set[tuple[str, str]] = set()
 
     client = G2BClient(base_url=settings.g2b_award_base_url)
-    try:
-        for chunk_from, chunk_to in chunks:
-            if len(matches) >= limit:
+
+    # v29.1.2 (F11 P2): chunks × biz_divs 직렬 → asyncio.gather 병렬.
+    # 1년 12 chunks × 4 biz_div = 48 직렬 → 병렬 max(combo_time).
+    # page loop는 단일 조합 내부 sequential (다음 page 호출은 직전 응답 의존).
+    async def _fetch_v4_combo(
+        chunk_from: str | None,
+        chunk_to: str | None,
+        biz_div: str,
+    ):
+        endpoint = _AWARD_ENDPOINTS[biz_div]
+        local_total = 0
+        local_scanned = 0
+        local_raw: list = []
+        scanned_in_call = 0
+        page = 1
+        while scanned_in_call < max_scan_per_call:
+            params: dict = {
+                "pageNo": page,
+                "numOfRows": page_size,
+                "inqryDiv": "1",
+            }
+            if chunk_from:
+                params["inqryBgnDt"] = chunk_from + "0000"
+            if chunk_to:
+                params["inqryEndDt"] = chunk_to + "2359"
+            try:
+                body = await client.call(endpoint, settings.g2b_key_award, params)
+            except Exception:  # noqa: BLE001
                 break
-            for biz_div in biz_divs:
+            local_total = max(local_total, int(body.get("totalCount", 0) or 0))
+            items_raw = _extract_items(body)
+            if not items_raw:
+                break
+            for raw in items_raw:
+                scanned_in_call += 1
+                local_scanned += 1
+                local_raw.append(raw)
+            if len(items_raw) < page_size:
+                break
+            page += 1
+        return endpoint, local_total, local_scanned, local_raw
+
+    try:
+        tasks = [
+            _fetch_v4_combo(cf, ct, bd)
+            for cf, ct in chunks
+            for bd in biz_divs
+        ]
+        results = await asyncio.gather(*tasks)
+
+        for endpoint, lt, ls, raws in results:
+            if endpoint not in used_endpoints:
+                used_endpoints.append(endpoint)
+            total_count = max(total_count, lt)
+            scanned_total += ls
+            for raw in raws:
+                norm = _normalize_award_row(raw)
+                matched = False
+                if target_biz_no and norm.get("winner_biz_no") == target_biz_no:
+                    matched = True
+                elif vendor_name and _vendor_name_match(vendor_name, norm.get("winner_name") or ""):
+                    # v28.1: 정규화(공백/(주)/주식회사 제거) + 토큰 매칭
+                    matched = True
+                if not matched:
+                    continue
+                key = (str(norm.get("bid_notice_no") or ""), str(norm.get("bid_ord") or ""))
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                matches.append(norm)
                 if len(matches) >= limit:
                     break
-                endpoint = _AWARD_ENDPOINTS[biz_div]
-                scanned_in_call = 0
-                page = 1
-                while scanned_in_call < max_scan_per_call and len(matches) < limit:
-                    params: dict = {
-                        "pageNo": page,
-                        "numOfRows": page_size,
-                        "inqryDiv": "1",
-                    }
-                    if chunk_from:
-                        params["inqryBgnDt"] = chunk_from + "0000"
-                    if chunk_to:
-                        params["inqryEndDt"] = chunk_to + "2359"
-
-                    try:
-                        body = await client.call(endpoint, settings.g2b_key_award, params)
-                    except Exception:
-                        break
-
-                    if endpoint not in used_endpoints:
-                        used_endpoints.append(endpoint)
-                    total_count = max(total_count, int(body.get("totalCount", 0) or 0))
-                    items_raw = _extract_items(body)
-                    if not items_raw:
-                        break
-
-                    for raw in items_raw:
-                        scanned_in_call += 1
-                        scanned_total += 1
-                        norm = _normalize_award_row(raw)
-                        matched = False
-                        if target_biz_no and norm.get("winner_biz_no") == target_biz_no:
-                            matched = True
-                        elif vendor_name and _vendor_name_match(vendor_name, norm.get("winner_name") or ""):
-                            # v28.1: 정규화(공백/(주)/주식회사 제거) + 토큰 매칭
-                            matched = True
-                        if not matched:
-                            continue
-                        key = (str(norm.get("bid_notice_no") or ""), str(norm.get("bid_ord") or ""))
-                        if key in seen_keys:
-                            continue
-                        seen_keys.add(key)
-                        matches.append(norm)
-                        if len(matches) >= limit:
-                            break
-
-                    if len(items_raw) < page_size:
-                        break
-                    page += 1
+            if len(matches) >= limit:
+                break
     finally:
         await client.aclose()
+
+    # v29.1.2 (F11 P1): has_more 정확화 — 매칭 한도 또는 스캔 미커버리지 명시.
+    # scanned_total < total_count면 false-negative 가능성 (모집단 미스캔).
+    # frontend가 사용자에게 "추가 검색 권장" 안내 가능.
+    has_more_flag = (len(matches) >= limit) or (scanned_total < total_count)
+    scan_coverage_pct = round(min(100.0, (scanned_total / total_count * 100.0) if total_count else 100.0), 1)
 
     return {
         "items": matches,
         "total_count": total_count,
         "scanned": scanned_total,
+        "scan_coverage_pct": scan_coverage_pct,
         "returned_count": len(matches),
-        "has_more": len(matches) >= limit,
+        "has_more": has_more_flag,
         "endpoints_used": used_endpoints,
         "chunks_used": len(chunks),
         "filter": {
