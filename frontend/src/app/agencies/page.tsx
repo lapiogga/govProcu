@@ -36,6 +36,20 @@ export default async function AgenciesPage(props: {
   const sp = await props.searchParams;
   const dateFrom = sp.from || (sp.name ? defaultAgencyFrom() : undefined);
   const dateTo = sp.to || (sp.name ? todayYYYYMMDD() : undefined);
+
+  // 5/3 N42 v12: 큰 범위(>1년) 입력 시 timeout 위험 명시
+  const rangeDays = (() => {
+    if (!dateFrom || !dateTo) return 0;
+    try {
+      const f = new Date(`${dateFrom.slice(0, 4)}-${dateFrom.slice(4, 6)}-${dateFrom.slice(6, 8)}`);
+      const t = new Date(`${dateTo.slice(0, 4)}-${dateTo.slice(4, 6)}-${dateTo.slice(6, 8)}`);
+      return Math.round((t.getTime() - f.getTime()) / (1000 * 60 * 60 * 24));
+    } catch {
+      return 0;
+    }
+  })();
+  const isLargeRange = rangeDays > 365;
+  const estimatedSec = Math.max(5, Math.round((rangeDays / 31) * 5)); // chunk당 ~5초
   return (
     <main className="space-y-6">
       <header>
@@ -74,6 +88,13 @@ export default async function AgenciesPage(props: {
 
       {sp.name ? (
         <>
+          {isLargeRange && (
+            <div className="rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-3 text-sm">
+              <strong>⚠ 큰 범위 입력 ({Math.round(rangeDays / 365 * 10) / 10}년)</strong>
+              {" "}— 응답 약 {estimatedSec}초 예상 (1개월 청크 {Math.ceil(rangeDays / 31)}회 × 4 endpoint).
+              빠른 분석은 from/to 단축 권장.
+            </div>
+          )}
           <Suspense fallback={<Skel h={32} />}>
             <PriceCard
               instName={sp.name}

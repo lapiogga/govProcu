@@ -120,6 +120,21 @@ export default async function BidsPage(props: {
   const dateFrom = sp.from || (hasQuery ? defaultBidsFrom() : undefined);
   const dateTo = sp.to || (hasQuery ? todayYYYYMMDD() : undefined);
 
+  // 5/3 N42 v12: 1개월 초과 입력 시 timeout 위험 안내
+  const rangeDays = (() => {
+    if (!dateFrom || !dateTo) return 0;
+    try {
+      const f = new Date(`${dateFrom.slice(0, 4)}-${dateFrom.slice(4, 6)}-${dateFrom.slice(6, 8)}`);
+      const t = new Date(`${dateTo.slice(0, 4)}-${dateTo.slice(4, 6)}-${dateTo.slice(6, 8)}`);
+      return Math.round((t.getTime() - f.getTime()) / (1000 * 60 * 60 * 24));
+    } catch {
+      return 0;
+    }
+  })();
+  const isLargeRange = rangeDays > 31;
+  const chunks = Math.max(1, Math.ceil(rangeDays / 31));
+  const estimatedSec = chunks * (scanPages === 1 ? 5 : 22) * (sp.type ? 1 : 3); // chunk × scan × endpoints
+
   return (
     <main className="space-y-4">
       <header className="flex items-start justify-between">
@@ -167,19 +182,27 @@ export default async function BidsPage(props: {
       </Card>
 
       {hasQuery ? (
-        <Suspense fallback={<TableSkeleton />}>
-          <Results
-            keyword={sp.q}
-            biz_type={sp.type}
-            inst_name={sp.inst}
-            date_from={dateFrom}
-            date_to={dateTo}
-            sort={sortKey}
-            page={page}
-            scanPages={scanPages}
-            sp={sp}
-          />
-        </Suspense>
+        <>
+          {isLargeRange && (
+            <div className="rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-3 text-sm">
+              <strong>⚠ 큰 범위 입력 ({Math.round(rangeDays / 31 * 10) / 10}개월)</strong>
+              {" "}— 응답 약 {estimatedSec}초 예상 (1개월 청크 {chunks}회{!sp.type ? " × 3 endpoint" : ""}{scanPages > 1 ? ` × deep ${scanPages}` : ""}). G2B 1개월 제약 자동 분할.
+            </div>
+          )}
+          <Suspense fallback={<TableSkeleton />}>
+            <Results
+              keyword={sp.q}
+              biz_type={sp.type}
+              inst_name={sp.inst}
+              date_from={dateFrom}
+              date_to={dateTo}
+              sort={sortKey}
+              page={page}
+              scanPages={scanPages}
+              sp={sp}
+            />
+          </Suspense>
+        </>
       ) : (
         <p className="text-sm text-[var(--color-fg-muted)]">
           검색 조건을 입력하세요. 예: 키워드 + 업종 + 기간.

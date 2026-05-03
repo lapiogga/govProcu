@@ -86,6 +86,7 @@ async def search_bid_notices(
     limit: int = 20,
     page: int = 1,
     scan_pages: int = 1,
+    bid_notice_no: str | None = None,
 ) -> dict:
     """나라장터 입찰공고를 키워드/업종/지역/기관/기간으로 검색합니다.
 
@@ -114,16 +115,23 @@ async def search_bid_notices(
     inp = BidNoticeSearchInput(
         keyword=keyword, biz_type=biz_type, region=region,
         inst_name=inst_name, date_from=date_from, date_to=date_to, limit=limit,
-        page=page,
+        page=page, bid_notice_no=bid_notice_no,
     )
     max_scan_pages = max(1, min(int(scan_pages), 10))
+
+    # 5/3 N42 v12: bid_notice_no 정확 매칭 모드 — 추정 기간 자동 + 매칭 시 즉시 반환
+    if inp.bid_notice_no and not inp.date_from and not inp.date_to:
+        bgn, end = _infer_period_from_bid_no(inp.bid_notice_no)
+        if bgn and end:
+            inp.date_from = bgn
+            inp.date_to = end
 
     # 업종 endpoint (None → 3종 병합)
     endpoints = _resolve_bid_endpoints(inp.biz_type)
     # 1개월 초과 시 chunk 자동 분할 (G2B 1개월 제약)
     chunks = chunk_date_range(inp.date_from, inp.date_to, max_days=31)
 
-    needs_client_filter = bool(inp.keyword or inp.inst_name or inp.region)
+    needs_client_filter = bool(inp.keyword or inp.inst_name or inp.region or inp.bid_notice_no)
     page_size = 999 if needs_client_filter else inp.limit
     max_scan_per_call = page_size * max_scan_pages
 
@@ -178,6 +186,8 @@ async def search_bid_notices(
                             title = raw.get("bidNtceNm") or ""
                             inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
                             region_v = raw.get("rgnLmtBidLocplcNm") or ""
+                            if inp.bid_notice_no and str(raw.get("bidNtceNo", "")) != inp.bid_notice_no:
+                                continue
                             if inp.keyword and inp.keyword not in title:
                                 continue
                             if inp.inst_name and inp.inst_name not in inst:
@@ -374,11 +384,48 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
                         "raw": raw,
                     }
 
+        # 3차 폴백: search_bid_notices(bid_notice_no=...) — 추정 기간 + 적당한 페이징
+        # 1년 chunks 12 × 3 endpoints × scan 10 = 360 호출은 60초+ → 단축
+        try:
+            search_result = await search_bid_notices(
+                bid_notice_no=bid_notice_no,
+                limit=3,
+                scan_pages=2,  # 2 pages × 999 = 1998 row per endpoint
+                date_from=bgn_dt,
+                date_to=end_dt,
+            )
+            for item in search_result.get("items", []):
+                if str(item.get("bid_no", "")) == bid_notice_no:
+                    item_ord = str(item.get("bid_ord") or "")
+                    item_ord_norm = item_ord.lstrip("0") or "0"
+                    if item_ord_norm == norm_ord or item_ord == bid_ord:
+                        return {
+                            "found": True,
+                            "lookup_mode": "search_bid_notices+ord_match",
+                            "summary": item,
+                            "raw": item.get("raw", item),
+                        }
+            # ord 다른 차수라도 first match
+            first_match = next(
+                (it for it in search_result.get("items", []) if str(it.get("bid_no", "")) == bid_notice_no),
+                None,
+            )
+            if first_match:
+                return {
+                    "found": True,
+                    "lookup_mode": "search_bid_notices+no_only",
+                    "ord_mismatch_warning": f"요청 ord={bid_ord} 미발견. 다른 차수(ord={first_match.get('bid_ord')}) 반환.",
+                    "summary": first_match,
+                    "raw": first_match.get("raw", first_match),
+                }
+        except Exception:  # noqa: BLE001
+            pass
+
         return {
             "found": False,
             "bid_notice_no": bid_notice_no,
             "bid_ord": bid_ord,
-            "note": "inqryDiv=3 단건 + inqryDiv=1 폴백 모두 미발견. 공고번호·차수 확인 또는 사전규격(get_pre_specification_detail) 시도.",
+            "note": "inqryDiv=3 단건 + inqryDiv=1 폴백 + search_bid_notices 매칭 모두 미발견. 공고번호·차수 확인 또는 사전규격(get_pre_specification_detail) 시도.",
         }
     finally:
         await client.aclose()
