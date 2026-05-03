@@ -140,9 +140,16 @@ cd frontend && (MCP_MOCK_MODE=true PORT=3025 node .next/standalone/server.js)
 
 ---
 
-## 9. Commit chain (origin 5 ahead)
+## 9. Commit chain (origin 동기화 완료)
 
 ```
+?      v22 (다음)  err-05 fix rebuild + 검증 (다음 세션 진입 시)
+?      v21 (보류)  세션 정리 commit (mcp-client default 8081 + docs)
+05b89f2  v20    P1+P2 100% PASS (41/41) + analyze_price endpoints 노출
+db6478f  v19    P0 100% PASS (73/73) + workflow.py endpoints 노출
+65569a2  v18    lookup_by_* 4종 시그니처 mapping (94.5%)
+e64a2ba  v17    fixture 정밀화 — case-level tool / date_matrix (86%)
+2034345  v16    P0 runner 작성 + 시점관리 v6 (71%)
 c18d63b  v15.1  trace 폴백 추정기간 1년 → 30일 단축
 f0fef7f  v12    bid_notice_no 정확 매칭 인자 + 큰범위 timeout 안내
 5913601  v11    PROMPTS-LOG/UAT docs (#58~#69)
@@ -150,6 +157,37 @@ f0fef7f  v12    bid_notice_no 정확 매칭 인자 + 큰범위 timeout 안내
 e9c8387  v10    G2B 1개월 chunking + 업종 전체 merge + R 형식 폴백 + 측정 default
 ```
 
+## 10. 자동 검증 누적 (자율 v16~v20)
+
+| 우선순위 | API PASS | API FAIL | UI SKIP | 합계 |
+|---|---|---|---|---|
+| P0 | 73 | 0 | 47 | 120 |
+| P1+P2 | 41 | 0 | 39 | 80 |
+| **합계** | **114** | **0** | **86** | **200** |
+
+- API 자동 검증: 114/114 = 100%
+- e2e Playwright: 36/36 = 100%
+- 유효 합계: 150/150 = 100%
+- 라이브 실행 시간: P0 15분 + P1+P2 7분 = 22분
+
+## 11. err-05 (사용자 spot-check 발견)
+
+`/bids?q=구축사업&type=용역&from=20260301&to=20260320&deep=1` → "오류: HTTP 500"
+
+**진단**: 8080 포트에 다른 서버(PID 7948) 가 HTTP 500 응답. frontend `mcp-client.ts` default URL이 8080 (build time inject) → 운영 표준 8081 미사용.
+
+**fix (commit pending)**:
+- `frontend/src/lib/mcp-client.ts`: default `http://localhost:8080` → `http://localhost:8081`
+- `frontend/next.config.ts`: 동일 변경 (build time env inject)
+
+**다음 세션 진입 시 필수**:
+```bash
+cd frontend && npm run build
+cp -r .next/static .next/standalone/.next/
+# standalone 재시작
+GOVPROCU_MCP_URL=http://localhost:8081 PORT=3020 node .next/standalone/server.js
+```
+
 ---
 
-작성: 2026-05-03 (자율 v9~v15.1 종합)
+작성: 2026-05-03 (자율 v9~v20 종합 + err-05 fix 보류)

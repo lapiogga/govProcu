@@ -6,7 +6,7 @@
  */
 import { buildMockResult } from "./mocks";
 
-const MCP_URL = process.env.GOVPROCU_MCP_URL || "http://localhost:8080";
+const MCP_URL = process.env.GOVPROCU_MCP_URL || "http://localhost:8081";
 const MOCK_MODE = process.env.MCP_MOCK_MODE === "true";
 
 export interface McpToolCall {
