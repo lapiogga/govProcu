@@ -150,9 +150,24 @@ async function PriceCard({
   const data = extractMcpData<any>(r.data);
   if (!data) return null;
   if (!data.sample_count) {
+    // v24.3: 매칭 0건 시 G2B 응답 inst 표기 샘플 시각 카드 (사용자 학습)
+    const samples: string[] = data.sample_inst_names || [];
     return (
-      <div className="rounded border p-4 text-sm">
-        사정률 패턴: 데이터 없음 ({data.note || "기간 확장 권장"})
+      <div className="space-y-3 rounded border p-4 text-sm">
+        <p>사정률 패턴: 데이터 없음 ({data.note || "기간 확장 권장"})</p>
+        {samples.length > 0 && (
+          <div className="rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-3 text-xs">
+            <p className="mb-1 font-medium">G2B 실제 표기 샘플 (출현 빈도 상위 {samples.length}):</p>
+            <ul className="ml-4 list-disc">
+              {samples.map((n) => (
+                <li key={n} className="font-mono">{n}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[var(--color-fg-muted)]">
+              위 표기 중 하나로 다시 검색하거나, 일부 토큰만 입력해보세요.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

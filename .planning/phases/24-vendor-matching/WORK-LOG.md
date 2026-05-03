@@ -9,3 +9,5 @@
 | 22:50 | user | 발화 #14 (현재 시간 timezone 질의) | 답변: KST UTC+9 / Korea Standard Time |
 | 22:54 | lead | v24.1 commit (715a5d1) | atomic |
 | 22:56 | lead | v24.2 적용 | (1) `app/tools/award.py` `search_awards`: `inst_sample_counts` dict 수집 (raw inst 표기, 필터 통과 무관). 응답에 `sample_inst_names` (상위 5개) 추가. (2) `app/tools/analytics.py` `analyze_agency_price_pattern`: 매칭 0건 시 `note`에 sample 첨부 + `sample_inst_names` 응답 동봉. 사용자가 정확 표기 학습 가능. import sanity check OK |
+| 22:58 | lead | v24.2 commit (5001a99) | atomic |
+| 23:00 | lead | v24.3 적용 | `frontend/src/app/agencies/page.tsx` PriceCard 매칭 0건 분기에 `sample_inst_names` 시각 카드 추가 (warning border, 출현 빈도 안내, 클릭 가이드). frontend rebuild 후 사용자에게 학습 강조 |
