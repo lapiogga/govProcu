@@ -17,6 +17,7 @@ G2B `ScsbidInfoService` (낙찰정보서비스) — base `/1230000/as/ScsbidInfo
 - list_bid_participants: 응찰업체 목록 (개찰결과 row에서 추출)
 """
 from __future__ import annotations
+import asyncio
 from app.clients.g2b import G2BClient
 from app.config import settings
 from app.core.cache import cache_result
@@ -233,50 +234,57 @@ async def search_awards(
     used_endpoints: list[str] = []
 
     client = G2BClient(base_url=settings.g2b_award_base_url)
+
+    # v23.4: chunks × biz_divs 직렬 → asyncio.gather 병렬.
+    # chunks=1 (30일) × biz_divs=4 (전체) = 4× 효과. 큰 범위는 더 큰 효과.
+    async def _fetch(biz_div: str, chunk_from: str | None, chunk_to: str | None):
+        endpoint = _AWARD_ENDPOINTS[biz_div]
+        params: dict = {
+            "pageNo": 1,
+            "numOfRows": page_size,
+            "inqryDiv": "1",
+        }
+        if chunk_from:
+            params["inqryBgnDt"] = chunk_from + "0000"
+        if chunk_to:
+            params["inqryEndDt"] = chunk_to + "2359"
+        try:
+            body = await client.call(endpoint, settings.g2b_key_award, params)
+            return endpoint, int(body.get("totalCount", 0) or 0), list(_extract_items(body))
+        except Exception:  # noqa: BLE001
+            return endpoint, 0, []
+
     try:
-        for chunk_from, chunk_to in chunks:
-            if len(matches) >= limit:
-                break
-            for biz_div in biz_divs:
+        tasks = [
+            _fetch(bd, cf, ct)
+            for cf, ct in chunks
+            for bd in biz_divs
+        ]
+        results = await asyncio.gather(*tasks)
+
+        for endpoint, count, raw_items in results:
+            if endpoint not in used_endpoints:
+                used_endpoints.append(endpoint)
+            total_count += count
+            for raw in raw_items:
+                if needs_client_filter:
+                    if keyword:
+                        title = raw.get("bidNtceNm") or ""
+                        if keyword not in title:
+                            continue
+                    if inst_name:
+                        inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
+                        if inst_name not in inst:
+                            continue
+                key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                matches.append(_normalize_award_row(raw))
                 if len(matches) >= limit:
                     break
-                endpoint = _AWARD_ENDPOINTS[biz_div]
-                params: dict = {
-                    "pageNo": 1,
-                    "numOfRows": page_size,
-                    "inqryDiv": "1",
-                }
-                if chunk_from:
-                    params["inqryBgnDt"] = chunk_from + "0000"
-                if chunk_to:
-                    params["inqryEndDt"] = chunk_to + "2359"
-
-                try:
-                    body = await client.call(endpoint, settings.g2b_key_award, params)
-                except Exception:
-                    continue
-
-                if endpoint not in used_endpoints:
-                    used_endpoints.append(endpoint)
-                total_count += int(body.get("totalCount", 0) or 0)
-
-                for raw in _extract_items(body):
-                    if needs_client_filter:
-                        if keyword:
-                            title = raw.get("bidNtceNm") or ""
-                            if keyword not in title:
-                                continue
-                        if inst_name:
-                            inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
-                            if inst_name not in inst:
-                                continue
-                    key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
-                    if key in seen_keys:
-                        continue
-                    seen_keys.add(key)
-                    matches.append(_normalize_award_row(raw))
-                    if len(matches) >= limit:
-                        break
+            if len(matches) >= limit:
+                break
     finally:
         await client.aclose()
 
