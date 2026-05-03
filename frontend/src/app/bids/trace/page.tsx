@@ -187,12 +187,28 @@ async function AwardSummary({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }
 
 async function StagePreSpec({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
   const r = await getPreSpecDetail(bidNo, bidOrd);
+  // P30-R3 P1-03: r.ok === false 분기 — 통신 오류와 데이터 미발견 구분
+  if (!r.ok) {
+    return <StageError n={1} label="사전규격" error={r.error} />;
+  }
   const data = extractData(r.data);
-  return <Stage n={1} label="사전규격" ok={data?.found} desc="등록 + 의견수렴" />;
+  // P30-R3 P1-04: backend note 필드 노출 — "왜" 비어있는지 사용자 안내
+  return (
+    <Stage
+      n={1}
+      label="사전규격"
+      ok={data?.found}
+      desc="등록 + 의견수렴"
+      note={data?.note}
+    />
+  );
 }
 
 async function StageNotice({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
   const r = await getBidNoticeDetail(bidNo, bidOrd);
+  if (!r.ok) {
+    return <StageError n={2} label="본 공고" error={r.error} />;
+  }
   const data = extractData(r.data);
   const summary = data?.summary || {};
   return (
@@ -201,12 +217,16 @@ async function StageNotice({ bidNo, bidOrd }: { bidNo: string; bidOrd: string })
       label="본 공고"
       ok={data?.found}
       desc={`추정가 ${fmtWon(summary.estimated_price ?? summary.presmptPrce)}`}
+      note={data?.note}
     />
   );
 }
 
 async function StageParticipants({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
   const r = await listBidParticipants(bidNo, bidOrd);
+  if (!r.ok) {
+    return <StageError n={3} label="개찰 + 응찰업체" error={r.error} />;
+  }
   const data = extractData(r.data);
   const items: ParticipantRow[] = data?.items || [];
   return (
@@ -216,6 +236,7 @@ async function StageParticipants({ bidNo, bidOrd }: { bidNo: string; bidOrd: str
         label="개찰 + 응찰업체"
         ok={items.length > 0}
         desc={`응찰자 ${data?.participant_count ?? items.length}개사`}
+        note={data?.note}
       />
       {items.length > 0 && (
         <section className="rounded-lg border">
@@ -254,6 +275,9 @@ async function StageParticipants({ bidNo, bidOrd }: { bidNo: string; bidOrd: str
 
 async function StageAwardAndNts({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
   const r = await getAwardDetail(bidNo, bidOrd);
+  if (!r.ok) {
+    return <StageError n={4} label="낙찰" error={r.error} />;
+  }
   const data = extractData(r.data);
   const aw = data?.summary || {};
   const winnerBizNo = aw.winner_biz_no;
@@ -263,7 +287,13 @@ async function StageAwardAndNts({ bidNo, bidOrd }: { bidNo: string; bidOrd: stri
 
   return (
     <>
-      <Stage n={4} label="낙찰" ok={data?.found} desc={stage4Desc} />
+      <Stage
+        n={4}
+        label="낙찰"
+        ok={data?.found}
+        desc={stage4Desc}
+        note={data?.note}
+      />
       {/* Stage 5: NTS — winner_biz_no 의존 (자식 Suspense로 streaming) */}
       <Suspense fallback={<StageSkeleton n={5} label="낙찰자 NTS 검증" desc="—" />}>
         <StageNts winnerBizNo={winnerBizNo} />
@@ -277,10 +307,19 @@ async function StageNts({ winnerBizNo }: { winnerBizNo?: string }) {
     return <Stage n={5} label="낙찰자 NTS 검증" ok={false} desc="—" inactive />;
   }
   const r = await checkBusinessStatus([winnerBizNo]);
+  if (!r.ok) {
+    return <StageError n={5} label="낙찰자 NTS 검증" error={r.error} />;
+  }
   const data = extractData(r.data);
   const items = data?.items || [];
   return (
-    <Stage n={5} label="낙찰자 NTS 검증" ok={items.length > 0} desc={ntsLabel(data)} />
+    <Stage
+      n={5}
+      label="낙찰자 NTS 검증"
+      ok={items.length > 0}
+      desc={ntsLabel(data)}
+      note={data?.note}
+    />
   );
 }
 
@@ -325,24 +364,61 @@ function Stage({
   ok,
   desc,
   inactive,
+  note,
 }: {
   n: number;
   label: string;
   ok: boolean | undefined;
   desc?: string;
   inactive?: boolean;
+  note?: string;
 }) {
   const status = inactive ? "○" : ok ? "✅" : "○";
   return (
     <div
-      className={`flex items-center gap-3 rounded border px-4 py-2 ${
+      className={`rounded border px-4 py-2 ${
         ok ? "border-[var(--color-success)]" : ""
       }`}
     >
-      <span className="font-mono text-xs">{n}</span>
-      <span>{status}</span>
-      <span className="font-medium">{label}</span>
-      <span className="text-sm text-[var(--color-fg-muted)]">{desc}</span>
+      <div className="flex items-center gap-3">
+        <span className="font-mono text-xs">{n}</span>
+        <span>{status}</span>
+        <span className="font-medium">{label}</span>
+        <span className="text-sm text-[var(--color-fg-muted)]">{desc}</span>
+      </div>
+      {/* P30-R3 P1-04: backend note (미발견 사유) 노출 — F2 사용자 사례 직결 */}
+      {note && (
+        <p className="mt-1 ml-9 text-xs text-[var(--color-fg-muted)]">
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// P30-R3 P1-03: backend 통신 오류 (r.ok=false) 전용 — 데이터 미발견과 구분
+function StageError({
+  n,
+  label,
+  error,
+}: {
+  n: number;
+  label: string;
+  error?: string;
+}) {
+  return (
+    <div className="rounded border border-[var(--color-danger)] bg-[var(--color-danger-bg,#fee2e2)] px-4 py-2">
+      <div className="flex items-center gap-3">
+        <span className="font-mono text-xs">{n}</span>
+        <span>⚠</span>
+        <span className="font-medium">{label}</span>
+        <span className="text-sm text-[var(--color-danger)]">통신 오류</span>
+      </div>
+      {error && (
+        <p className="mt-1 ml-9 text-xs text-[var(--color-danger)]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
