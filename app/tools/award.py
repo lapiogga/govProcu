@@ -277,7 +277,9 @@ async def search_awards(
                 if needs_client_filter:
                     if keyword:
                         title = raw.get("bidNtceNm") or ""
-                        if keyword not in title:
+                        # v24.4: keyword 토큰 매칭 (어순 변경 매칭률 ↑)
+                        keyword_tokens = [t for t in keyword.split() if t]
+                        if not all(t in title for t in keyword_tokens):
                             continue
                     if inst_name:
                         inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")

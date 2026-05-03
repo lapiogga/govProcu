@@ -211,8 +211,12 @@ async def search_bid_notices(
                     region_v = raw.get("rgnLmtBidLocplcNm") or ""
                     if inp.bid_notice_no and str(raw.get("bidNtceNo", "")) != inp.bid_notice_no:
                         continue
-                    if inp.keyword and inp.keyword not in title:
-                        continue
+                    if inp.keyword:
+                        # v24.4: keyword도 토큰 매칭 — "해군 정보체계" 입력 시
+                        # title "정보체계 (해군본부)" 같은 어순 변경도 매칭
+                        keyword_tokens = [t for t in inp.keyword.split() if t]
+                        if not all(t in title for t in keyword_tokens):
+                            continue
                     if inp.inst_name:
                         # v24.1: 토큰 기반 매칭 (변형 표기 매칭률 ↑)
                         inst_tokens = [t for t in inp.inst_name.split() if t]

@@ -11,3 +11,6 @@
 | 22:56 | lead | v24.2 적용 | (1) `app/tools/award.py` `search_awards`: `inst_sample_counts` dict 수집 (raw inst 표기, 필터 통과 무관). 응답에 `sample_inst_names` (상위 5개) 추가. (2) `app/tools/analytics.py` `analyze_agency_price_pattern`: 매칭 0건 시 `note`에 sample 첨부 + `sample_inst_names` 응답 동봉. 사용자가 정확 표기 학습 가능. import sanity check OK |
 | 22:58 | lead | v24.2 commit (5001a99) | atomic |
 | 23:00 | lead | v24.3 적용 | `frontend/src/app/agencies/page.tsx` PriceCard 매칭 0건 분기에 `sample_inst_names` 시각 카드 추가 (warning border, 출현 빈도 안내, 클릭 가이드). frontend rebuild 후 사용자에게 학습 강조 |
+| 23:02 | lead | v24.3 commit (ebe4ef7) | atomic |
+| 23:05 | user | 발화 #15 ("continue") | v24.4 자동 진행 |
+| 23:07 | lead | v24.4 적용 | (1) `bid.py` keyword 부분일치 → 토큰 매칭 (`all(t in title for t in keyword.split())`). (2) `award.py` 동일 패턴. 검증 5/5: "해군 정보체계" 입력 시 어순 변경(`정보체계 (해군본부)`) 매칭 통과, 토큰 누락(`해군 도서관 시스템`/`정보체계 솔루션 (육군)`) 매칭 실패. 효과: F8 keyword 매칭률 ↑ |
