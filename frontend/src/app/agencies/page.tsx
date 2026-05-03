@@ -17,11 +17,11 @@ function todayYYYYMMDD(): string {
 }
 
 function defaultAgencyFrom(): string {
-  // 5/3 N42 v10.2: 측정 1.7초 vs 실 사용 60초 차이로 1년 default 재검토.
-  // 6개월(180일) default — chunks 6 × 4 endpoints = ~30초 (수용 가능).
-  // 사용자 spot-check 후 더 좁힐 수 있음.
+  // v23.1: 5초 SLA 달성 — 180일 → 30일 default.
+  // 사용자가 "발화 #6: 5초 이내" 강한 SLA. 30일 = chunks 1 × 4 endpoints ≈ 5~10초.
+  // 더 긴 기간이 필요하면 사용자가 from 입력 (큰 범위 경고 + estimated 표시 v22.4 적용됨).
   const d = new Date();
-  d.setDate(d.getDate() - 180);
+  d.setDate(d.getDate() - 30);
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
 }
 

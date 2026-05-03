@@ -392,19 +392,19 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
                         "raw": raw,
                     }
 
-        # 3차 폴백: search_bid_notices — v22.3 (F2 fix):
-        # R26.../20260101... 등 채번에 연도 인코딩되면 추정 연도 범위 1회 시도 (비용 ↑, 정확).
-        # 형식 불명일 때만 30→90일 progressive (v15.1의 30일 단축이 R 형식 미커버한 trade-off 보정).
+        # 3차 폴백: search_bid_notices — v22.3 + v23.1 (F2 + F9):
+        # R26.../20260101... 형식이라도 progressive(30→90→연도)로 보통 케이스 우선 빠르게.
+        # 30일에 hit이면 5~10초 (5초 SLA 근접). 못 찾으면 90일, 그래도 못 찾으면 연도 전체.
         from datetime import datetime, timedelta
         today = datetime.now()
         inferred_from, inferred_to = _infer_period_from_bid_no(bid_notice_no)
+        fallback_ranges = [
+            ((today - timedelta(days=30)).strftime("%Y%m%d"), today.strftime("%Y%m%d")),
+            ((today - timedelta(days=90)).strftime("%Y%m%d"), today.strftime("%Y%m%d")),
+        ]
         if inferred_from and inferred_to:
-            fallback_ranges = [(inferred_from, inferred_to)]
-        else:
-            fallback_ranges = [
-                ((today - timedelta(days=30)).strftime("%Y%m%d"), today.strftime("%Y%m%d")),
-                ((today - timedelta(days=90)).strftime("%Y%m%d"), today.strftime("%Y%m%d")),
-            ]
+            # R/숫자 형식: 마지막 fallback으로 추정 연도 (비용 ↑, 정확)
+            fallback_ranges.append((inferred_from, inferred_to))
 
         for fb_from, fb_to in fallback_ranges:
             try:
