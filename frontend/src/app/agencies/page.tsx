@@ -17,9 +17,11 @@ function todayYYYYMMDD(): string {
 }
 
 function defaultAgencyFrom(): string {
-  // 5/3 N42: 라이브 측정 기반 default = 오늘-365일 (P99 2.5초). 사정률 sample 충분 확보.
+  // 5/3 N42 v10.2: 측정 1.7초 vs 실 사용 60초 차이로 1년 default 재검토.
+  // 6개월(180일) default — chunks 6 × 4 endpoints = ~30초 (수용 가능).
+  // 사용자 spot-check 후 더 좁힐 수 있음.
   const d = new Date();
-  d.setDate(d.getDate() - 365);
+  d.setDate(d.getDate() - 180);
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
 }
 

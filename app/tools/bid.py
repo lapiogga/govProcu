@@ -11,6 +11,28 @@ from app.schemas.bid import BidNoticeSearchInput, BidNoticeSearchResult, BidNoti
 _BIZ_DIV_MAP = {"공사": "1", "용역": "2", "물품": "3"}
 
 
+def _infer_period_from_bid_no(bid_notice_no: str) -> tuple[str | None, str | None]:
+    """공고번호 prefix에서 연도 추정해 inqryBgnDt/inqryEndDt 자동 생성.
+
+    G2B 단건 조회 inqryDiv=1 폴백에서 기간 필수 → 공고번호 자체에 인코딩된 연도 사용.
+    - 'R26...' / 'R25...' → 2026 / 2025년
+    - '20240101234' (숫자 11자리) → 첫 4자리 연도
+    추정 불가 시 (None, None).
+    """
+    s = (bid_notice_no or "").strip().upper()
+    # R 형식 (R + 2자리 연도)
+    if len(s) >= 3 and s.startswith("R") and s[1:3].isdigit():
+        yy = int(s[1:3])
+        year = 2000 + yy if yy < 80 else 1900 + yy
+        return f"{year}0101", f"{year}1231"
+    # 숫자 11자리 (예: 20240101234)
+    if len(s) >= 4 and s[:4].isdigit():
+        year = int(s[:4])
+        if 2000 <= year <= 2100:
+            return f"{year}0101", f"{year}1231"
+    return None, None
+
+
 def _resolve_bid_endpoints(biz_type: str | None) -> list[tuple[str, str]]:
     """biz_type별 endpoint 목록. None이면 3종 모두 (공사/용역/물품).
 
@@ -275,14 +297,21 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
                     "raw": item,
                 }
 
-        # 2차 폴백: inqryDiv=1 + bidNtceNo (차수 무관 검색)
+        # 2차 폴백: inqryDiv=1 + bidNtceNo (차수 무관 검색).
+        # G2B는 inqryDiv=1에 inqryBgnDt/inqryEndDt 기간 필수 → 공고번호 prefix로 추정 기간 자동 설정.
+        # R26... = 2026년, 20240101234 = 2024년 등 prefix 기반.
+        bgn_dt, end_dt = _infer_period_from_bid_no(bid_notice_no)
+
         for biz_div, endpoint in _BID_ENDPOINTS.items():
             params = {
                 "pageNo": 1,
-                "numOfRows": 50,
+                "numOfRows": 999,
                 "inqryDiv": "1",
                 "bidNtceNo": bid_notice_no,
             }
+            if bgn_dt and end_dt:
+                params["inqryBgnDt"] = bgn_dt + "0000"
+                params["inqryEndDt"] = end_dt + "2359"
             try:
                 body = await client.call(endpoint, settings.g2b_key_bid, params)
             except Exception:  # noqa: BLE001
@@ -296,8 +325,11 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
             if not items_raw:
                 continue
 
-            # 차수 매칭 (정규화 비교)
+            # bidNtceNo + bidNtceOrd 매칭 (G2B inqryDiv=1은 bidNtceNo 파라미터 무시 → 999개 중 클라이언트 필터)
             for raw in items_raw:
+                raw_no = str(raw.get("bidNtceNo", ""))
+                if raw_no != bid_notice_no:
+                    continue
                 raw_ord = str(raw.get("bidNtceOrd", ""))
                 raw_ord_norm = raw_ord.lstrip("0") or "0"
                 if raw_ord_norm == norm_ord or raw_ord == bid_ord:
@@ -305,21 +337,42 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
                         "found": True,
                         "biz_div": biz_div,
                         "endpoint": endpoint,
-                        "lookup_mode": "inqryDiv=1+ord_match",
+                        "lookup_mode": "inqryDiv=1+no_ord_match",
                         "summary": _normalize_notice(raw).model_dump(),
                         "raw": raw,
                     }
-            # 차수 매칭 실패 시 첫 항목 반환 (참고용)
-            first = items_raw[0]
-            return {
-                "found": True,
-                "biz_div": biz_div,
-                "endpoint": endpoint,
-                "lookup_mode": "inqryDiv=1+first_only",
-                "ord_mismatch_warning": f"요청 ord={bid_ord} 미발견. 첫 항목(ord={first.get('bidNtceOrd')}) 반환.",
-                "summary": _normalize_notice(first).model_dump(),
-                "raw": first,
+
+        # bid_no 동일 + 다른 ord 라도 있으면 첫 항목 반환 (참고용)
+        for biz_div, endpoint in _BID_ENDPOINTS.items():
+            params = {
+                "pageNo": 1,
+                "numOfRows": 999,
+                "inqryDiv": "1",
+                "bidNtceNo": bid_notice_no,
             }
+            if bgn_dt and end_dt:
+                params["inqryBgnDt"] = bgn_dt + "0000"
+                params["inqryEndDt"] = end_dt + "2359"
+            try:
+                body = await client.call(endpoint, settings.g2b_key_bid, params)
+            except Exception:  # noqa: BLE001
+                continue
+            items_raw = body.get("items", [])
+            if isinstance(items_raw, dict):
+                items_raw = items_raw.get("item", [])
+            if not isinstance(items_raw, list):
+                items_raw = [items_raw] if items_raw else []
+            for raw in items_raw:
+                if str(raw.get("bidNtceNo", "")) == bid_notice_no:
+                    return {
+                        "found": True,
+                        "biz_div": biz_div,
+                        "endpoint": endpoint,
+                        "lookup_mode": "inqryDiv=1+no_only_ord_diff",
+                        "ord_mismatch_warning": f"요청 ord={bid_ord} 미발견. 다른 차수(ord={raw.get('bidNtceOrd')}) 반환.",
+                        "summary": _normalize_notice(raw).model_dump(),
+                        "raw": raw,
+                    }
 
         return {
             "found": False,

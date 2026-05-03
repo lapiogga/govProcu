@@ -335,7 +335,9 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
                     "raw": items[0],
                 }
 
-        # 2차 폴백: inqryDiv=1 + bidNtceNo (차수 무관 → 클라이언트측 매칭)
+        # 2차 폴백: inqryDiv=1 + bidNtceNo + 추정 기간 (G2B inqryDiv=1은 기간 필수)
+        from app.tools.bid import _infer_period_from_bid_no
+        bgn_dt, end_dt = _infer_period_from_bid_no(bid_notice_no)
         for biz_div, endpoint in _AWARD_ENDPOINTS.items():
             params = {
                 "pageNo": 1,
@@ -343,6 +345,9 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
                 "inqryDiv": "1",
                 "bidNtceNo": bid_notice_no,
             }
+            if bgn_dt and end_dt:
+                params["inqryBgnDt"] = bgn_dt + "0000"
+                params["inqryEndDt"] = end_dt + "2359"
             try:
                 body = await client.call(endpoint, settings.g2b_key_award, params)
             except Exception:
