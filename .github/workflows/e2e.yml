@@ -45,7 +45,7 @@ jobs:
       - name: Build
         working-directory: frontend
         env:
-          GOVPROCU_MCP_URL: http://localhost:8080
+          GOVPROCU_MCP_URL: http://localhost:8081
           ANTHROPIC_API_KEY: dummy-for-build
         run: npm run build
 

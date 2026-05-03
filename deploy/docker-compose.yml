@@ -10,7 +10,7 @@ services:
     environment:
       REDIS_URL: redis://redis:6379/0
     ports:
-      - "8080:8080"
+      - "8081:8081"
     depends_on:
       redis:
         condition: service_healthy

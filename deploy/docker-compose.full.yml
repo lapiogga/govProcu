@@ -8,7 +8,7 @@
 #
 # 접속:
 #   - frontend: http://localhost:3000
-#   - MCP:      http://localhost:8080
+#   - MCP:      http://localhost:8081
 #   - Neo4j:    http://localhost:7474 (neo4j/govprocu_poc)
 #   - Redis:    localhost:6379
 
@@ -26,7 +26,7 @@ services:
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: govprocu_poc
     ports:
-      - "8080:8080"
+      - "8081:8081"
     volumes:
       - mcp_runtime:/app/runtime
     depends_on:
@@ -42,7 +42,7 @@ services:
     image: govprocu-frontend:latest
     restart: unless-stopped
     environment:
-      GOVPROCU_MCP_URL: http://mcp:8080
+      GOVPROCU_MCP_URL: http://mcp:8081
       NODE_ENV: production
     env_file: ../frontend/.env.local
     ports:

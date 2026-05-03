@@ -14,8 +14,8 @@ RUN pip install --upgrade pip && pip install . && rm pyproject.toml
 # 앱 코드
 COPY app ./app
 
-EXPOSE 8080
+EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=3)" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8081/health', timeout=3)" || exit 1
 
-CMD ["uvicorn", "app.server:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "app.server:app", "--host", "0.0.0.0", "--port", "8081"]
