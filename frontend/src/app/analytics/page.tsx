@@ -9,11 +9,28 @@ import { IndustryTrendChart } from "@/components/charts/IndustryTrendChart";
 import { MarketShareChart } from "@/components/charts/MarketShareChart";
 import { VendorLink } from "@/components/EntityLink";
 
+function todayYYYYMMDD(): string {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function defaultAnalyticsFrom(): string {
+  // P30-R4 P1-11: from/to 미입력 시 365일 default.
+  // 사유: backend industry_trend / market_share 가 무기간 호출되면 G2B inqryBgnDt 누락 →
+  // chunk_date_range fallback이 today 1개월만 처리 → 0건/rate_limit 위험.
+  // 1년 default로 의미 있는 시계열 + 시장 점유 산출.
+  const d = new Date();
+  d.setDate(d.getDate() - 365);
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default async function AnalyticsPage(props: {
   searchParams: Promise<{ type?: string; from?: string; to?: string }>;
 }) {
   const sp = await props.searchParams;
   const bizType = sp.type || "용역";
+  const dateFrom = sp.from || defaultAnalyticsFrom();
+  const dateTo = sp.to || todayYYYYMMDD();
 
   return (
     <main className="space-y-6">
@@ -55,11 +72,11 @@ export default async function AnalyticsPage(props: {
       </form>
 
       <Suspense fallback={<Skel h={20} />}>
-        <TrendSection bizType={bizType} from={sp.from} to={sp.to} />
+        <TrendSection bizType={bizType} from={dateFrom} to={dateTo} />
       </Suspense>
 
       <Suspense fallback={<Skel h={32} />}>
-        <MarketShareSection bizType={bizType} from={sp.from} to={sp.to} />
+        <MarketShareSection bizType={bizType} from={dateFrom} to={dateTo} />
       </Suspense>
     </main>
   );
@@ -76,6 +93,14 @@ async function TrendSection({
 }) {
   // Cache 전략은 NEXT7-SEC-1 후 보류 (CACHE-STRATEGY.md §2)
   const r = await getIndustryTrend(bizType, undefined, from, to);
+  if (!r.ok) {
+    // P30-R4 P1-20: r.ok 분기 — backend 통신 오류 사용자 인지 (silent "데이터 없음"과 구분)
+    return (
+      <div className="rounded border border-[var(--color-danger,#dc2626)] bg-[var(--color-danger-bg,#fee2e2)] p-3 text-sm">
+        <strong>업종 동향 조회 오류</strong> — {r.error || "backend 통신 실패"}
+      </div>
+    );
+  }
   const data = extractMcpData<any>(r.data);
   const monthly = data?.monthly || [];
 
@@ -149,6 +174,14 @@ async function MarketShareSection({
   to?: string;
 }) {
   const r = await getMarketShare(bizType, from, to, 20);
+  if (!r.ok) {
+    // P30-R4 P1-20: r.ok 분기 — backend 통신 오류 사용자 인지 (silent "데이터 없음"과 구분)
+    return (
+      <div className="rounded border border-[var(--color-danger,#dc2626)] bg-[var(--color-danger-bg,#fee2e2)] p-3 text-sm">
+        <strong>시장 점유 조회 오류</strong> — {r.error || "backend 통신 실패"}
+      </div>
+    );
+  }
   const data = extractMcpData<any>(r.data);
   const top = data?.top_vendors || [];
   const grandTotal = data?.grand_total_won || 0;
