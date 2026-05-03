@@ -116,6 +116,8 @@ async def trace_bid_lifecycle(bid_notice_no: str, bid_ord: str = "00") -> dict:
 
 # === W2: vendor_profile ===
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="vendor_profile_v24")
+
 async def vendor_profile(
     vendor_biz_no: str,
     date_from: str | None = None,
@@ -217,6 +219,7 @@ async def vendor_profile(
 
 # === W3: agency_bid_summary ===
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="agency_summary_v24")
 async def agency_bid_summary(
     inst_name: str,
     date_from: str | None = None,
@@ -287,6 +290,7 @@ async def agency_bid_summary(
 
 # === W4: competitor_analysis ===
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="competitor_v24")
 async def competitor_analysis(
     vendor_biz_no: str,
     peer_count: int = 5,
@@ -304,6 +308,7 @@ async def competitor_analysis(
 
 # === W5: agency_procurement_history (사용자 5/2 추가) ===
 
+@cache_result(ttl=settings.cache_ttl_short, prefix="agency_history_v24")
 async def agency_procurement_history(
     inst_name: str,
     date_from: str | None = None,
