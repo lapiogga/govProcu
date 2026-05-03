@@ -36,8 +36,11 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
-    cache_ttl_short: int = 300
+    # v23.3: 검색·추적 cache TTL 강화 (5분 → 30분). 반복 검색 사용성 ↑
+    cache_ttl_short: int = 1800
     cache_ttl_long: int = 86400
+    # v23.3: 단건 조회용 짧은 TTL (휘발성 데이터 — NTS 진위 등은 짧게)
+    cache_ttl_volatile: int = 300
 
     # 운영
     log_level: str = "INFO"

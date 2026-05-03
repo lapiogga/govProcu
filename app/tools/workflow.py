@@ -10,12 +10,21 @@
 - agency_procurement_history (W5): 사용자 5/2 추가 — 발주기관 발주이력 + 낙찰업체 매칭
 """
 from __future__ import annotations
+import asyncio
 from typing import Any
 
 from app.tools import bid as bid_tools
 from app.tools import award as award_tools
 from app.tools import vendor as vendor_tools
 from app.tools import analytics as analytics_tools
+
+
+async def _safe(coro):
+    """예외 발생 시 {"error": ...} 반환. asyncio.gather에서 stage 손실 방지."""
+    try:
+        return await coro
+    except Exception as exc:  # noqa: BLE001
+        return {"error": str(exc)[:200]}
 
 
 def _safe_amt(v: Any) -> int:
@@ -58,33 +67,18 @@ async def trace_bid_lifecycle(bid_notice_no: str, bid_ord: str = "00") -> dict:
         "summary": {},
     }
 
-    # 1. 사전규격
-    try:
-        prespec = await bid_tools.get_pre_specification_detail(bid_notice_no, bid_ord)
-        result["stages"]["pre_specification"] = prespec
-    except Exception as exc:  # noqa: BLE001
-        result["stages"]["pre_specification"] = {"error": str(exc)[:200]}
-
-    # 2. 본 입찰공고
-    try:
-        notice = await bid_tools.get_bid_notice_detail(bid_notice_no, bid_ord)
-        result["stages"]["bid_notice"] = notice
-    except Exception as exc:
-        result["stages"]["bid_notice"] = {"error": str(exc)[:200]}
-
-    # 3. 개찰결과 + 응찰업체
-    try:
-        participants = await award_tools.list_bid_participants(bid_notice_no, bid_ord)
-        result["stages"]["participants"] = participants
-    except Exception as exc:
-        result["stages"]["participants"] = {"error": str(exc)[:200]}
-
-    # 4. 낙찰 단건
-    try:
-        award = await award_tools.get_award_detail(bid_notice_no, bid_ord)
-        result["stages"]["award"] = award
-    except Exception as exc:
-        result["stages"]["award"] = {"error": str(exc)[:200]}
+    # v23.2: 1~4단계 병렬화 (직렬 30~90초 → 병렬 max 단계 ≈ 5~20초).
+    # 5단계(NTS 검증)는 4단계(award)의 winner_biz_no 의존 → 순차 유지.
+    prespec, notice, participants, award = await asyncio.gather(
+        _safe(bid_tools.get_pre_specification_detail(bid_notice_no, bid_ord)),
+        _safe(bid_tools.get_bid_notice_detail(bid_notice_no, bid_ord)),
+        _safe(award_tools.list_bid_participants(bid_notice_no, bid_ord)),
+        _safe(award_tools.get_award_detail(bid_notice_no, bid_ord)),
+    )
+    result["stages"]["pre_specification"] = prespec
+    result["stages"]["bid_notice"] = notice
+    result["stages"]["participants"] = participants
+    result["stages"]["award"] = award
 
     # 5. 낙찰업체 NTS 검증 (낙찰자 사업자번호가 있을 때)
     winner_biz_no = _safe_get(result, "stages", "award", "summary", "winner_biz_no")
