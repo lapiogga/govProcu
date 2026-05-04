@@ -1129,3 +1129,13 @@ $ git add logs/ && git commit && git push origin main
 [23:51:00 KST 2026-05-04] $ git config core.autocrlf input && git checkout -- .  # CRLF noise reset (selective cp 방식 유지)
 [23:52:00 KST 2026-05-04] $ # WORK-LOG/TERMINAL-LOG 갱신 후 선택적 cp → mount
 [23:53:00 KST 2026-05-04] $ git add -A && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-04 23:53 KST" && git push origin main
+
+[00:09:30 KST 2026-05-05] $ # cycle 145 — 정기 sync 점검 (날짜 전환 5/4→5/5)
+[00:10:00 KST 2026-05-05] $ TZ=Asia/Seoul date && ls /sessions/*/mnt/GovProcu/logs/
+[00:11:00 KST 2026-05-05] $ rsync ... # 초기 시도 disk full(9.5G/9.6G) — frontend/.next 충돌
+[00:11:30 KST 2026-05-05] $ rm -rf $WORK/frontend/.next $WORK/frontend/node_modules  # 정리
+[00:12:00 KST 2026-05-05] $ rsync -a --delete --exclude={.git,.pat,node_modules,.next,__pycache__,*.pyc} $MOUNT/ $WORK/  # 재시도 성공
+[00:12:30 KST 2026-05-05] $ git config core.autocrlf input && git checkout -- .  # CRLF noise 254건 reset
+[00:13:00 KST 2026-05-05] $ # WORK-LOG 145행 추가 후 선택적 cp → mount
+[00:13:30 KST 2026-05-05] $ cp $WORK/logs/{WORK-LOG.md,TERMINAL-LOG.md} $MOUNT/logs/
+[00:14:00 KST 2026-05-05] $ git add -A && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-05 00:14 KST" && git push origin main
