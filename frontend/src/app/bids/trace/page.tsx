@@ -323,18 +323,29 @@ async function StageParticipants({ bidNo, bidOrd }: { bidNo: string; bidOrd: str
   }
   const data = extractData(r.data);
   const items: ParticipantRow[] = data?.items || [];
+  // P32-R2 (F30): G2B 비공개 API — R-prefix 케이스에서 participant_count(prtcptCnum)는 N건이지만
+  // items는 낙찰자 1건만 (opengCorpInfo 응답 한계). UI에 명시 표시.
+  const totalCount = data?.participant_count ?? items.length;
+  const isPartialList = totalCount > items.length;
   return (
     <>
       <Stage
         n={3}
         label="개찰 + 응찰업체"
-        ok={items.length > 0}
-        desc={`응찰자 ${data?.participant_count ?? items.length}개사`}
+        ok={totalCount > 0}
+        desc={`응찰자 ${totalCount}개사`}
         note={data?.note}
       />
       {items.length > 0 && (
         <section className="rounded-lg border">
-          <h3 className="border-b px-4 py-2 text-sm font-medium">응찰업체 {items.length}개사</h3>
+          <h3 className="border-b px-4 py-2 text-sm font-medium">
+            응찰업체 {totalCount}개사
+            {isPartialList && (
+              <span className="ml-2 text-xs font-normal text-[var(--color-fg-muted)]">
+                (낙찰자 {items.length}건만 공개 — G2B 비공개 API)
+              </span>
+            )}
+          </h3>
           <table className="w-full text-sm">
             <thead className="bg-[var(--color-bg-muted)]">
               <tr>
