@@ -1,6 +1,7 @@
 """입찰공고 영역 MCP 도구."""
 from __future__ import annotations
 import asyncio
+import re
 import structlog
 from app.clients.g2b import G2BClient
 from app.config import settings
@@ -798,19 +799,41 @@ async def list_pre_specifications(
     }
 
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="prespec_detail")
+_R_PRESPEC_PATTERN = re.compile(r"^R\d{2}[A-Z]{2}\d{8}$", re.IGNORECASE)
+
+
+def _is_r_prefix_local(bid_no: str | None) -> bool:
+    """R-prefix 13자리 입찰번호 여부 (P32-R2). award.py 동치 헬퍼."""
+    if not bid_no:
+        return False
+    head = bid_no.split("-")[0].strip()
+    return bool(_R_PRESPEC_PATTERN.match(head))
+
+
+@cache_result(ttl=settings.cache_ttl_short, prefix="prespec_detail_v32")
 async def get_pre_specification_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
     """공고번호+차수로 사전규격 단건 상세를 조회합니다.
 
     `getPrdctClsfcNoPblancList...` 시리즈에 `inqryDiv=3` + `bidNtceNo`+`bidNtceOrd` 단건 패턴.
+
+    P32-R2 (F30): R-prefix 단건 폴백 — `inqryDiv=2 + bidNtceNo` 시도 추가
+    (BidPublicInfoService 단일조회 패턴 A: 2=입찰공고번호). raw evidence(poc_p32_v3.py)
+    상 5건 모두 사전규격 미존재(0건)이지만, R-prefix 입찰의 사전규격이 등록된 케이스를
+    위해 패턴 일관성 보전.
     """
     allowed, remaining = await check_rate("g2b_prespec_detail", capacity=10, refill_per_sec=1.0)
     if not allowed:
         raise RuntimeError(f"rate_limit: g2b_prespec_detail 토큰 소진 (remaining={remaining})")
 
+    if "-" in bid_notice_no and not bid_ord.strip("0"):
+        parts = bid_notice_no.rsplit("-", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            bid_notice_no, bid_ord = parts[0], parts[1]
+
     service_key = settings.g2b_key_prespec or settings.g2b_key_bid
     client = G2BClient()
     try:
+        # 1차 (기존): inqryDiv=3 단건 — 11자리 숫자 등 호환
         for biz_div, endpoint in _PRESPEC_ENDPOINTS.items():
             params = {
                 "pageNo": 1,
@@ -829,14 +852,52 @@ async def get_pre_specification_detail(bid_notice_no: str, bid_ord: str = "00") 
                     "found": True,
                     "biz_div": biz_div,
                     "endpoint": endpoint,
+                    "lookup_mode": "inqryDiv=3",
                     "summary": _normalize_notice(item).model_dump(),
                     "raw": item,
                 }
+
+        # 2차 (P32-R2 신설): R-prefix면 inqryDiv=2 + bidNtceNo 3종 fan-out 폴백.
+        if _is_r_prefix_local(bid_notice_no):
+            async def _call_div2(biz_div: str, endpoint: str):
+                params = {
+                    "pageNo": 1,
+                    "numOfRows": 5,
+                    "inqryDiv": "2",  # 단일조회 패턴 A: 2=입찰공고번호
+                    "bidNtceNo": bid_notice_no,
+                    "bidNtceOrd": bid_ord,
+                }
+                try:
+                    body = await client.call(endpoint, service_key, params)
+                except Exception:  # noqa: BLE001
+                    return biz_div, endpoint, []
+                items_raw = body.get("items", [])
+                if isinstance(items_raw, dict):
+                    items_raw = items_raw.get("item", [])
+                if not isinstance(items_raw, list):
+                    items_raw = [items_raw] if items_raw else []
+                return biz_div, endpoint, items_raw
+
+            results = await asyncio.gather(
+                *(_call_div2(bd, ep) for bd, ep in _PRESPEC_ENDPOINTS.items())
+            )
+            for biz_div, endpoint, items in results:
+                for raw in items:
+                    if str(raw.get("bidNtceNo", "")) == bid_notice_no:
+                        return {
+                            "found": True,
+                            "biz_div": biz_div,
+                            "endpoint": endpoint,
+                            "lookup_mode": "inqryDiv=2+bidNtceNo",
+                            "summary": _normalize_notice(raw).model_dump(),
+                            "raw": raw,
+                        }
+
         return {
             "found": False,
             "bid_notice_no": bid_notice_no,
             "bid_ord": bid_ord,
-            "note": "사전규격 endpoint 3종 모두 미발견. 사전규격이 아니라 본 입찰공고일 수 있음 — get_bid_notice_detail 시도 권장.",
+            "note": "사전규격 endpoint 3종 inqryDiv=3 + R-prefix inqryDiv=2 폴백 모두 미발견. 사전규격이 등록되지 않은 입찰일 수 있음 — get_bid_notice_detail 시도 권장.",
         }
     finally:
         await client.aclose()

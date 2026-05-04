@@ -15,6 +15,12 @@ G2B `ScsbidInfoService` (낙찰정보서비스) — base `/1230000/as/ScsbidInfo
 - get_award_detail: 낙찰 단건 (공고번호+차수)
 - search_awards_by_vendor (V4): 업체 기준 낙찰 이력
 - list_bid_participants: 응찰업체 목록 (개찰결과 row에서 추출)
+
+P32-R2 (F30): R-prefix 단건 폴백 raw evidence (poc_p32_v3.py 5건 검증):
+- award: getScsbidListSttus{X}PPSSrch + inqryDiv=3 + bidNtceNo (non-PPSSrch + inqryDiv=4 미작동)
+- 응찰: getOpengResultListInfo{X} + inqryDiv=4 + bidNtceNo (non-PPSSrch) — 1 row 단위 입찰 집계
+  • prtcptCnum = 응찰 총 수, opengCorpInfo = 낙찰자 1건 caret(^) 인코딩 ("업체명^사업자번호^대표자^공고번호^낙찰률")
+  • 응찰자 50건 raw row endpoint는 OpenAPI 미공개 — G2B 웹 UI 전용. carriage limit.
 """
 from __future__ import annotations
 import asyncio
@@ -81,6 +87,68 @@ _AWARD_ENDPOINTS = {
     "Thng": _AWARD_BASE + "Thng",
     "Frgcpt": _AWARD_BASE + "Frgcpt",
 }
+
+# P32-R2 (F30): R-prefix 단건 폴백 전용 endpoint.
+# poc_p32_v3.py 5건 raw evidence 기반:
+# - 낙찰: getScsbidListSttus{X}PPSSrch + inqryDiv=3 (non-PPSSrch는 미작동)
+# - 응찰: getOpengResultListInfo{X} (non-PPSSrch) + inqryDiv=4 (PPSSrch는 inqryDiv=3로도 가능하나
+#   응답 형태 동일 — 1 row per 입찰 + opengCorpInfo caret 인코딩)
+_AWARD_PPSSRCH_ENDPOINTS = {
+    "Cnstwk": _AWARD_BASE + "CnstwkPPSSrch",
+    "Servc": _AWARD_BASE + "ServcPPSSrch",
+    "Thng": _AWARD_BASE + "ThngPPSSrch",
+    "Frgcpt": _AWARD_BASE + "FrgcptPPSSrch",
+}
+_OPENING_NONPPS_ENDPOINTS = {
+    "Cnstwk": _OPENING_BASE + "Cnstwk",
+    "Servc": _OPENING_BASE + "Servc",
+    "Thng": _OPENING_BASE + "Thng",
+    "Frgcpt": _OPENING_BASE + "Frgcpt",
+}
+
+_R_PREFIX_PATTERN = re.compile(r"^R\d{2}[A-Z]{2}\d{8}$", re.IGNORECASE)
+
+
+def _is_r_prefix(bid_no: str | None) -> bool:
+    """차세대 나라장터 13자리 R-prefix 입찰번호 여부 (P32-R2).
+
+    형식: R + 년도(2) + 단계구분(2) + 순번(8) = 13자리. (DOSSIER-OFFICIAL §5.1)
+    `-차수` suffix가 붙은 경우 split 후 prefix 부분만 검사.
+    """
+    if not bid_no:
+        return False
+    head = bid_no.split("-")[0].strip()
+    return bool(_R_PREFIX_PATTERN.match(head))
+
+
+def _parse_openg_corp_info(s: str | None) -> list[dict]:
+    """opengCorpInfo caret(^) 인코딩 파싱 — 낙찰자 1건만 인코딩되는 G2B 운영 관행 (P32-R2).
+
+    raw 형식 (5건 raw evidence, R26BK01451151 case):
+      "주식회사 서정이엔지^6468800556^이유정^260750100^90.593"
+      = "{업체명}^{사업자번호}^{대표자}^{공고번호 추정}^{낙찰률}"
+
+    반환: 응찰업체 정규화 row 리스트 (winner_only=True 1건). 50건 응찰자 raw list는
+    OpenAPI 미공개 — prtcptCnum(응찰 총수)만 row 단위로 보고됨.
+    """
+    if not s or not isinstance(s, str):
+        return []
+    parts = s.split("^")
+    if not parts or not parts[0].strip():
+        return []
+    name = parts[0].strip()
+    biz_no = _normalize_biz_no(parts[1] if len(parts) > 1 else None)
+    rep = (parts[2] or "").strip() if len(parts) > 2 else None
+    rate_raw = (parts[4] or "").strip() if len(parts) > 4 else None
+    return [{
+        "participant_name": name,
+        "participant_biz_no": biz_no,
+        "representative_name": rep,
+        "opening_rank": 1,
+        "is_winner": True,
+        "award_rate": rate_raw,
+        "raw": {"opengCorpInfo": s},
+    }]
 
 
 def _to_int(v) -> int | None:
@@ -356,11 +424,14 @@ async def search_awards(
 
 # === 3. get_award_detail ===
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="award_detail")
+@cache_result(ttl=settings.cache_ttl_short, prefix="award_detail_v32")
 async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
     """공고번호+차수로 낙찰 단건 상세 조회.
 
     5/3 N42: inqryDiv=4(단건) 미지원 케이스(R 형식 등)를 위해 inqryDiv=1 폴백 추가.
+    P32-R2 (F30): R-prefix 단건 매칭은 ScsbidListSttus*PPSSrch + inqryDiv=3 + bidNtceNo
+        라는 운영 관행 검증 (poc_p32_v3.py 5건 raw evidence). non-PPSSrch + inqryDiv=4는
+        실제로는 미작동. 1차 우선순위로 PPSSrch fan-out 추가.
     """
     allowed, remaining = await check_rate("g2b_award_detail", capacity=10, refill_per_sec=1.0)
     if not allowed:
@@ -376,7 +447,39 @@ async def get_award_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
 
     client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
-        # 1차: inqryDiv=4 단건
+        # P32-R2 (F30) 1차 신설: R-prefix 단건이면 ScsbidListSttus*PPSSrch + inqryDiv=3 4종 fan-out 우선.
+        # poc_p32_v3.py: R25BK00755515(Servc), R25BK00760571(Cnstwk), R26BK01451151(Cnstwk) 적중.
+        if _is_r_prefix(bid_notice_no):
+            async def _call_pps(biz_div: str, endpoint: str):
+                params = {
+                    "pageNo": 1,
+                    "numOfRows": 5,
+                    "inqryDiv": "3",  # PPSSrch 패턴: 3=입찰공고번호 (raw evidence)
+                    "bidNtceNo": bid_notice_no,
+                    "bidNtceOrd": bid_ord,
+                }
+                try:
+                    body = await client.call(endpoint, settings.g2b_key_award, params)
+                except Exception:  # noqa: BLE001
+                    return biz_div, endpoint, []
+                return biz_div, endpoint, _extract_items(body)
+
+            results = await asyncio.gather(
+                *(_call_pps(bd, ep) for bd, ep in _AWARD_PPSSRCH_ENDPOINTS.items())
+            )
+            for biz_div, endpoint, items in results:
+                for raw in items:
+                    if str(raw.get("bidNtceNo", "")) == bid_notice_no:
+                        return {
+                            "found": True,
+                            "biz_div": biz_div,
+                            "endpoint": endpoint,
+                            "lookup_mode": "PPSSrch+inqryDiv=3+bidNtceNo",
+                            "summary": _normalize_award_row(raw),
+                            "raw": raw,
+                        }
+
+        # 1차 (기존): inqryDiv=4 단건 — 11자리 숫자 등 R-prefix 외에서 작동하는 케이스 보존
         for biz_div, endpoint in _AWARD_ENDPOINTS.items():
             params = {
                 "pageNo": 1,
@@ -609,7 +712,7 @@ async def search_awards_by_vendor(
 
 # === 5. list_bid_participants ===
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="participants")
+@cache_result(ttl=settings.cache_ttl_short, prefix="participants_v32")
 async def list_bid_participants(
     bid_notice_no: str,
     bid_ord: str = "00",
@@ -617,15 +720,70 @@ async def list_bid_participants(
     """입찰공고번호로 응찰업체 목록 조회.
 
     ScsbidInfoService에 응찰업체 단독 endpoint 없음 → 개찰결과(getOpengResultListInfo*) 응답 row를 사용.
-    각 row가 응찰업체 1건이라는 가정 (Bravo Research 결과 confidence: medium-low).
-    실 응답 검증 후 필드명 조정 가능.
+
+    P32-R2 (F30) raw evidence 검증 (poc_p32_v3.py 5건):
+    - R-prefix 단건은 getOpengResultListInfo{X} (non-PPSSrch) + inqryDiv=4 + bidNtceNo 에서 1 row 응답.
+      기존 PPSSrch + inqryDiv=4는 미작동. PPSSrch + inqryDiv=3는 동일 1 row 가능.
+    - 응답 row는 입찰 단위 1건이며 prtcptCnum=응찰 총수, opengCorpInfo=낙찰자 1건 caret 인코딩.
+      응찰 50건 raw row endpoint는 OpenAPI 미공개 (G2B 웹 UI 전용).
+    - 따라서 items는 opengCorpInfo 파싱 결과(낙찰자 1건) + participant_count는 prtcptCnum 사용.
     """
     allowed, remaining = await check_rate("g2b_participants", capacity=10, refill_per_sec=1.0)
     if not allowed:
         raise RuntimeError(f"rate_limit: g2b_participants 토큰 소진 (remaining={remaining})")
 
+    if "-" in bid_notice_no and not bid_ord.strip("0"):
+        parts = bid_notice_no.rsplit("-", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            bid_notice_no, bid_ord = parts[0], parts[1]
+
     client = G2BClient(base_url=settings.g2b_award_base_url)
     try:
+        # P32-R2 (F30) 1차 신설: R-prefix 단건이면 non-PPSSrch + inqryDiv=4 fan-out 우선.
+        if _is_r_prefix(bid_notice_no):
+            async def _call_nonpps(biz_div: str, endpoint: str):
+                params = {
+                    "pageNo": 1,
+                    "numOfRows": 100,
+                    "inqryDiv": "4",  # ScsbidInfoService non-PPSSrch: 4=입찰공고번호 (raw evidence)
+                    "bidNtceNo": bid_notice_no,
+                    "bidNtceOrd": bid_ord,
+                }
+                try:
+                    body = await client.call(endpoint, settings.g2b_key_award, params)
+                except Exception:  # noqa: BLE001
+                    return biz_div, endpoint, []
+                return biz_div, endpoint, _extract_items(body)
+
+            results = await asyncio.gather(
+                *(_call_nonpps(bd, ep) for bd, ep in _OPENING_NONPPS_ENDPOINTS.items())
+            )
+            for biz_div, endpoint, items in results:
+                for raw in items:
+                    if str(raw.get("bidNtceNo", "")) != bid_notice_no:
+                        continue
+                    # opengCorpInfo caret 파싱 (낙찰자 1건). 미존재면 빈 list.
+                    parsed = _parse_openg_corp_info(raw.get("opengCorpInfo"))
+                    declared_count = _to_int(raw.get("prtcptCnum") or raw.get("opengCnt")) or len(parsed)
+                    return {
+                        "found": True,
+                        "biz_div": biz_div,
+                        "endpoint": endpoint,
+                        "lookup_mode": "non-PPSSrch+inqryDiv=4+bidNtceNo",
+                        "bid_notice_no": bid_notice_no,
+                        "bid_ord": bid_ord,
+                        "items": parsed,  # 낙찰자 1건 (or 빈 list)
+                        "participant_count": declared_count,  # 응찰 총수 (prtcptCnum)
+                        "winner_only": True,
+                        "note": (
+                            f"G2B OpenAPI 응답 1 row + opengCorpInfo 인코딩 1건. "
+                            f"응찰 총수 prtcptCnum={declared_count}, items=낙찰자 1건. "
+                            "전체 응찰자 raw list endpoint는 OpenAPI 미공개."
+                        ),
+                        "raw": raw,
+                    }
+
+        # 기존 fallback: PPSSrch + inqryDiv=4 (raw evidence상 R-prefix 미작동, 11자리 숫자형 호환)
         for biz_div, endpoint in _OPENING_ENDPOINTS.items():
             params = {
                 "pageNo": 1,
@@ -645,6 +803,7 @@ async def list_bid_participants(
                     "found": True,
                     "biz_div": biz_div,
                     "endpoint": endpoint,
+                    "lookup_mode": "PPSSrch+inqryDiv=4",
                     "bid_notice_no": bid_notice_no,
                     "bid_ord": bid_ord,
                     "items": rows,
