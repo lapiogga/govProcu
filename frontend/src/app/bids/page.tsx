@@ -207,6 +207,15 @@ export default async function BidsPage(props: {
   const includeFrgcpt = sp.frgcpt === "1";
   const indstrytyCd = (sp.indstryty || "").trim();
 
+  // P32-R1 (F31): 첫 input 자동 패턴 감지
+  // R-prefix 13자리 + optional 차수 (R26BK01501665 또는 R26BK01501665-000)
+  // → bid_notice_no 단건 모드 (P31-R1 backend 활용), 그 외 → keyword (bidNtceNm)
+  const qRaw = (sp.q || "").trim();
+  const bidNoPattern = /^R\d{2}[A-Z]{2}\d{8}(-\d{3})?$/i;
+  const isBidNo = bidNoPattern.test(qRaw);
+  const bidNoticeNo = isBidNo ? qRaw.split("-")[0].toUpperCase() : undefined;
+  const keyword = isBidNo ? undefined : qRaw || undefined;
+
   const hasQuery = !!(
     sp.q ||
     sp.biz_types ||
@@ -260,7 +269,8 @@ export default async function BidsPage(props: {
               <Input
                 name="q"
                 defaultValue={sp.q}
-                placeholder="공고명 (예: 정보화 시스템 구축)"
+                placeholder="공고명 키워드 또는 입찰공고번호 (예: 정보화 / R26BK01501665)"
+                title="P32-R1 자동 패턴 감지: R-prefix 13자리 → 입찰공고번호 단건 매칭, 그 외 → 공고명 LIKE"
                 className="md:col-span-2"
               />
               <Input
@@ -344,7 +354,8 @@ export default async function BidsPage(props: {
           )}
           <Suspense fallback={<TableSkeleton />}>
             <Results
-              keyword={sp.q}
+              keyword={keyword}
+              bid_notice_no={bidNoticeNo}
               biz_type={backendBizType}
               inst_name={sp.inst}
               indstryty_cd={indstrytyCd || undefined}
@@ -369,6 +380,7 @@ export default async function BidsPage(props: {
 
 interface ResultsParams {
   keyword?: string;
+  bid_notice_no?: string; // P32-R1 (F31): 단건 모드
   biz_type?: string;
   inst_name?: string;
   indstryty_cd?: string;

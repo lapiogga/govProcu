@@ -68,6 +68,7 @@ export async function searchBidNotices(params: {
   biz_type?: string;
   inst_name?: string;
   indstryty_cd?: string;  // P31-R3 (F23): 업종 코드 4자리 (G2B 서버측 필터)
+  bid_notice_no?: string; // P32-R1 (F31): R-prefix bid_no 단건 모드 (P31-R1 backend 단건 모드 활용)
   date_from?: string;
   date_to?: string;
   limit?: number;
