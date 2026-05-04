@@ -1139,3 +1139,13 @@ $ git add logs/ && git commit && git push origin main
 [00:13:00 KST 2026-05-05] $ # WORK-LOG 145행 추가 후 선택적 cp → mount
 [00:13:30 KST 2026-05-05] $ cp $WORK/logs/{WORK-LOG.md,TERMINAL-LOG.md} $MOUNT/logs/
 [00:14:00 KST 2026-05-05] $ git add -A && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-05 00:14 KST" && git push origin main
+
+[00:30:00 KST 2026-05-05] $ TZ=Asia/Seoul date && id && ls /sessions/*/mnt/GovProcu/.pat
+[00:30:30 KST 2026-05-05] $ git clone https://github.com/lapiogga/govProcu.git /tmp/gp_1080  # 신규 세션 워크 디렉터리
+[00:31:00 KST 2026-05-05] $ rsync -a --delete --exclude=.git --exclude=.pat $MOUNT/ $WORK/  # 1차: disk full 9.5G/9.6G(frontend/.next 잔여)
+[00:31:15 KST 2026-05-05] $ rm -rf $WORK/frontend/.next  # 256M 여유 확보
+[00:31:30 KST 2026-05-05] $ rsync -a --delete --exclude={.git,.pat,node_modules,.next,__pycache__,*.pyc,coverage,.cache} $MOUNT/ $WORK/  # 재시도 성공
+[00:32:00 KST 2026-05-05] $ git config core.autocrlf input && git checkout -- .  # CRLF noise 254건 reset
+[00:32:30 KST 2026-05-05] $ # WORK-LOG 146행 추가 후 선택적 cp → mount
+[00:33:00 KST 2026-05-05] $ cp $WORK/logs/{WORK-LOG.md,TERMINAL-LOG.md} $MOUNT/logs/
+[00:33:30 KST 2026-05-05] $ git add -A && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-05 00:33 KST" && git push origin main
