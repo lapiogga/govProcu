@@ -20,15 +20,15 @@ export default async function QualificationPage(props: {
       <header>
         <h1 className="text-2xl font-semibold">적격심사 점수 계산기</h1>
         <p className="text-xs text-[var(--color-fg-muted)]">
-          조달청 표준 산식. 입찰가 + 시공경험 + 기술자 + 신용등급 + 경영·기타.
+          조달청 표준 산식. 입찰금액 + 시공경험 + 기술능력 + 경영상태 + 신인도.
         </p>
       </header>
 
       <Card>
         <CardContent className="p-4">
           <form action="/qualification" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            <Field label="응찰가 (원)" name="bid_amount" defaultValue={sp.bid_amount} required />
-            <Field label="기초금액 (원)" name="base_amount" defaultValue={sp.base_amount} required />
+            <Field label="입찰금액 (원)" name="bid_amount" defaultValue={sp.bid_amount} required />
+            <Field label="예정가격 (원)" name="base_amount" defaultValue={sp.base_amount} required />
             <Select
               label="업종"
               name="biz_type"
@@ -37,9 +37,9 @@ export default async function QualificationPage(props: {
             />
             <Field label="시공경험 실적" name="experience_actual" defaultValue={sp.experience_actual} />
             <Field label="시공경험 기준" name="experience_standard" defaultValue={sp.experience_standard} />
-            <Field label="기술자 수" name="tech_count" defaultValue={sp.tech_count} />
+            <Field label="보유 기술자 수" name="tech_count" defaultValue={sp.tech_count} />
             <Field label="요구 기술자 수" name="tech_required" defaultValue={sp.tech_required} />
-            <Field label="신용등급 (예: AA-)" name="credit_grade" defaultValue={sp.credit_grade} />
+            <Field label="경영상태 (예: AA-)" name="credit_grade" defaultValue={sp.credit_grade} />
             <Button type="submit" className="col-span-2 lg:col-span-3">
               계산
             </Button>
@@ -125,9 +125,9 @@ const labelMap: Record<string, string> = {
   bid_price: "입찰가격",
   experience: "시공경험",
   tech_capability: "기술능력",
-  credit: "신용평가",
+  credit: "경영상태",
   management: "경영상태",
-  etc: "기타",
+  etc: "신인도",
 };
 
 function summarizeDetail(detail: any): string {
