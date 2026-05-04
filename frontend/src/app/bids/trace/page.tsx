@@ -59,7 +59,7 @@ export default async function TracePage(props: {
           </button>
         </form>
         <p className="text-sm text-[var(--color-fg-muted)]">
-          공고번호 1개로 사전규격 → 본 공고 → 개찰 → 낙찰 → 응찰업체 → 낙찰자 NTS 검증 6단계를 한 번에.
+          공고번호 1개로 사전규격공개 → 입찰공고 → 개찰 → 낙찰자 결정 → 낙찰자 NTS 검증 → 계약 체결 6단계를 한 번에.
         </p>
       </main>
     );
@@ -81,21 +81,21 @@ export default async function TracePage(props: {
         <SummarySection bidNo={bidNo} bidOrd={bidOrd} />
       </Suspense>
 
-      {/* 6단계 타임라인 */}
+      {/* 6단계 타임라인 — F28: 시행령 표제어 정합 명칭 */}
       <section className="space-y-2">
-        <Suspense fallback={<StageSkeleton n={1} label="사전규격" desc="등록 + 의견수렴" />}>
+        <Suspense fallback={<StageSkeleton n={1} label="사전규격공개" desc="등록 + 의견수렴" />}>
           <StagePreSpec bidNo={bidNo} bidOrd={bidOrd} />
         </Suspense>
-        <Suspense fallback={<StageSkeleton n={2} label="본 공고" desc="추정가" />}>
+        <Suspense fallback={<StageSkeleton n={2} label="입찰공고" desc="추정가" />}>
           <StageNotice bidNo={bidNo} bidOrd={bidOrd} />
         </Suspense>
         <Suspense fallback={<StageSkeleton n={3} label="개찰 + 응찰업체" desc="응찰자" />}>
           <StageParticipants bidNo={bidNo} bidOrd={bidOrd} />
         </Suspense>
-        <Suspense fallback={<StageSkeleton n={4} label="낙찰" desc="결과" />}>
+        <Suspense fallback={<StageSkeleton n={4} label="낙찰자 결정" desc="결과" />}>
           <StageAwardAndNts bidNo={bidNo} bidOrd={bidOrd} />
         </Suspense>
-        <Stage n={6} label="계약" ok={false} desc="체결 후 추적 가능" inactive />
+        <Stage n={6} label="계약 체결" ok={false} desc="체결 후 추적 가능" inactive />
       </section>
 
       {/* 액션 링크 */}
@@ -189,14 +189,14 @@ async function StagePreSpec({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }
   const r = await getPreSpecDetail(bidNo, bidOrd);
   // P30-R3 P1-03: r.ok === false 분기 — 통신 오류와 데이터 미발견 구분
   if (!r.ok) {
-    return <StageError n={1} label="사전규격" error={r.error} />;
+    return <StageError n={1} label="사전규격공개" error={r.error} />;
   }
   const data = extractData(r.data);
   // P30-R3 P1-04: backend note 필드 노출 — "왜" 비어있는지 사용자 안내
   return (
     <Stage
       n={1}
-      label="사전규격"
+      label="사전규격공개"
       ok={data?.found}
       desc="등록 + 의견수렴"
       note={data?.note}
@@ -207,18 +207,112 @@ async function StagePreSpec({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }
 async function StageNotice({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
   const r = await getBidNoticeDetail(bidNo, bidOrd);
   if (!r.ok) {
-    return <StageError n={2} label="본 공고" error={r.error} />;
+    return <StageError n={2} label="입찰공고" error={r.error} />;
   }
   const data = extractData(r.data);
   const summary = data?.summary || {};
+  const raw = data?.raw || {};
   return (
-    <Stage
-      n={2}
-      label="본 공고"
-      ok={data?.found}
-      desc={`추정가 ${fmtWon(summary.estimated_price ?? summary.presmptPrce)}`}
-      note={data?.note}
-    />
+    <>
+      <Stage
+        n={2}
+        label="입찰공고"
+        ok={data?.found}
+        desc={`추정가 ${fmtWon(summary.estimated_price ?? summary.presmptPrce)}`}
+        note={data?.note}
+      />
+      {data?.found && <NoticeRequiredFields raw={raw} summary={summary} />}
+    </>
+  );
+}
+
+// F25: 시행령 제36조 입찰공고 필수항목 노출 — DOSSIER-LAW §4.1·§4.2.
+// raw 필드 근거: poc4_용역.json (R25BK00755515).
+function NoticeRequiredFields({ raw, summary }: { raw: any; summary: any }) {
+  const opengDt = raw.opengDt || summary.opengDt;
+  const opengPlce = raw.opengPlce || "";
+  const bidBeginDt = raw.bidBeginDt;
+  const bidClseDt = raw.bidClseDt || summary.deadline_date;
+  const bidMethdNm = raw.bidMethdNm;
+  const sucsfbidMthdNm = raw.sucsfbidMthdNm;
+  const cntrctCnclsMthdNm = raw.cntrctCnclsMthdNm;
+  const cmmnSpldmdMethdNm = raw.cmmnSpldmdMethdNm;
+  const dcmtgOprtnDt = raw.dcmtgOprtnDt;
+  const dcmtgOprtnPlce = raw.dcmtgOprtnPlce;
+  const bidPrtcptFee = raw.bidPrtcptFee;
+  const bidGrntymnyPaymntYn = raw.bidGrntymnyPaymntYn;
+  const ntceInsttOfclNm = raw.ntceInsttOfclNm;
+  const ntceInsttOfclTelNo = raw.ntceInsttOfclTelNo;
+  const crdtrNm = raw.crdtrNm;
+  const indstrytyLmtYn = raw.indstrytyLmtYn;
+  const bidPrtcptLmtYn = raw.bidPrtcptLmtYn;
+  const prdctClsfcLmtYn = raw.prdctClsfcLmtYn;
+  const rgnLmtNm = raw.rgnLmtBidLocplcJdgmBssNm;
+  const purchsObjPrdctList = raw.purchsObjPrdctList;
+
+  const qualParts: string[] = [];
+  if (bidPrtcptLmtYn === "Y") qualParts.push("참가제한");
+  if (indstrytyLmtYn === "Y") qualParts.push("업종제한");
+  if (prdctClsfcLmtYn === "Y") qualParts.push("물품분류제한");
+  if (rgnLmtNm) qualParts.push(`지역제한(${rgnLmtNm})`);
+  const qualText = qualParts.length > 0 ? qualParts.join(" · ") : "제한 없음 (일반)";
+
+  return (
+    <section className="ml-9 rounded border bg-[var(--color-bg-muted)] p-3 text-sm">
+      <h4 className="mb-2 text-xs font-semibold text-[var(--color-fg-muted)]">
+        입찰공고 필수항목 (시행령 제36조)
+      </h4>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 lg:grid-cols-2">
+        <FieldRow label="입찰참가자격">{qualText}</FieldRow>
+        <FieldRow label="낙찰자 결정방법">
+          {sucsfbidMthdNm || cntrctCnclsMthdNm || "—"}
+        </FieldRow>
+        <FieldRow label="입찰서 제출방법">{bidMethdNm || "—"}</FieldRow>
+        <FieldRow label="입찰 개시·마감">
+          {bidBeginDt && bidClseDt
+            ? `${fmtDate(bidBeginDt)} ~ ${fmtDate(bidClseDt)}`
+            : bidClseDt
+              ? `~ ${fmtDate(bidClseDt)}`
+              : "—"}
+        </FieldRow>
+        <FieldRow label="개찰 일시">{opengDt ? fmtDate(opengDt) : "—"}</FieldRow>
+        <FieldRow label="개찰 장소">{opengPlce || "전자조달시스템(나라장터)"}</FieldRow>
+        <FieldRow label="입찰참가수수료">
+          {bidPrtcptFee && Number(bidPrtcptFee) > 0 ? fmtWon(Number(bidPrtcptFee)) : "면제"}
+        </FieldRow>
+        <FieldRow label="입찰보증금">
+          {bidGrntymnyPaymntYn === "Y" ? "납부 필요" : "면제 또는 별도 안내"}
+        </FieldRow>
+        <FieldRow label="현장설명">
+          {dcmtgOprtnDt
+            ? `${fmtDate(dcmtgOprtnDt)} ${dcmtgOprtnPlce || ""}`.trim()
+            : "—"}
+        </FieldRow>
+        <FieldRow label="공동계약">
+          {cmmnSpldmdMethdNm || "—"}
+        </FieldRow>
+        <FieldRow label="계약담당공무원">
+          {ntceInsttOfclNm
+            ? `${ntceInsttOfclNm}${ntceInsttOfclTelNo ? ` (${ntceInsttOfclTelNo})` : ""}`
+            : crdtrNm || "—"}
+        </FieldRow>
+        <FieldRow label="목적물 명세">
+          {purchsObjPrdctList || "—"}
+        </FieldRow>
+      </dl>
+      <p className="mt-2 text-xs text-[var(--color-fg-muted)]">
+        무효사유 등 상세는 입찰공고문 본문 참조 (시행령 제36조 제12호).
+      </p>
+    </section>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="min-w-[7rem] text-[var(--color-fg-muted)]">{label}</dt>
+      <dd className="flex-1 break-words">{children}</dd>
+    </div>
   );
 }
 
@@ -276,7 +370,7 @@ async function StageParticipants({ bidNo, bidOrd }: { bidNo: string; bidOrd: str
 async function StageAwardAndNts({ bidNo, bidOrd }: { bidNo: string; bidOrd: string }) {
   const r = await getAwardDetail(bidNo, bidOrd);
   if (!r.ok) {
-    return <StageError n={4} label="낙찰" error={r.error} />;
+    return <StageError n={4} label="낙찰자 결정" error={r.error} />;
   }
   const data = extractData(r.data);
   const aw = data?.summary || {};
@@ -289,7 +383,7 @@ async function StageAwardAndNts({ bidNo, bidOrd }: { bidNo: string; bidOrd: stri
     <>
       <Stage
         n={4}
-        label="낙찰"
+        label="낙찰자 결정"
         ok={data?.found}
         desc={stage4Desc}
         note={data?.note}
