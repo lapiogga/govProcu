@@ -1016,3 +1016,14 @@ mount 30분 내 mtime 변동: logs 2건뿐 (직전 8b23d30 sync 정합성 도달
 # 샌드박스 호스트 자원 고갈 — git/rsync/clone/push 전부 불가
 # 본 사이클은 mount 파일도구(Read/Edit)만으로 WORK-LOG·TERMINAL-LOG 갱신만 수행
 # 다음 사이클(17:11)에서 origin baseline 재점검 + 누적 push 일괄 처리 예정
+
+[2026-05-04 17:27 KST] $ # 🟢 bash 샌드박스 부팅 성공 — 124 사이클 누적 인프라 장애 종료
+# 새 세션 uid=quirky-magical-wright로 useradd 오류 해소
+# WORK-LOG 119~124 휴면 사이클 + 125 회복 사이클 일괄 push 진행
+
+[2026-05-04 17:30 KST] $ git config --get core.autocrlf
+# (empty) — autocrlf 미설정. 표면 M 177건 중 176건은 mount filesystem CRLF/mode noise (real content delta 0)
+# logs/WORK-LOG.md만 실제 6행 추가 — 다른 파일은 git checkout으로 reset
+
+[2026-05-04 17:31 KST] $ cd /tmp/GovProcu_push && git add logs/ && git commit && git push origin main
+# 124 사이클 누적 미push 일괄 정합화 커밋
