@@ -44,7 +44,8 @@ search_bid_notices(bid_notice_no="R25BK00755515", date_from=None, date_to=None)
 
 ## Commit
 
-- hash: (작업자가 commit 후 채움)
+- hash: `69da6cb`
+- message: `fix(backend): P31-R1 R-prefix 단건 + 외자 endpoint (F18, F20)`
 
 ## 자체 sanity check
 

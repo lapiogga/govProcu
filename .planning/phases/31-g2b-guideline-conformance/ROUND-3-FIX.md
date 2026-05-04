@@ -1,7 +1,7 @@
 # ROUND 3 FIX (Phase 31)
 
 > **라운드**: Phase 31 Round 3 — F23 (frontend 3계층 dropdown) + F26 (발주기관 결과 컬럼 분리). frontend-only.
-> **commit**: (작성 직후 commit hash 추가 예정)
+> **commit**: `9e8693d` — frontend-only (`frontend/src/app/bids/page.tsx` + `frontend/src/lib/actions.ts`).
 > **기간**: 2026-05-04 (KST).
 > **작성자**: fixer-p31-r3.
 > **입력**: PLAN.md, ROUND-2-REPORT.md (§ 6 권고 9항 + 위험 사전 식별), POC-G2B.md (#5 srvceDivNm), bids/page.tsx (468줄), actions.ts.

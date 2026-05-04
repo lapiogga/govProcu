@@ -1,0 +1,74 @@
+{
+  "bid_no": "R25BK00755515",
+  "scs_award": {
+    "Cnstwk": {
+      "_status": 429,
+      "_text": "API token quota exceeded\n",
+      "_url": "https://apis.data.go.kr/1230000/as/ScsbidInfoService/getScsbidListSttusCnstwk?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=4&bidNtceNo=R25BK00755515&bidNtceOrd=00"
+    },
+    "Servc": {
+      "_status": 429,
+      "_text": "API token quota exceeded\n",
+      "_url": "https://apis.data.go.kr/1230000/as/ScsbidInfoService/getScsbidListSttusServc?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=4&bidNtceNo=R25BK00755515&bidNtceOrd=00"
+    },
+    "Thng": {
+      "_status": 429,
+      "_text": "API token quota exceeded\n",
+      "_url": "https://apis.data.go.kr/1230000/as/ScsbidInfoService/getScsbidListSttusThng?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=4&bidNtceNo=R25BK00755515&bidNtceOrd=00"
+    },
+    "Frgcpt": {
+      "_status": 200,
+      "resultCode": "00",
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    }
+  },
+  "openg_participants": {
+    "Cnstwk": {
+      "_status": 200,
+      "resultCode": null,
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    },
+    "Servc": {
+      "_status": 200,
+      "resultCode": null,
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    },
+    "Thng": {
+      "_status": 200,
+      "resultCode": null,
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    },
+    "Frgcpt": {
+      "_status": 200,
+      "resultCode": null,
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    }
+  },
+  "prespec": {
+    "Cnstwk": {
+      "_status": 404,
+      "_text": "API not found\n",
+      "_url": "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getPrdctClsfcNoPblancListInfoCnstwk?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=2&bidNtceNo=R25BK00755515&bidNtceOrd=00"
+    },
+    "Servc": {
+      "_status": 404,
+      "_text": "API not found\n",
+      "_url": "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getPrdctClsfcNoPblancListInfoServc?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=2&bidNtceNo=R25BK00755515&bidNtceOrd=00"
+    },
+    "Thng": {
+      "_status": 404,
+      "_text": "API not found\n",
+      "_url": "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getPrdctClsfcNoPblancListInfoThng?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=2&bidNtceNo=R25BK00755515&bidNtceOrd=00"
+    }
+  }
+}

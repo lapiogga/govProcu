@@ -1,0 +1,99 @@
+{
+  "bid_no": "R25BK00760571",
+  "scs_award": {
+    "Cnstwk": {
+      "_status": 200,
+      "resultCode": "00",
+      "totalCount": 1,
+      "item_count": 1,
+      "items": [
+        {
+          "bidNtceNo": "R25BK00760571",
+          "bidNtceOrd": "000",
+          "bidClsfcNo": "0",
+          "rbidNo": "000",
+          "ntceDivCd": "통050001",
+          "bidNtceNm": "2025년 안성시 도로시설물 유지보수 연간단가공사",
+          "prtcptCnum": "82",
+          "bidwinnrNm": "헥사콘 주식회사",
+          "bidwinnrBizno": "1428163652",
+          "bidwinnrCeoNm": "차형대",
+          "bidwinnrAdrs": "경기도 용인시 기흥구 중부대로 301(신갈동) 3층, 4층",
+          "bidwinnrTelNo": "031-548-2666",
+          "sucsfbidAmt": "531501300",
+          "sucsfbidRate": "88.352",
+          "rlOpengDt": "2025-04-08 11:00:00",
+          "dminsttCd": "4080000",
+          "dminsttNm": "경기도 안성시",
+          "rgstDt": "2025-04-21 10:28:13",
+          "fnlSucsfDate": "2025-04-21",
+          "fnlSucsfCorpOfcl": ""
+        }
+      ]
+    },
+    "Servc": {
+      "_status": 429,
+      "_text": "API token quota exceeded\n",
+      "_url": "https://apis.data.go.kr/1230000/as/ScsbidInfoService/getScsbidListSttusServc?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=4&bidNtceNo=R25BK00760571&bidNtceOrd=00"
+    },
+    "Thng": {
+      "_status": 429,
+      "_text": "API token quota exceeded\n",
+      "_url": "https://apis.data.go.kr/1230000/as/ScsbidInfoService/getScsbidListSttusThng?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=4&bidNtceNo=R25BK00760571&bidNtceOrd=00"
+    },
+    "Frgcpt": {
+      "_status": 200,
+      "resultCode": "00",
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    }
+  },
+  "openg_participants": {
+    "Cnstwk": {
+      "_status": 200,
+      "resultCode": null,
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    },
+    "Servc": {
+      "_status": 200,
+      "resultCode": null,
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    },
+    "Thng": {
+      "_status": 200,
+      "resultCode": null,
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    },
+    "Frgcpt": {
+      "_status": 200,
+      "resultCode": null,
+      "totalCount": 0,
+      "item_count": 0,
+      "items": []
+    }
+  },
+  "prespec": {
+    "Cnstwk": {
+      "_status": 404,
+      "_text": "API not found\n",
+      "_url": "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getPrdctClsfcNoPblancListInfoCnstwk?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=2&bidNtceNo=R25BK00760571&bidNtceOrd=00"
+    },
+    "Servc": {
+      "_status": 404,
+      "_text": "API not found\n",
+      "_url": "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getPrdctClsfcNoPblancListInfoServc?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=2&bidNtceNo=R25BK00760571&bidNtceOrd=00"
+    },
+    "Thng": {
+      "_status": 404,
+      "_text": "API not found\n",
+      "_url": "https://apis.data.go.kr/1230000/ad/BidPublicInfoService/getPrdctClsfcNoPblancListInfoThng?ServiceKey=9f3cd566e00ff6a58bba1faaa72d603a1bb245053ddbe10ecf71288f76931f51&type=json&pageNo=1&numOfRows=5&inqryDiv=2&bidNtceNo=R25BK00760571&bidNtceOrd=00"
+    }
+  }
+}

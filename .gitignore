@@ -42,3 +42,19 @@ dist/
 # 사용자 다운로드 임시 파일 (PDF 가이드, 임시 백업 등)
 .tmp_*
 UsersUser*.tmp_*
+tmp/
+capture/
+*.html
+poc_raw/
+poc_pubstd_raw/
+verify_p32_fix_raw/
+poc_p32_raw_v3/
+poc_pubstd.py
+poc_g2b.py
+poc_p32*.py
+verify_p32_fix.py
+err-*.png
+ref-*.png
+kwater-*.png
+lh-*.png
+입찰.xlsx
