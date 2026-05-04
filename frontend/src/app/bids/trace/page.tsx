@@ -534,7 +534,7 @@ function SummarySkeleton() {
     <div className="cursor-wait space-y-3 rounded-lg border bg-[var(--color-bg-muted)] p-4">
       <div className="flex items-center gap-3">
         <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-fg-muted)] border-t-transparent" />
-        <span className="text-sm font-medium">요약 로딩 중 — 본 공고 단건 조회 (cache hit 시 0.5초)</span>
+        <span className="text-sm font-medium">요약 로딩 중 — 입찰공고 단건 조회 (cache hit 시 0.5초)</span>
       </div>
       <div className="h-12 animate-pulse rounded bg-[var(--color-bg)]" />
     </div>
