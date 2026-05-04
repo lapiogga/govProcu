@@ -24,7 +24,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
         />
       </head>
-      <body className="min-h-screen antialiased">
+      <body className="min-h-screen antialiased" suppressHydrationWarning>
         <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-muted)]">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2">
             <Link
