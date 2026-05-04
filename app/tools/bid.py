@@ -417,13 +417,85 @@ def _pick_first_item(body: dict) -> dict | None:
     return items[0] if items else None
 
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="bid_detail")
+async def _get_detail_by_bid_no(bid_notice_no: str, bid_ord: str, norm_ord: str) -> dict | None:
+    """P31-R4.5 (F25 hotfix): inqryDiv=2 + bidNtceNo 직접 + 5종 단일조회 endpoint 병렬.
+
+    R-prefix 단건 매칭이 inqryDiv=3/inqryDiv=1 폴백 chain에서 미작동하는 케이스 대응.
+    PoC #4 evidence (R25BK00755515 → Servc endpoint 적중) 패턴 재사용.
+    R1 `_search_by_bid_notice_no` 와 동일 호출 구조 — 단 detail 형식(found/biz_div/endpoint/lookup_mode/summary/raw)으로 정규화.
+
+    매칭 1건 발견 즉시 반환. 미매칭 시 None.
+    """
+    target_no = bid_notice_no.strip()
+
+    async def _call_one(label: str, endpoint: str):
+        params = {
+            "pageNo": 1,
+            "numOfRows": 10,
+            "inqryDiv": "2",
+            "bidNtceNo": target_no,
+        }
+        try:
+            body = await client.call(endpoint, settings.g2b_key_bid, params)
+        except Exception:  # noqa: BLE001
+            return label, endpoint, []
+        items_raw = body.get("items", [])
+        if isinstance(items_raw, dict):
+            items_raw = items_raw.get("item", [])
+        if not isinstance(items_raw, list):
+            items_raw = [items_raw] if items_raw else []
+        return label, endpoint, items_raw
+
+    client = G2BClient()
+    try:
+        results = await asyncio.gather(
+            *(_call_one(label, ep) for label, ep in _BID_DETAIL_ENDPOINTS)
+        )
+        # 1순위: bidNtceNo + bidNtceOrd 정합 매칭
+        for label, endpoint, items_raw in results:
+            for raw in items_raw:
+                if str(raw.get("bidNtceNo", "")) != target_no:
+                    continue
+                raw_ord = str(raw.get("bidNtceOrd", ""))
+                raw_ord_norm = raw_ord.lstrip("0") or "0"
+                if raw_ord_norm == norm_ord or raw_ord == bid_ord:
+                    return {
+                        "found": True,
+                        "biz_div": label,
+                        "endpoint": endpoint,
+                        "lookup_mode": "inqryDiv=2+bidNtceNo+ord_match",
+                        "summary": _normalize_notice(raw).model_dump(),
+                        "raw": raw,
+                    }
+        # 2순위: bidNtceNo 일치하나 ord 다른 차수 (참고용 first match)
+        for label, endpoint, items_raw in results:
+            for raw in items_raw:
+                if str(raw.get("bidNtceNo", "")) == target_no:
+                    return {
+                        "found": True,
+                        "biz_div": label,
+                        "endpoint": endpoint,
+                        "lookup_mode": "inqryDiv=2+bidNtceNo+ord_diff",
+                        "ord_mismatch_warning": f"요청 ord={bid_ord} 미발견. 다른 차수(ord={raw.get('bidNtceOrd')}) 반환.",
+                        "summary": _normalize_notice(raw).model_dump(),
+                        "raw": raw,
+                    }
+    finally:
+        await client.aclose()
+    return None
+
+
+@cache_result(ttl=settings.cache_ttl_short, prefix="bid_detail_v33")
 async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict:
     """공고번호+차수로 입찰공고 단건 상세를 조회합니다.
 
     5/3 N42: 단건 inqryDiv=3 미지원 endpoint 케이스(R 형식 등)를 위해 inqryDiv=1 폴백 추가.
+    P31-R4.5 (F25 hotfix): R-prefix 단건 매칭이 inqryDiv=3/inqryDiv=1 폴백 모두 미작동
+        케이스 대응 — inqryDiv=2 + bidNtceNo + 5종 단일조회 endpoint 병렬 폴백 신규(PoC #4 패턴).
     1차: inqryDiv=3 + bidNtceNo + bidNtceOrd
     2차 폴백: inqryDiv=1 + bidNtceNo (차수 무관) → 클라이언트측 차수 매칭
+    3차 폴백: inqryDiv=2 + bidNtceNo (P31-R4.5 신규, 5종 단일조회 endpoint 병렬)
+    4차 폴백: search_bid_notices(bid_notice_no=...) (progressive 30/90일 + 추정 연도)
 
     Args:
         bid_notice_no: 입찰공고번호 (예: '20240101234' 또는 'R26BK01435763')
@@ -547,7 +619,14 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
                         "raw": raw,
                     }
 
-        # 3차 폴백: search_bid_notices — v22.3 + v23.1 (F2 + F9):
+        # 3차 폴백: P31-R4.5 (F25 hotfix) — inqryDiv=2 + bidNtceNo + 5종 단일조회 endpoint 병렬.
+        # PoC #4 evidence (R25BK00755515 → Servc 적중) 패턴 재사용.
+        # R-prefix 단건이 inqryDiv=3/inqryDiv=1 폴백 모두 미작동 시 hit 가능 (운영 환경 검증 결함 회복).
+        detail_via_div2 = await _get_detail_by_bid_no(bid_notice_no, bid_ord, norm_ord)
+        if detail_via_div2 is not None:
+            return detail_via_div2
+
+        # 4차 폴백: search_bid_notices — v22.3 + v23.1 (F2 + F9):
         # R26.../20260101... 형식이라도 progressive(30→90→연도)로 보통 케이스 우선 빠르게.
         # 30일에 hit이면 5~10초 (5초 SLA 근접). 못 찾으면 90일, 그래도 못 찾으면 연도 전체.
         from datetime import datetime, timedelta
@@ -611,7 +690,7 @@ async def get_bid_notice_detail(bid_notice_no: str, bid_ord: str = "00") -> dict
             "found": False,
             "bid_notice_no": bid_notice_no,
             "bid_ord": bid_ord,
-            "note": "inqryDiv=3 단건 + inqryDiv=1 폴백 + search_bid_notices 매칭 모두 미발견. 공고번호·차수 확인 또는 사전규격(get_pre_specification_detail) 시도.",
+            "note": "inqryDiv=3 단건 + inqryDiv=1 폴백 + inqryDiv=2 5종 fan-out + search_bid_notices 매칭 모두 미발견. 공고번호·차수 확인 또는 사전규격(get_pre_specification_detail) 시도.",
         }
     finally:
         await client.aclose()
