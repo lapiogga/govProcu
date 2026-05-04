@@ -1027,3 +1027,9 @@ mount 30분 내 mtime 변동: logs 2건뿐 (직전 8b23d30 sync 정합성 도달
 
 [2026-05-04 17:31 KST] $ cd /tmp/GovProcu_push && git add logs/ && git commit && git push origin main
 # 124 사이클 누적 미push 일괄 정합화 커밋
+
+[2026-05-04 17:49 KST] $ # cycle 126 정기 sync — 인프라 복구 후 1 사이클째 정상 cadence
+$ rsync -a --delete --exclude='.git' --exclude='.pat' --exclude='node_modules' MOUNT/ WORK/
+$ git diff -w --quiet  # → 0 real content delta, 254건 모두 CRLF/mode noise
+$ git checkout -- .   # CRLF noise reset
+$ git add logs/ && git commit && git push origin main
