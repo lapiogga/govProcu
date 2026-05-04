@@ -35,22 +35,39 @@ function parseSort(raw: string | undefined): SortKey {
 }
 
 /**
- * P31-R3: searchParams의 biz_types(콤마 구분) 파싱.
- * - 다중 선택 → CSV 형식 (예: "공사,물품")
- * - 후방호환: 기존 단일 `type` 파라미터도 수용
+ * P31-R4.6 (hot-fix err-91): searchParams의 biz_types 파싱.
+ * Next.js form GET method + checkbox name="biz_types" 다중 선택 시
+ * searchParams는 string[] 반환 → raw.split(",") TypeError 발생.
+ * - string[] (다중 체크박스) / string (CSV) / undefined 모두 처리.
+ * - 후방호환: 기존 단일 `type` 파라미터도 수용.
  */
-function parseBizTypes(raw: string | undefined, legacyType: string | undefined): BizTypeOption[] {
+function parseBizTypes(
+  raw: string | string[] | undefined,
+  legacyType: string | undefined,
+): BizTypeOption[] {
   const out: BizTypeOption[] = [];
-  if (raw) {
-    for (const part of raw.split(",")) {
-      const v = part.trim() as BizTypeOption;
-      if (BIZ_TYPE_OPTIONS.includes(v)) out.push(v);
+  const allowed = BIZ_TYPE_OPTIONS as readonly string[];
+
+  // 다중 체크박스 → string[]
+  if (Array.isArray(raw)) {
+    for (const part of raw) {
+      if (typeof part !== "string") continue;
+      const v = part.trim();
+      if (allowed.includes(v)) out.push(v as BizTypeOption);
     }
-  } else if (legacyType) {
-    // 구 단일 type=용역 → 일반용역+기술용역으로 확장
+  }
+  // CSV 또는 단일 string
+  else if (typeof raw === "string" && raw) {
+    for (const part of raw.split(",")) {
+      const v = part.trim();
+      if (allowed.includes(v)) out.push(v as BizTypeOption);
+    }
+  }
+  // legacyType fallback (구 단일 type=용역)
+  else if (legacyType) {
     if (legacyType === "용역") {
       out.push("일반용역", "기술용역");
-    } else if ((BIZ_TYPE_OPTIONS as readonly string[]).includes(legacyType)) {
+    } else if (allowed.includes(legacyType)) {
       out.push(legacyType as BizTypeOption);
     }
   }
@@ -172,7 +189,7 @@ export default async function BidsPage(props: {
   searchParams: Promise<{
     q?: string;
     type?: string;        // 후방호환 (구: 단일 select)
-    biz_types?: string;   // P31-R3: CSV (예: "공사,물품")
+    biz_types?: string | string[];   // P31-R4.6: form 다중 체크박스 → string[] 가능
     frgcpt?: string;      // P31-R3: 외자 토글 ("1")
     indstryty?: string;   // P31-R3: 업종 코드 4자리
     inst?: string;
@@ -361,7 +378,19 @@ interface ResultsParams {
   page: number;
   scanPages: number;
   selectedBizTypes: BizTypeOption[];
-  sp: Record<string, string | undefined>;
+  sp: {
+    q?: string;
+    type?: string;
+    biz_types?: string | string[];
+    frgcpt?: string;
+    indstryty?: string;
+    inst?: string;
+    from?: string;
+    to?: string;
+    sort?: string;
+    page?: string;
+    deep?: string;
+  };
 }
 
 async function Results(params: ResultsParams) {
@@ -399,7 +428,14 @@ async function Results(params: ResultsParams) {
   const buildHref = (newPage: number) => {
     const qs = new URLSearchParams();
     if (sp.q) qs.set("q", sp.q);
-    if (sp.biz_types) qs.set("biz_types", sp.biz_types);
+    // P31-R4.6 hot-fix: biz_types가 string[] 일 때 append 다중 (.set은 단일 string만)
+    if (sp.biz_types) {
+      if (Array.isArray(sp.biz_types)) {
+        for (const v of sp.biz_types) qs.append("biz_types", v);
+      } else {
+        qs.set("biz_types", sp.biz_types);
+      }
+    }
     if (sp.frgcpt) qs.set("frgcpt", sp.frgcpt);
     if (sp.indstryty) qs.set("indstryty", sp.indstryty);
     if (sp.inst) qs.set("inst", sp.inst);
