@@ -28,7 +28,7 @@ def _infer_period_from_bid_no(bid_notice_no: str) -> tuple[str | None, str | Non
 
 
 def _resolve_bid_endpoints(biz_type: str | None) -> list[tuple[str, str]]:
-    """biz_type별 endpoint 목록. None이면 4종 병합 (공사/용역/물품/외자).
+    """biz_type별 단일조회 endpoint 목록 (단건 모드용). None이면 4종 병합.
 
     P31-R1 (F20): 외자(Frgcpt) endpoint 추가.
     DOSSIER-OFFICIAL §1.2: BidPublicInfoService 4분류 endpoint
@@ -53,6 +53,25 @@ def _resolve_bid_endpoints(biz_type: str | None) -> list[tuple[str, str]]:
     ]
 
 
+# P31-R2 (F19): PPSSrch 검색 endpoint 5종 매핑.
+# DOSSIER-OFFICIAL §4 + POC #1·#2·#3·#5·#7: PPSSrch는 LIKE 매칭(ntceInsttNm/dminsttNm/bidNtceNm)
+# + indstrytyCd 서버측 필터 + Etc 포함 5분류. inqryDiv=1 = 공고게시일시 (단일조회 inqryDiv=1과 의미 다름).
+_BID_ENDPOINTS_PPSSRCH = {
+    "공사": "/BidPublicInfoService/getBidPblancListInfoCnstwkPPSSrch",
+    "용역": "/BidPublicInfoService/getBidPblancListInfoServcPPSSrch",
+    "물품": "/BidPublicInfoService/getBidPblancListInfoThngPPSSrch",
+    "외자": "/BidPublicInfoService/getBidPblancListInfoFrgcptPPSSrch",
+    "기타": "/BidPublicInfoService/getBidPblancListInfoEtcPPSSrch",
+}
+
+
+def _resolve_ppssrch_endpoints(biz_type: str | None) -> list[tuple[str, str]]:
+    """biz_type별 PPSSrch endpoint 목록 (검색 모드용). None이면 5종 병합."""
+    if biz_type and biz_type in _BID_ENDPOINTS_PPSSRCH:
+        return [(biz_type, _BID_ENDPOINTS_PPSSRCH[biz_type])]
+    return [(label, ep) for label, ep in _BID_ENDPOINTS_PPSSRCH.items()]
+
+
 # P31-R1: bid_notice_no 단건 매칭 모드용 5종 단일조회 endpoint
 # DOSSIER-OFFICIAL §1.2 + POC #4: 외부 호출자는 사업 분류 미지 → 5종 fan-out
 # inqryDiv=2 + bidNtceNo 직접 → 기간 unset OK
@@ -73,13 +92,20 @@ def _to_int(v) -> int | None:
 
 
 def _normalize_notice(raw: dict) -> BidNoticeSummary:
-    """G2B 응답 한 건을 정규화."""
+    """G2B 응답 한 건을 정규화.
+
+    P31-R2:
+    - F21: srvce_div + ppsw_gnrl_yn 신규 필드 (POC #5 raw evidence)
+    - PubStd 호환: inst_name fallback 순서 ntceInsttNm > dminsttNm > dmndInsttNm
+    """
     return BidNoticeSummary(
         bid_no=str(raw.get("bidNtceNo", "")),
         bid_ord=str(raw.get("bidNtceOrd", "")) or None,
         title=str(raw.get("bidNtceNm", "")),
-        inst_name=raw.get("ntceInsttNm") or raw.get("dminsttNm"),
-        biz_type=raw.get("bsnsDivNm"),
+        inst_name=raw.get("ntceInsttNm") or raw.get("dminsttNm") or raw.get("dmndInsttNm"),
+        biz_type=raw.get("bsnsDivNm"),  # PPSSrch 응답에선 null (POC #5)
+        srvce_div=raw.get("srvceDivNm"),  # "일반용역" / "기술용역"
+        ppsw_gnrl_yn=raw.get("ppswGnrlSrvceYn"),  # Y/N
         region=raw.get("rgnLmtBidLocplcNm"),
         estimated_price=_to_int(raw.get("presmptPrce") or raw.get("asignBdgtAmt")),
         publish_date=raw.get("bidNtceDt"),
@@ -175,7 +201,7 @@ async def _search_by_bid_notice_no(inp: BidNoticeSearchInput) -> dict:
     }
 
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="bid_v31")
+@cache_result(ttl=settings.cache_ttl_short, prefix="bid_v32")
 async def search_bid_notices(
     keyword: str | None = None,
     biz_type: str | None = None,
@@ -187,23 +213,27 @@ async def search_bid_notices(
     page: int = 1,
     scan_pages: int = 1,
     bid_notice_no: str | None = None,
+    indstryty_cd: str | None = None,
 ) -> dict:
     """나라장터 입찰공고를 키워드/업종/지역/기관/기간으로 검색합니다.
 
-    5/3 N42 update:
-    - biz_type=None 또는 ''면 공사+용역+물품 3종 endpoint 병합
-    - date 범위 1개월 초과 시 자동 chunking (G2B 1개월 제약 대응)
+    P31-R2 (F19+F21):
+    - 검색 모드는 PPSSrch endpoint 5종 (Cnstwk/Servc/Thng/Frgcpt/Etc) 사용 — LIKE 매칭 직접 지원
+    - inst_name 입력 시 ntceInsttNm + dminsttNm 두 호출 fan-out + union dedup (POC #7 AND 회피)
+    - keyword → bidNtceNm, indstryty_cd → indstrytyCd 서버측 필터
+    - 단건 모드(bid_notice_no, R1)는 격리 보전 — 단일조회 endpoint inqryDiv=2 그대로
 
     Args:
-        keyword: 공고 제목 부분일치 키워드 (예: '정보화', '용역', 'AI')
-        biz_type: '공사' | '용역' | '물품' (None/'' = 전체 3종 병합)
-        region: 지역 제한 (시도명)
-        inst_name: 발주기관명 부분일치
-        date_from: 공고일 시작 (YYYYMMDD)
-        date_to: 공고일 종료 (YYYYMMDD)
+        keyword: 공고명 부분일치 (PPSSrch bidNtceNm 직접 전달)
+        biz_type: '공사' | '용역' | '물품' | '외자' | '기타' (None = 5종 병합)
+        region: 지역 제한 (시도명, client-side filter)
+        inst_name: 발주기관명 부분일치 (ntceInsttNm + dminsttNm fan-out)
+        indstryty_cd: 업종코드 (G2B indstrytyCd 서버측 필터)
+        date_from / date_to: 공고일 (YYYYMMDD)
         limit: 최대 반환 건수 (1~100)
-        page: 시작 페이지 번호 (default 1). cursor 페이징.
-        scan_pages: 스캔할 페이지 수 (default 1, max 10).
+        page: 시작 페이지 번호
+        scan_pages: 스캔 페이지 수 (max 10)
+        bid_notice_no: 단건 모드 진입 (date 미명시 + 본 인자 → inqryDiv=2)
 
     Returns:
         items, total_count, returned_count, has_more, page, endpoints_used, chunks_used 포함 dict.
@@ -214,28 +244,36 @@ async def search_bid_notices(
 
     inp = BidNoticeSearchInput(
         keyword=keyword, biz_type=biz_type, region=region,
-        inst_name=inst_name, date_from=date_from, date_to=date_to, limit=limit,
+        inst_name=inst_name, indstryty_cd=indstryty_cd,
+        date_from=date_from, date_to=date_to, limit=limit,
         page=page, bid_notice_no=bid_notice_no,
     )
     max_scan_pages = max(1, min(int(scan_pages), 10))
 
     # P31-R1 (F18): bid_notice_no 단건 매칭 모드 — inqryDiv=2 + bidNtceNo 직접
-    # DOSSIER-OFFICIAL §3 + POC #4 evidence: 단건조회 endpoint(getBidPblancListInfoXxx)에
-    # inqryDiv=2 + bidNtceNo 만 전달하면 기간 unset에도 정상 매칭 (1개월 제한 무관).
-    # date_from/date_to 명시 호출이 아닌 한 단건 모드 진입.
+    # 단건 모드는 격리 보전 (R1 회귀 0).
     if inp.bid_notice_no and not inp.date_from and not inp.date_to:
         return await _search_by_bid_notice_no(inp)
 
-    # 업종 endpoint (None → 4종 병합, 외자 포함 — P31-R1 F20)
-    endpoints = _resolve_bid_endpoints(inp.biz_type)
+    # P31-R2 (F19): PPSSrch endpoint 5종 (None → 5종 병합).
+    endpoints = _resolve_ppssrch_endpoints(inp.biz_type)
     # 1개월 초과 시 chunk 자동 분할 (G2B 1개월 제약)
     chunks = chunk_date_range(inp.date_from, inp.date_to, max_days=31)
 
-    needs_client_filter = bool(inp.keyword or inp.inst_name or inp.region or inp.bid_notice_no)
-    page_size = 999 if needs_client_filter else inp.limit
+    # PPSSrch는 keyword/inst_name/indstryty_cd를 서버측 LIKE/필터로 처리.
+    # region/bid_notice_no 만 client-side 필터 필요.
+    needs_client_filter = bool(inp.region or inp.bid_notice_no)
+    page_size = 100 if needs_client_filter else min(inp.limit, 100)
     max_scan_per_call = page_size * max_scan_pages
 
-    seen_keys: set[tuple[str, str]] = set()  # (bid_no, bid_ord) dedup
+    # F19 fan-out: inst_name 있으면 ntceInsttNm + dminsttNm 두 호출 (POC #7 AND 회피).
+    inst_variants: list[tuple[str, str | None]]
+    if inp.inst_name:
+        inst_variants = [("ntceInsttNm", inp.inst_name), ("dminsttNm", inp.inst_name)]
+    else:
+        inst_variants = [("none", None)]
+
+    seen_keys: set[tuple[str, str]] = set()  # (bid_no, bid_ord) union dedup
     matches: list[dict] = []
     total_count = 0
     scanned_total = 0
@@ -243,13 +281,12 @@ async def search_bid_notices(
 
     client = G2BClient()
 
-    # v23.6: chunks × endpoints 직렬 → asyncio.gather 병렬.
-    # page loop(while)는 한 (chunk, endpoint) 조합 내부에서 sequential 유지
-    # (다음 page 호출은 직전 응답 items 길이에 의존).
     async def _fetch_combo(
         chunk_from: str | None,
         chunk_to: str | None,
         endpoint: str,
+        inst_field: str,
+        inst_value: str | None,
     ):
         local_total = 0
         local_scanned = 0
@@ -260,12 +297,20 @@ async def search_bid_notices(
             params: dict = {
                 "pageNo": cur_page,
                 "numOfRows": page_size,
-                "inqryDiv": "1",  # 등록일 기준
+                "inqryDiv": "1",  # PPSSrch: 1=공고게시일시
+                "type": "json",
             }
             if chunk_from:
                 params["inqryBgnDt"] = chunk_from + "0000"
             if chunk_to:
                 params["inqryEndDt"] = chunk_to + "2359"
+            # F19: PPSSrch 서버측 LIKE 직접 전달
+            if inp.keyword:
+                params["bidNtceNm"] = inp.keyword
+            if inp.indstryty_cd:
+                params["indstrytyCd"] = inp.indstryty_cd
+            if inst_value:
+                params[inst_field] = inst_value
             try:
                 body = await client.call(endpoint, settings.g2b_key_bid, params)
             except Exception:  # noqa: BLE001
@@ -288,36 +333,26 @@ async def search_bid_notices(
         return endpoint, local_total, local_scanned, local_raw_items
 
     try:
+        # tasks = chunks × endpoints × inst_variants (fan-out 차원).
         tasks = [
-            _fetch_combo(cf, ct, ep)
+            _fetch_combo(cf, ct, ep, field, value)
             for cf, ct in chunks
             for _, ep in endpoints
+            for field, value in inst_variants
         ]
         results = await asyncio.gather(*tasks)
 
         for endpoint, local_total, local_scanned, raw_items in results:
             if endpoint not in endpoints_used:
                 endpoints_used.append(endpoint)
+            # fan-out으로 중복 카운트되는 부분이 있으나 totalCount는 endpoint별 통계용 sum
             total_count += local_total
             scanned_total += local_scanned
             for raw in raw_items:
                 if needs_client_filter:
-                    title = raw.get("bidNtceNm") or ""
-                    inst = (raw.get("dminsttNm") or "") + " " + (raw.get("ntceInsttNm") or "")
                     region_v = raw.get("rgnLmtBidLocplcNm") or ""
                     if inp.bid_notice_no and str(raw.get("bidNtceNo", "")) != inp.bid_notice_no:
                         continue
-                    if inp.keyword:
-                        # v24.4: keyword도 토큰 매칭 — "해군 정보체계" 입력 시
-                        # title "정보체계 (해군본부)" 같은 어순 변경도 매칭
-                        keyword_tokens = [t for t in inp.keyword.split() if t]
-                        if not all(t in title for t in keyword_tokens):
-                            continue
-                    if inp.inst_name:
-                        # v24.1: 토큰 기반 매칭 (변형 표기 매칭률 ↑)
-                        inst_tokens = [t for t in inp.inst_name.split() if t]
-                        if not all(t in inst for t in inst_tokens):
-                            continue
                     if inp.region and inp.region not in region_v:
                         continue
                 key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
@@ -337,9 +372,6 @@ async def search_bid_notices(
         if (max_scan_pages == 1 and len(chunks) == 1)
         else (total_count > scanned_total and len(matches) >= inp.limit)
     )
-    # v22.6 (F8): v22.2 정정 — G2B 빈 응답일 때만 has_more=False.
-    # G2B 데이터를 받았으나 keyword/inst_name 필터로 매칭 0건이면 다음 페이지에서 매칭 가능
-    # → has_more 유지 (사용자 검색 완전 차단 방지). frontend가 isLikeZero 분기로 안내.
     if scanned_total == 0:
         has_more = False
 
@@ -354,6 +386,7 @@ async def search_bid_notices(
         "endpoints_used": endpoints_used,
         "chunks_used": len(chunks),
         "scanned": scanned_total,
+        "lookup_mode": "PPSSrch+inst_fanout" if inp.inst_name else "PPSSrch",
     }
 
 
@@ -728,3 +761,101 @@ async def get_pre_specification_detail(bid_notice_no: str, bid_ord: str = "00") 
         }
     finally:
         await client.aclose()
+
+
+@cache_result(ttl=settings.cache_ttl_short, prefix="agencies_v32")
+async def search_agencies(query: str, limit: int = 30) -> dict:
+    """발주/수요기관 LIKE 검색 (자동완성용, 2자 이상).
+
+    P31-R2 (F22): err-035 사양 — 2자+ trigger 발주기관 자동완성.
+
+    구현: Servc PPSSrch (POC #5 evidence — totalCount=22862 가장 많음) 1개월 호출 + 응답
+    ntceInsttNm/dminsttNm 두 호출 fan-out → distinct (코드, 이름, match_field) 추출.
+
+    Args:
+        query: 기관명 부분일치 키워드 (2자 이상 필수)
+        limit: 최대 반환 건수 (default 30)
+
+    Returns:
+        items: [{inst_code, inst_name, match_field}, ...] (distinct)
+        total_count: scanned 응답 수
+        error: 2자 미만 시 "2자 이상 입력 필요"
+    """
+    q = (query or "").strip()
+    if len(q) < 2:
+        return {"items": [], "total_count": 0, "error": "2자 이상 입력 필요"}
+
+    allowed, remaining = await check_rate("g2b_agencies", capacity=10, refill_per_sec=1.0)
+    if not allowed:
+        raise RuntimeError(f"rate_limit: g2b_agencies 토큰 소진 (remaining={remaining})")
+
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    # G2B 1개월 제약 안전 마진 — 30일 (31일은 일부 endpoint에서 에러)
+    bgn = (today - timedelta(days=30)).strftime("%Y%m%d")
+    end = today.strftime("%Y%m%d")
+
+    endpoint = _BID_ENDPOINTS_PPSSRCH["용역"]  # POC #5: 일반용역 PPSSrch가 데이터 가장 많음
+
+    async def _call_one(field: str):
+        params = {
+            "pageNo": 1,
+            "numOfRows": 100,
+            "inqryDiv": "1",
+            "inqryBgnDt": bgn + "0000",
+            "inqryEndDt": end + "2359",
+            "type": "json",
+            field: q,
+        }
+        try:
+            body = await client.call(endpoint, settings.g2b_key_bid, params)
+        except Exception:  # noqa: BLE001
+            return field, []
+        items_raw = body.get("items", [])
+        if isinstance(items_raw, dict):
+            items_raw = items_raw.get("item", [])
+        if not isinstance(items_raw, list):
+            items_raw = [items_raw] if items_raw else []
+        return field, items_raw
+
+    client = G2BClient()
+    seen: set[tuple[str, str, str]] = set()  # (code, name, match_field)
+    items_out: list[dict] = []
+    scanned = 0
+    try:
+        results = await asyncio.gather(
+            _call_one("ntceInsttNm"),
+            _call_one("dminsttNm"),
+        )
+        for field, raws in results:
+            for raw in raws:
+                scanned += 1
+                if field == "ntceInsttNm":
+                    code = str(raw.get("ntceInsttCd") or "")
+                    name = str(raw.get("ntceInsttNm") or "")
+                else:
+                    code = str(raw.get("dminsttCd") or "")
+                    name = str(raw.get("dminsttNm") or "")
+                if not name or q not in name:
+                    continue
+                key = (code, name, field)
+                if key in seen:
+                    continue
+                seen.add(key)
+                items_out.append({
+                    "inst_code": code or None,
+                    "inst_name": name,
+                    "match_field": field,
+                })
+                if len(items_out) >= limit:
+                    break
+            if len(items_out) >= limit:
+                break
+    finally:
+        await client.aclose()
+
+    return {
+        "items": items_out,
+        "total_count": len(items_out),
+        "scanned": scanned,
+    }

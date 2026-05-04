@@ -58,6 +58,7 @@ mcp.tool()(bid_tools.search_bid_notices)
 mcp.tool()(bid_tools.get_bid_notice_detail)
 mcp.tool()(bid_tools.list_pre_specifications)
 mcp.tool()(bid_tools.get_pre_specification_detail)
+mcp.tool()(bid_tools.search_agencies)  # P31-R2 (F22): 발주기관 자동완성
 # award 영역 (개찰/낙찰/응찰업체)
 mcp.tool()(award_tools.list_bid_openings)
 mcp.tool()(award_tools.search_awards)
