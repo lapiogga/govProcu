@@ -8,7 +8,7 @@ class BidNoticeSearchInput(BaseModel):
     """search_bid_notices 입력."""
     keyword: str | None = Field(None, description="제목/내용 키워드 (예: '정보화 용역')")
     bid_notice_no: str | None = Field(None, description="공고번호 정확 매칭 (단건 조회 폴백용)")
-    biz_type: Literal["공사", "용역", "물품", None] = Field(None, description="업종 구분")
+    biz_type: Literal["공사", "용역", "물품", "외자", None] = Field(None, description="업종 구분 (P31-R1: 외자 추가)")
     region: str | None = Field(None, description="지역 (시도명)")
     inst_name: str | None = Field(None, description="발주기관명 부분일치")
     date_from: str | None = Field(None, description="공고일 시작 (YYYYMMDD)")

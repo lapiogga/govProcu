@@ -16,29 +16,23 @@ _BIZ_DIV_MAP = {"공사": "1", "용역": "2", "물품": "3"}
 
 
 def _infer_period_from_bid_no(bid_notice_no: str) -> tuple[str | None, str | None]:
-    """공고번호 prefix에서 연도 추정해 inqryBgnDt/inqryEndDt 자동 생성.
+    """공고번호 prefix 기반 기간 추정 — P31-R1 폐기 (항상 (None, None)).
 
-    G2B 단건 조회 inqryDiv=1 폴백에서 기간 필수 → 공고번호 자체에 인코딩된 연도 사용.
-    - 'R26...' / 'R25...' → 2026 / 2025년
-    - '20240101234' (숫자 11자리) → 첫 4자리 연도
-    추정 불가 시 (None, None).
+    DOSSIER-OFFICIAL §3: G2B inqryBgnDt/inqryEndDt 범위는 최대 1개월 제한.
+    기존 1년 통째(`{year}0101`-`{year}1231`) 반환 → 제약 위반으로 응답 결손 가능.
+    POC #4 evidence: inqryDiv=2 + bidNtceNo만 전달 시 기간 unset에도 정상 매칭 →
+    단건 모드는 기간 자체가 불필요. 함수는 award.py 호환을 위해 유지하되 동작은 no-op.
     """
-    s = (bid_notice_no or "").strip().upper()
-    # R 형식 (R + 2자리 연도)
-    if len(s) >= 3 and s.startswith("R") and s[1:3].isdigit():
-        yy = int(s[1:3])
-        year = 2000 + yy if yy < 80 else 1900 + yy
-        return f"{year}0101", f"{year}1231"
-    # 숫자 11자리 (예: 20240101234)
-    if len(s) >= 4 and s[:4].isdigit():
-        year = int(s[:4])
-        if 2000 <= year <= 2100:
-            return f"{year}0101", f"{year}1231"
+    _ = bid_notice_no  # 인자 보존 (시그니처 호환)
     return None, None
 
 
 def _resolve_bid_endpoints(biz_type: str | None) -> list[tuple[str, str]]:
-    """biz_type별 endpoint 목록. None이면 3종 모두 (공사/용역/물품).
+    """biz_type별 endpoint 목록. None이면 4종 병합 (공사/용역/물품/외자).
+
+    P31-R1 (F20): 외자(Frgcpt) endpoint 추가.
+    DOSSIER-OFFICIAL §1.2: BidPublicInfoService 4분류 endpoint
+    (Cnstwk/Servc/Thng/Frgcpt). 기타(Etc)는 PPSSrch에만 존재 → 단일조회는 4종.
 
     반환: [(biz_div_label, endpoint_path), ...]
     """
@@ -48,12 +42,27 @@ def _resolve_bid_endpoints(biz_type: str | None) -> list[tuple[str, str]]:
         return [("물품", "/BidPublicInfoService/getBidPblancListInfoThng")]
     if biz_type == "용역":
         return [("용역", "/BidPublicInfoService/getBidPblancListInfoServc")]
-    # 전체 (None 또는 잘못된 값)
+    if biz_type == "외자":
+        return [("외자", "/BidPublicInfoService/getBidPblancListInfoFrgcpt")]
+    # 전체 (None 또는 잘못된 값) — 4종 병합 (외자 포함)
     return [
         ("용역", "/BidPublicInfoService/getBidPblancListInfoServc"),
         ("공사", "/BidPublicInfoService/getBidPblancListInfoCnstwk"),
         ("물품", "/BidPublicInfoService/getBidPblancListInfoThng"),
+        ("외자", "/BidPublicInfoService/getBidPblancListInfoFrgcpt"),
     ]
+
+
+# P31-R1: bid_notice_no 단건 매칭 모드용 5종 단일조회 endpoint
+# DOSSIER-OFFICIAL §1.2 + POC #4: 외부 호출자는 사업 분류 미지 → 5종 fan-out
+# inqryDiv=2 + bidNtceNo 직접 → 기간 unset OK
+_BID_DETAIL_ENDPOINTS = [
+    ("공사", "/BidPublicInfoService/getBidPblancListInfoCnstwk"),
+    ("용역", "/BidPublicInfoService/getBidPblancListInfoServc"),
+    ("물품", "/BidPublicInfoService/getBidPblancListInfoThng"),
+    ("외자", "/BidPublicInfoService/getBidPblancListInfoFrgcpt"),
+    ("기타", "/BidPublicInfoService/getBidPblancListInfoEtc"),
+]
 
 
 def _to_int(v) -> int | None:
@@ -79,7 +88,94 @@ def _normalize_notice(raw: dict) -> BidNoticeSummary:
     )
 
 
-@cache_result(ttl=settings.cache_ttl_short, prefix="bid_v24")
+async def _search_by_bid_notice_no(inp: BidNoticeSearchInput) -> dict:
+    """P31-R1 (F18): bid_notice_no 단건 매칭 모드.
+
+    inqryDiv=2 + bidNtceNo 직접 → 기간 unset, 5종 단일조회 endpoint 병렬 fan-out.
+    매칭 row 발견 즉시 반환 (POC #4 raw evidence: R25BK00755515 → Servc 1개에서만 hit).
+
+    DOSSIER-OFFICIAL §3.1 + POC #4 결론:
+    - 1개월 제한 회피 (기간 자체 미전달)
+    - _infer_period_from_bid_no 1년 통째 폴백 불필요
+    - 외부 호출자는 사업 분류 미지 → 5종 fan-out 필수
+    """
+    target_no = (inp.bid_notice_no or "").strip()
+    target_ord_norm: str | None = None
+    if "-" in target_no:
+        parts = target_no.rsplit("-", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            target_no = parts[0]
+            target_ord_norm = parts[1].lstrip("0") or "0"
+
+    async def _call_one(label: str, endpoint: str):
+        params = {
+            "pageNo": 1,
+            "numOfRows": 10,
+            "inqryDiv": "2",  # 입찰공고번호 직접조회 (단건)
+            "bidNtceNo": target_no,
+        }
+        try:
+            body = await client.call(endpoint, settings.g2b_key_bid, params)
+        except Exception:  # noqa: BLE001
+            return label, endpoint, 0, []
+        items_raw = body.get("items", [])
+        if isinstance(items_raw, dict):
+            items_raw = items_raw.get("item", [])
+        if not isinstance(items_raw, list):
+            items_raw = [items_raw] if items_raw else []
+        return label, endpoint, int(body.get("totalCount", 0) or 0), items_raw
+
+    matches: list[dict] = []
+    seen_keys: set[tuple[str, str]] = set()
+    endpoints_used: list[str] = []
+    total_count = 0
+    scanned_total = 0
+
+    client = G2BClient()
+    try:
+        results = await asyncio.gather(
+            *(_call_one(label, ep) for label, ep in _BID_DETAIL_ENDPOINTS)
+        )
+        for _label, endpoint, local_total, items_raw in results:
+            if items_raw and endpoint not in endpoints_used:
+                endpoints_used.append(endpoint)
+            total_count += local_total
+            for raw in items_raw:
+                scanned_total += 1
+                if str(raw.get("bidNtceNo", "")) != target_no:
+                    continue
+                if target_ord_norm is not None:
+                    raw_ord_norm = str(raw.get("bidNtceOrd", "")).lstrip("0") or "0"
+                    if raw_ord_norm != target_ord_norm:
+                        continue
+                key = (str(raw.get("bidNtceNo", "")), str(raw.get("bidNtceOrd", "")))
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                matches.append(_normalize_notice(raw).model_dump())
+                if len(matches) >= inp.limit:
+                    break
+            if len(matches) >= inp.limit:
+                break
+    finally:
+        await client.aclose()
+
+    return {
+        **BidNoticeSearchResult(
+            items=matches,
+            total_count=total_count,
+            returned_count=len(matches),
+            has_more=False,  # 단건 모드는 페이지 개념 없음
+            page=inp.page,
+        ).model_dump(),
+        "endpoints_used": endpoints_used,
+        "chunks_used": 0,  # 단건 모드는 기간 unset → chunk 없음
+        "scanned": scanned_total,
+        "lookup_mode": "inqryDiv=2+bidNtceNo",
+    }
+
+
+@cache_result(ttl=settings.cache_ttl_short, prefix="bid_v31")
 async def search_bid_notices(
     keyword: str | None = None,
     biz_type: str | None = None,
@@ -123,14 +219,14 @@ async def search_bid_notices(
     )
     max_scan_pages = max(1, min(int(scan_pages), 10))
 
-    # 5/3 N42 v12: bid_notice_no 정확 매칭 모드 — 추정 기간 자동 + 매칭 시 즉시 반환
+    # P31-R1 (F18): bid_notice_no 단건 매칭 모드 — inqryDiv=2 + bidNtceNo 직접
+    # DOSSIER-OFFICIAL §3 + POC #4 evidence: 단건조회 endpoint(getBidPblancListInfoXxx)에
+    # inqryDiv=2 + bidNtceNo 만 전달하면 기간 unset에도 정상 매칭 (1개월 제한 무관).
+    # date_from/date_to 명시 호출이 아닌 한 단건 모드 진입.
     if inp.bid_notice_no and not inp.date_from and not inp.date_to:
-        bgn, end = _infer_period_from_bid_no(inp.bid_notice_no)
-        if bgn and end:
-            inp.date_from = bgn
-            inp.date_to = end
+        return await _search_by_bid_notice_no(inp)
 
-    # 업종 endpoint (None → 3종 병합)
+    # 업종 endpoint (None → 4종 병합, 외자 포함 — P31-R1 F20)
     endpoints = _resolve_bid_endpoints(inp.biz_type)
     # 1개월 초과 시 chunk 자동 분할 (G2B 1개월 제약)
     chunks = chunk_date_range(inp.date_from, inp.date_to, max_days=31)
