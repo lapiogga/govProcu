@@ -1123,3 +1123,9 @@ $ git add logs/ && git commit && git push origin main
 [23:31:00 KST 2026-05-04] $ git config core.autocrlf input  # CRLF noise 회피·선택적 cp 방식
 [23:31:30 KST 2026-05-04] $ cp $MOUNT/logs/{WORK-LOG.md,TERMINAL-LOG.md} $WORK/logs/  # 마운트→워크 로그만
 [23:32:00 KST 2026-05-04] $ git add -A && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-04 23:32 KST" && git push origin main
+
+[23:49:30 KST 2026-05-04] $ # cycle 144 — 정기 sync 점검
+[23:50:00 KST 2026-05-04] $ TZ=Asia/Seoul date && ls /sessions/*/mnt/GovProcu/logs/
+[23:51:00 KST 2026-05-04] $ git config core.autocrlf input && git checkout -- .  # CRLF noise reset (selective cp 방식 유지)
+[23:52:00 KST 2026-05-04] $ # WORK-LOG/TERMINAL-LOG 갱신 후 선택적 cp → mount
+[23:53:00 KST 2026-05-04] $ git add -A && git commit -m "chore(worklog): 20분 주기 자동 동기화 2026-05-04 23:53 KST" && git push origin main
