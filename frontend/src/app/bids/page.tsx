@@ -1,5 +1,12 @@
 /**
  * 입찰 검색 — `search_bid_notices`
+ *
+ * P31-R3 (F23, F26): G2B 표준 UX 정합 검색폼.
+ * - 업무구분 5체크박스 다중 선택 (공사/물품/일반용역/기술용역/기타) — 비활성 옵션(민간) 제거
+ * - 업무여부 외자 토글 — 비활성 옵션(비축/리스) 제거
+ * - 업종 indstryty_cd 4자리 단순 input (자동완성 모달은 R4 분리)
+ * - 발주기관 단일 input (공고기관/수요기관 통합 LIKE — backend fan-out)
+ * - 결과 테이블: 공고기관(ntceInsttNm) / 수요기관(dminsttNm) 분리 + 업무구분(srvce_div 우선)
  */
 import { Suspense } from "react";
 import { searchBidNotices } from "@/lib/actions";
@@ -18,9 +25,69 @@ const VALID_SORTS: SortKey[] = [
   "amount_asc",
 ];
 
+// P31-R3: 업무구분 5종 (민간 비활성 제거)
+const BIZ_TYPE_OPTIONS = ["공사", "물품", "일반용역", "기술용역", "기타"] as const;
+type BizTypeOption = (typeof BIZ_TYPE_OPTIONS)[number];
+
 function parseSort(raw: string | undefined): SortKey {
   if (raw && (VALID_SORTS as string[]).includes(raw)) return raw as SortKey;
   return "publish_desc";
+}
+
+/**
+ * P31-R3: searchParams의 biz_types(콤마 구분) 파싱.
+ * - 다중 선택 → CSV 형식 (예: "공사,물품")
+ * - 후방호환: 기존 단일 `type` 파라미터도 수용
+ */
+function parseBizTypes(raw: string | undefined, legacyType: string | undefined): BizTypeOption[] {
+  const out: BizTypeOption[] = [];
+  if (raw) {
+    for (const part of raw.split(",")) {
+      const v = part.trim() as BizTypeOption;
+      if (BIZ_TYPE_OPTIONS.includes(v)) out.push(v);
+    }
+  } else if (legacyType) {
+    // 구 단일 type=용역 → 일반용역+기술용역으로 확장
+    if (legacyType === "용역") {
+      out.push("일반용역", "기술용역");
+    } else if ((BIZ_TYPE_OPTIONS as readonly string[]).includes(legacyType)) {
+      out.push(legacyType as BizTypeOption);
+    }
+  }
+  return out;
+}
+
+/**
+ * P31-R3: 선택된 업무구분 + 외자 토글을 backend `biz_type` 단일 인자로 매핑.
+ * - 일반용역/기술용역 둘 다 / 둘 중 하나 → backend "용역" (frontend client-side filter)
+ * - 단일 종 → 그대로 전달 (공사/물품/기타)
+ * - 0개 선택 + 외자 only → "외자"
+ * - 외자 + 다른 종 → biz_type=None (전체 fan-out, 외자 포함됨)
+ * - 0개 선택 + 외자 미선택 → biz_type=None (전체 5종 fan-out)
+ * - 2종 이상 + 외자 미선택 → biz_type=None (전체 fan-out, 다른 종 결과는 client-side에서 그대로 통과)
+ *
+ * 단순화 규칙: backend는 "공사"/"용역"/"물품"/"외자"/"기타" 또는 None 만 수용.
+ * 정확한 다종 fan-out 매핑은 backend가 None 단일 인자 → 5종 endpoint 병합으로 처리.
+ */
+function resolveBackendBizType(
+  selected: BizTypeOption[],
+  includeFrgcpt: boolean,
+): string | undefined {
+  const hasService = selected.includes("일반용역") || selected.includes("기술용역");
+  const nonService = selected.filter((v) => v !== "일반용역" && v !== "기술용역");
+
+  // 외자만 단독 선택
+  if (selected.length === 0 && includeFrgcpt) return "외자";
+
+  // 단일 종 (외자 미포함, 일반/기술용역 단독 또는 그 외 1종)
+  if (!includeFrgcpt) {
+    if (selected.length === 0) return undefined; // 전체
+    if (hasService && nonService.length === 0) return "용역"; // 일반/기술용역만
+    if (!hasService && nonService.length === 1) return nonService[0];
+  }
+
+  // 그 외 (다종 / 외자 + 다른 종) → 전체 fan-out
+  return undefined;
 }
 
 function sortItems(items: Bid[], key: SortKey, today: string): Bid[] {
@@ -93,15 +160,21 @@ interface Bid {
   title?: string;
   inst_name?: string;
   biz_type?: string;
+  srvce_div?: string;       // P31-R2: "일반용역" / "기술용역"
+  ppsw_gnrl_yn?: string;    // P31-R2: Y/N
   estimated_price?: number;
   publish_date?: string;
   deadline_date?: string;
+  raw?: Record<string, unknown> | null; // ntceInsttNm/dminsttNm 직접 활용 (F26)
 }
 
 export default async function BidsPage(props: {
   searchParams: Promise<{
     q?: string;
-    type?: string;
+    type?: string;        // 후방호환 (구: 단일 select)
+    biz_types?: string;   // P31-R3: CSV (예: "공사,물품")
+    frgcpt?: string;      // P31-R3: 외자 토글 ("1")
+    indstryty?: string;   // P31-R3: 업종 코드 4자리
     inst?: string;
     from?: string;
     to?: string;
@@ -111,7 +184,22 @@ export default async function BidsPage(props: {
   }>;
 }) {
   const sp = await props.searchParams;
-  const hasQuery = !!(sp.q || sp.type || sp.inst || sp.from || sp.to);
+
+  // P31-R3: biz_types 다중 + frgcpt 토글 + indstryty
+  const selectedBizTypes = parseBizTypes(sp.biz_types, sp.type);
+  const includeFrgcpt = sp.frgcpt === "1";
+  const indstrytyCd = (sp.indstryty || "").trim();
+
+  const hasQuery = !!(
+    sp.q ||
+    sp.biz_types ||
+    sp.type ||
+    sp.frgcpt ||
+    sp.indstryty ||
+    sp.inst ||
+    sp.from ||
+    sp.to
+  );
   const sortKey = parseSort(sp.sort);
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
   // 5/3 N40: deep=1 → scan_pages=5 (LIKE 매칭률↑), default scan_pages=1
@@ -119,6 +207,9 @@ export default async function BidsPage(props: {
   // 5/3 N42: 라이브 측정 기반 default 30일 (P99 4.2초). 사용자 미입력 시 자동 적용.
   const dateFrom = sp.from || (hasQuery ? defaultBidsFrom() : undefined);
   const dateTo = sp.to || (hasQuery ? todayYYYYMMDD() : undefined);
+
+  // backend로 전달할 단일 biz_type
+  const backendBizType = resolveBackendBizType(selectedBizTypes, includeFrgcpt);
 
   // 5/3 N42 v12: 1개월 초과 입력 시 timeout 위험 안내
   const rangeDays = (() => {
@@ -133,7 +224,9 @@ export default async function BidsPage(props: {
   })();
   const isLargeRange = rangeDays > 31;
   const chunks = Math.max(1, Math.ceil(rangeDays / 31));
-  const estimatedSec = chunks * (scanPages === 1 ? 5 : 22) * (sp.type ? 1 : 3); // chunk × scan × endpoints
+  // 단일 endpoint(특정 biz_type) vs 전체 5종 fan-out 추정
+  const endpointCount = backendBizType ? 1 : 5;
+  const estimatedSec = chunks * (scanPages === 1 ? 5 : 22) * endpointCount;
 
   return (
     <main className="space-y-4">
@@ -144,37 +237,80 @@ export default async function BidsPage(props: {
 
       <Card>
         <CardContent className="p-4">
-          <form action="/bids" className="grid grid-cols-1 gap-2 md:grid-cols-5">
-            <Input
-              name="q"
-              defaultValue={sp.q}
-              placeholder="키워드 (LIKE 부분일치, 예: 정보화)"
-              className="md:col-span-2"
-            />
-            <select
-              name="type"
-              defaultValue={sp.type}
-              className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-sm"
-            >
-              <option value="">업종 전체</option>
-              <option value="공사">공사</option>
-              <option value="용역">용역</option>
-              <option value="물품">물품</option>
-            </select>
-            <Input name="inst" defaultValue={sp.inst} placeholder="발주기관" />
-            <Button type="submit">검색</Button>
-            <Input name="from" defaultValue={sp.from} placeholder="YYYYMMDD" />
-            <Input name="to" defaultValue={sp.to} placeholder="YYYYMMDD" />
-            <label className="flex items-center gap-1 text-xs text-[var(--color-fg-muted)]">
-              <input
-                type="checkbox"
-                name="deep"
-                value="1"
-                defaultChecked={sp.deep === "1"}
-                className="h-3.5 w-3.5"
+          <form action="/bids" className="space-y-3">
+            {/* 1행: 키워드 + 발주기관 + 업종 코드 + 검색 */}
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+              <Input
+                name="q"
+                defaultValue={sp.q}
+                placeholder="공고명 (예: 정보화 시스템 구축)"
+                className="md:col-span-2"
               />
-              깊은 검색(5x, LIKE 매칭률↑)
-            </label>
+              <Input
+                name="inst"
+                defaultValue={sp.inst}
+                placeholder="발주기관 (공고/수요 통합, 2자+)"
+                minLength={2}
+              />
+              <Input
+                name="indstryty"
+                defaultValue={sp.indstryty}
+                placeholder="업종 코드 4자리 (예: 0036)"
+                pattern="\d{4}"
+                title="업종 코드 4자리 (미입력 = 전체)"
+                maxLength={4}
+              />
+              <Button type="submit">검색</Button>
+            </div>
+
+            {/* 2행: 업무구분 5체크박스 + 외자 토글 */}
+            <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded border border-[var(--color-border)] bg-[var(--color-bg-muted)] px-3 py-2 text-sm">
+              <legend className="px-1 text-xs font-medium text-[var(--color-fg-muted)]">
+                업무구분 (다중 선택, 미선택 = 전체)
+              </legend>
+              {BIZ_TYPE_OPTIONS.map((opt) => (
+                <label key={opt} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    name="biz_types"
+                    value={opt}
+                    defaultChecked={selectedBizTypes.includes(opt)}
+                    className="h-3.5 w-3.5"
+                  />
+                  {opt}
+                </label>
+              ))}
+              <span className="ml-auto flex items-center gap-3 border-l border-[var(--color-border)] pl-3">
+                <span className="text-xs text-[var(--color-fg-muted)]">업무여부</span>
+                <label className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    name="frgcpt"
+                    value="1"
+                    defaultChecked={includeFrgcpt}
+                    className="h-3.5 w-3.5"
+                  />
+                  외자
+                </label>
+              </span>
+            </fieldset>
+
+            {/* 3행: 기간 + 깊은 검색 */}
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+              <Input name="from" defaultValue={sp.from} placeholder="YYYYMMDD (시작)" />
+              <Input name="to" defaultValue={sp.to} placeholder="YYYYMMDD (종료)" />
+              <label className="flex items-center gap-1 text-xs text-[var(--color-fg-muted)] md:col-span-3">
+                <input
+                  type="checkbox"
+                  name="deep"
+                  value="1"
+                  defaultChecked={sp.deep === "1"}
+                  className="h-3.5 w-3.5"
+                />
+                깊은 검색(5x, LIKE 매칭률↑)
+              </label>
+            </div>
+
             <input type="hidden" name="sort" value={sortKey} />
             <input type="hidden" name="page" value="1" />
           </form>
@@ -186,26 +322,28 @@ export default async function BidsPage(props: {
           {isLargeRange && (
             <div className="rounded border border-[var(--color-warning,#f59e0b)] bg-[var(--color-warning-bg,#fef3c7)] p-3 text-sm">
               <strong>⚠ 큰 범위 입력 ({Math.round(rangeDays / 31 * 10) / 10}개월)</strong>
-              {" "}— 응답 약 {estimatedSec}초 예상 (1개월 청크 {chunks}회{!sp.type ? " × 3 endpoint" : ""}{scanPages > 1 ? ` × deep ${scanPages}` : ""}). G2B 1개월 제약 자동 분할.
+              {" "}— 응답 약 {estimatedSec}초 예상 (1개월 청크 {chunks}회{!backendBizType ? " × 5 endpoint" : ""}{scanPages > 1 ? ` × deep ${scanPages}` : ""}). G2B 1개월 제약 자동 분할.
             </div>
           )}
           <Suspense fallback={<TableSkeleton />}>
             <Results
               keyword={sp.q}
-              biz_type={sp.type}
+              biz_type={backendBizType}
               inst_name={sp.inst}
+              indstryty_cd={indstrytyCd || undefined}
               date_from={dateFrom}
               date_to={dateTo}
               sort={sortKey}
               page={page}
               scanPages={scanPages}
+              selectedBizTypes={selectedBizTypes}
               sp={sp}
             />
           </Suspense>
         </>
       ) : (
         <p className="text-sm text-[var(--color-fg-muted)]">
-          검색 조건을 입력하세요. 예: 키워드 + 업종 + 기간.
+          검색 조건을 입력하세요. 예: 키워드 + 업무구분 + 기간.
         </p>
       )}
     </main>
@@ -216,16 +354,18 @@ interface ResultsParams {
   keyword?: string;
   biz_type?: string;
   inst_name?: string;
+  indstryty_cd?: string;
   date_from?: string;
   date_to?: string;
   sort: SortKey;
   page: number;
   scanPages: number;
+  selectedBizTypes: BizTypeOption[];
   sp: Record<string, string | undefined>;
 }
 
 async function Results(params: ResultsParams) {
-  const { sort, page, scanPages, sp, ...searchParams } = params;
+  const { sort, page, scanPages, sp, selectedBizTypes, ...searchParams } = params;
   const result = await searchBidNotices({ ...searchParams, page, scan_pages: scanPages });
   if (!result.ok) {
     return (
@@ -235,7 +375,18 @@ async function Results(params: ResultsParams) {
     );
   }
   const data = extractData(result.data);
-  const rawItems: Bid[] = data?.items || [];
+  let rawItems: Bid[] = data?.items || [];
+
+  // P31-R3 (F23): 일반용역/기술용역 단독 선택 시 client-side filter (backend는 "용역" 통합 응답).
+  // 두 종 모두 선택 또는 일반용역+기술용역 외 다른 종이 섞이면 필터 미적용.
+  const onlyService =
+    selectedBizTypes.length > 0 &&
+    selectedBizTypes.every((v) => v === "일반용역" || v === "기술용역");
+  if (onlyService && selectedBizTypes.length === 1) {
+    const target = selectedBizTypes[0];
+    rawItems = rawItems.filter((it) => (it.srvce_div || "") === target);
+  }
+
   const items = sortItems(rawItems, sort, todayYYYYMMDD());
   const totalCount = data?.total_count ?? 0;
   const hasMore = !!data?.has_more;
@@ -248,7 +399,9 @@ async function Results(params: ResultsParams) {
   const buildHref = (newPage: number) => {
     const qs = new URLSearchParams();
     if (sp.q) qs.set("q", sp.q);
-    if (sp.type) qs.set("type", sp.type);
+    if (sp.biz_types) qs.set("biz_types", sp.biz_types);
+    if (sp.frgcpt) qs.set("frgcpt", sp.frgcpt);
+    if (sp.indstryty) qs.set("indstryty", sp.indstryty);
     if (sp.inst) qs.set("inst", sp.inst);
     if (sp.from) qs.set("from", sp.from);
     if (sp.to) qs.set("to", sp.to);
@@ -359,37 +512,55 @@ async function Results(params: ResultsParams) {
           <tr>
             <th className="px-3 py-2 text-left">공고일</th>
             <th className="px-3 py-2 text-left">공고제목</th>
-            <th className="px-3 py-2 text-left">발주기관</th>
-            <th className="px-3 py-2 text-left">업종</th>
+            <th className="px-3 py-2 text-left">공고기관</th>
+            <th className="px-3 py-2 text-left">수요기관</th>
+            <th className="px-3 py-2 text-left">업무구분</th>
             <th className="px-3 py-2 text-right">추정가</th>
             <th className="px-3 py-2 text-right">마감일</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((bid: Bid) => (
-            <tr key={`${bid.bid_no}-${bid.bid_ord}`} className="border-t hover:bg-[var(--color-bg-muted)]">
-              <td className="px-3 py-2 tabular-nums">
-                {fmtDate(bid.publish_date)}
-              </td>
-              <td className="px-3 py-2">
-                <BidLink
-                  bidNo={bid.bid_no}
-                  ord={bid.bid_ord}
-                  title={bid.title}
-                />
-              </td>
-              <td className="px-3 py-2">
-                <AgencyLink name={bid.inst_name} />
-              </td>
-              <td className="px-3 py-2">{bid.biz_type || "—"}</td>
-              <td className="px-3 py-2 text-right tabular-nums">
-                {fmtWon(bid.estimated_price)}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums">
-                {fmtDate(bid.deadline_date)}
-              </td>
-            </tr>
-          ))}
+          {items.map((bid: Bid) => {
+            // P31-R3 (F26): ntceInsttNm + dminsttNm 분리 표시 (raw 응답 직접 활용)
+            const raw = bid.raw || {};
+            const ntceInst = (raw["ntceInsttNm"] as string | undefined) || undefined;
+            const dminInst = (raw["dminsttNm"] as string | undefined) || undefined;
+            // 업무구분: srvce_div 우선 (일반용역/기술용역 변별), 없으면 biz_type
+            const workDiv = bid.srvce_div || bid.biz_type || "—";
+            return (
+              <tr key={`${bid.bid_no}-${bid.bid_ord}`} className="border-t hover:bg-[var(--color-bg-muted)]">
+                <td className="px-3 py-2 tabular-nums">
+                  {fmtDate(bid.publish_date)}
+                </td>
+                <td className="px-3 py-2">
+                  <BidLink
+                    bidNo={bid.bid_no}
+                    ord={bid.bid_ord}
+                    title={bid.title}
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  {ntceInst ? <AgencyLink name={ntceInst} /> : "—"}
+                </td>
+                <td className="px-3 py-2">
+                  {dminInst && dminInst !== ntceInst ? (
+                    <AgencyLink name={dminInst} />
+                  ) : (
+                    <span className="text-[var(--color-fg-muted)]">
+                      {dminInst === ntceInst ? "(동일)" : "—"}
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2">{workDiv}</td>
+                <td className="px-3 py-2 text-right tabular-nums">
+                  {fmtWon(bid.estimated_price)}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums">
+                  {fmtDate(bid.deadline_date)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </section>

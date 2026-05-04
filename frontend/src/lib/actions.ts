@@ -67,6 +67,7 @@ export async function searchBidNotices(params: {
   keyword?: string;
   biz_type?: string;
   inst_name?: string;
+  indstryty_cd?: string;  // P31-R3 (F23): 업종 코드 4자리 (G2B 서버측 필터)
   date_from?: string;
   date_to?: string;
   limit?: number;
