@@ -1033,3 +1033,9 @@ $ rsync -a --delete --exclude='.git' --exclude='.pat' --exclude='node_modules' M
 $ git diff -w --quiet  # → 0 real content delta, 254건 모두 CRLF/mode noise
 $ git checkout -- .   # CRLF noise reset
 $ git add logs/ && git commit && git push origin main
+
+[2026-05-04 18:09 KST] $ # cycle 127 정기 sync — 인프라 복구 후 2 사이클째 정상 cadence
+$ rsync -a --delete --exclude='.git' --exclude='.pat' --exclude='node_modules' MOUNT/ WORK/
+$ git diff -w --quiet  # → 0 real content delta, 254건 모두 CRLF/mode noise
+$ git checkout -- .   # CRLF noise reset
+$ git add logs/ && git commit && git push origin main
